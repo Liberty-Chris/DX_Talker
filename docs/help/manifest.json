@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "status": "planned",
+  "pages": [
+    {
+      "id": "index",
+      "title": "Help and Info",
+      "path": "index.md"
+    },
+    {
+      "id": "getting_started",
+      "title": "Getting started",
+      "path": "getting_started.md"
+    },
+    {
+      "id": "connections",
+      "title": "Source connections",
+      "path": "connections.md"
+    },
+    {
+      "id": "radio",
+      "title": "Radio audio and PTT",
+      "path": "radio.md"
+    },
+    {
+      "id": "identification",
+      "title": "Station identification",
+      "path": "identification.md"
+    },
+    {
+      "id": "troubleshooting",
+      "title": "Troubleshooting",
+      "path": "troubleshooting.md"
+    },
+    {
+      "id": "about",
+      "title": "About DX Talker",
+      "path": "about.md"
+    }
+  ]
+}
