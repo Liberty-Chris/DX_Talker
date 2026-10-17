@@ -1,6 +1,6 @@
 # Open questions
 
-Updated October 14, 2026. Record answers here with the date, evidence and any resulting decision.
+Updated October 17, 2026. Record answers here with the date, evidence and any resulting decision.
 
 ## Needed before implementation commitments
 
@@ -28,7 +28,7 @@ Ask about gaps that affect a concrete decision. Work on known requirements can p
 
 ## Release decisions
 
-Select a license for new code and establish permissions for any historical assets reused. Decide application name and versioning, distribution channel, update strategy and supported hardware list before releasing an installer.
+The current policy reserves all rights in the modern project and separately preserves the rights of the historical archive's applicable holders. See [the modern project notice](../LICENSE) and [the original files notice](../Original_Files/LICENSE). Confirm current historical ownership, any original publishing agreements and permissions before reusing or distributing historical assets. Any later public license requires appropriate authorization and an explicit scope. Decide application name and versioning, distribution channel, update strategy and supported hardware list before releasing an installer.
 
 ## Resolved clarifications
 

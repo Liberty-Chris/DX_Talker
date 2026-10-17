@@ -27,3 +27,7 @@ e9ac3463fae15baeff4279ad452a9471ab09bb420e7742e26e876a3da3420485
 Keep the original ZIP unchanged. Place extracted working material outside this directory and record any derived findings in [legacy findings](../docs/legacy.md). Do not treat bundled runtime files or audio as automatically licensed for redistribution with the modern application.
 
 See the [main README](../README.md), [roadmap](../ROADMAP.md) and [questions](../docs/questions.md) for the modernization effort.
+
+## Rights and permissions
+
+See [the original files notice](LICENSE). All rights are reserved by the applicable copyright holders, subject to existing valid permissions, applicable law and GitHub's applicable terms. The modern project's license does not apply to this archive. Bundled components retain their own applicable rights and terms.

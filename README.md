@@ -34,4 +34,10 @@ The [original archive description](Original_Files/Description.md) and [legacy fi
 
 ## Attribution and permissions
 
-Credit for the original DX Talker belongs to Kevin Leggett and Dave Hockaday. The archive is preserved for historical reference. No repository license has been selected and this documentation does not grant new rights to the original software, recordings or bundled runtime components. Distribution terms for a modern release remain an open project decision.
+Credit for the original DX Talker belongs to Kevin Leggett and Dave Hockaday.
+
+The modern project currently reserves all rights under the [modern project notice](LICENSE). No public permission to use, modify or redistribute covered material is granted, subject to applicable law, existing valid permissions and GitHub's applicable terms.
+
+The historical archive is separately covered by the [original files notice](Original_Files/LICENSE). Its preservation grants no new rights to the original software, recordings or bundled components. Their applicable copyright holders retain their rights.
+
+Chris Hockaday selected this policy on October 17, 2026. The modern project's license may change later with appropriate authorization. Any such change must expressly exclude the historical archive unless its applicable copyright holders authorize otherwise. Contact Chris through this repository for permission inquiries.

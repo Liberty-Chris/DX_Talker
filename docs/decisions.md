@@ -1,6 +1,6 @@
 # Decision record
 
-Updated October 14, 2026.
+Updated October 17, 2026.
 
 ## D001 Windows first
 
@@ -37,3 +37,11 @@ Route all audio and PTT through one coordinator to prevent overlapping announcem
 State: open.
 
 No language, framework, speech library, audio library, PTT library or installer technology has been chosen. Record alternatives, current dependency evidence, rationale and verification here when selecting them.
+
+## D007 Rights reserved separately for modern and historical material
+
+State: accepted project owner decision from Chris Hockaday on October 17, 2026.
+
+Reserve all rights for the modern project for now, with no public use, modification or redistribution license. Preserve historical rights separately in Original_Files/LICENSE and expressly exclude the archive from the modern notice. Existing valid permissions, applicable law, GitHub's applicable terms and third party terms remain unaffected. Keep the original ZIP unchanged.
+
+Chris may revisit the modern policy later, subject to authorization from applicable copyright holders. This decision does not establish current historical ownership or claim ownership of bundled components. Confirm ownership and historical publishing agreements before historical reuse or licensing.

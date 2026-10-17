@@ -1,5 +1,9 @@
 # Changelog
 
+## October 17, 2026
+
+Added separate all rights reserved notices for the modern project and historical archive at the project owner's request. Updated attribution, operator Info, status, decisions and release questions to reflect the current policy and the possibility of a later modern license change. Preserved existing permissions and third party terms. The original ZIP is unchanged.
+
 ## October 14, 2026
 
 Created the modernization documentation foundation, including the main README, original archive description, roadmap, requirements, proposed architecture, evidence register, decision record and open questions.

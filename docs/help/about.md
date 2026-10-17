@@ -13,3 +13,7 @@ There is no modern application release yet. The eventual Info section must show 
 ## Historical archive
 
 The repository preserves the original software archive. Static inspection found compiled Visual Basic 3 era Windows programs, audio clips and a DX capture rather than editable source code. Original authorship and applicable permissions remain distinct from new development.
+
+## Rights and permissions
+
+The modern project currently reserves all rights. See [the modern project notice](../../LICENSE). The original archive is separately governed by [the original files notice](../../Original_Files/LICENSE). Public availability grants no additional reuse permission. Existing valid permissions, applicable law, GitHub's applicable terms and bundled component terms remain unaffected.

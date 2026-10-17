@@ -1,6 +1,6 @@
 # Project status
 
-Updated October 14, 2026.
+Updated October 17, 2026.
 
 ## Current baseline
 
@@ -17,3 +17,7 @@ Documentation verification covers relative link targets, help manifest targets a
 ## Next work
 
 M1 discovery is next. Confirm the initial radio interface, source login exchange, Windows support target and identification policy. See [questions](questions.md) and [roadmap](../ROADMAP.md). Stack selection remains open.
+
+## Current rights policy
+
+On October 17, 2026, Chris Hockaday directed that rights be reserved for both the modern project and original archive for now. Separate notices are maintained in [LICENSE](../LICENSE) and [Original_Files/LICENSE](../Original_Files/LICENSE). Historical ownership and asset reuse permissions remain to be confirmed. No application milestone changed.
