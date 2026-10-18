@@ -2,7 +2,7 @@
 
 DX Talker brings spoken DX cluster announcements to amateur radio. This project is modernizing the application created by Kevin Leggett (KT4BN) and Dave Hockaday (WB4IUY) in the early 1990s.
 
-According to the project history supplied by Chris Hockaday, the original was associated with QST, monitored a DX cluster through a TNC packet node and retransmitted information over RF. It periodically identified the station using voice and CW. The exact QST article citation remains to be located.
+The original was associated with QST, monitored a DX cluster through a TNC packet node and retransmitted information over RF. It periodically identified the station using voice and CW. The exact QST article citation remains to be located.
 
 ## Project status
 
