@@ -21,7 +21,7 @@ All locations above are relative to `DX-TALKER/` inside the ZIP. No standalone .
 
 ## Historical account
 
-Chris Hockaday identifies Kevin Leggett and Dave Hockaday as the original authors and describes early 1990s QST association, TNC packet cluster monitoring, RF announcements and periodic voice and CW IDs. These are project supplied history rather than behavior verified by executing the archive.
+Chris Hockaday identifies Kevin Leggett (KT4BN) and Dave Hockaday (WB4IUY) as the original authors and describes early 1990s QST association, TNC packet cluster monitoring, RF announcements and periodic voice and CW IDs. These are project supplied history rather than behavior verified by executing the archive.
 
 ## Reuse boundaries
 

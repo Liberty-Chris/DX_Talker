@@ -1,6 +1,6 @@
 # Original DX Talker files
 
-This directory preserves the historical DX Talker archive supplied for the modernization project. Kevin Leggett and Dave Hockaday created the original application in the early 1990s, according to the project history supplied by Chris Hockaday.
+This directory preserves the historical DX Talker archive supplied for the modernization project. Kevin Leggett (KT4BN) and Dave Hockaday (WB4IUY) created the original application in the early 1990s, according to the project history supplied by Chris Hockaday.
 
 The original monitored a DX cluster through a TNC packet node and retransmitted the information over RF, with periodic voice and CW identification. The QST publication reference and exact release chronology remain unverified.
 

@@ -1,6 +1,6 @@
 # About DX Talker
 
-DX Talker is a modernization of the application created by Kevin Leggett and Dave Hockaday in the early 1990s.
+DX Talker is a modernization of the application created by Kevin Leggett (KT4BN) and Dave Hockaday (WB4IUY) in the early 1990s.
 
 According to the history supplied by Chris Hockaday, the original application was associated with QST, received DX cluster information through a TNC packet node and retransmitted announcements over RF with periodic voice and CW identification. The exact QST citation is still being located.
 

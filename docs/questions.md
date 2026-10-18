@@ -14,7 +14,7 @@ Updated October 17, 2026. Record answers here with the date, evidence and any re
 | Q06 | How will channel availability be established for automatic announcements? | Audio plus PTT does not necessarily supply a busy signal | Station operator and selected hardware |
 | Q07 | Which spot fields, filters and repeat limits should be spoken? | Controls usefulness and channel occupancy | Chris and pilot operators |
 
-## Useful questions for Dave Hockaday
+## Useful questions for Dave Hockaday (WB4IUY)
 
 | ID | Question | Evidence so far |
 | :--- | :--- | :--- |

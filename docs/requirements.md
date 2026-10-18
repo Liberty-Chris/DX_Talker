@@ -4,7 +4,7 @@ Status: planned. Updated October 14, 2026.
 
 ## Purpose and scope
 
-The first product is a Windows desktop application that turns selected internet DX spots into spoken announcements over a radio with station identification. It modernizes the original workflow while preserving attribution to Kevin Leggett and Dave Hockaday.
+The first product is a Windows desktop application that turns selected internet DX spots into spoken announcements over a radio with station identification. It modernizes the original workflow while preserving attribution to Kevin Leggett (KT4BN) and Dave Hockaday (WB4IUY).
 
 ## Required behavior
 
