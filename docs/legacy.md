@@ -1,6 +1,6 @@
-# Legacy inspection findings
+# Notes on the original software
 
-Inspected October 14, 2026. Method: ZIP inventory, selected executable headers, printable strings and text capture review. No executable was run and no behavioral equivalence is claimed.
+Reviewed October 14, 2026. The review covered the ZIP's file list, information embedded in the programs and the captured cluster session. The programs were not run, so these notes describe what the files tell us rather than how the application behaved in use.
 
 ## Evidence
 
@@ -19,14 +19,14 @@ Inspected October 14, 2026. Method: ZIP inventory, selected executable headers, 
 
 All locations above are relative to `DX-TALKER/` inside the ZIP. No standalone .vbp, .mak, .frm or .bas source files were found.
 
-## Historical account
+## Background
 
-Chris Hockaday identifies Kevin Leggett (KT4BN) and Dave Hockaday (WB4IUY) as the original authors and describes early 1990s QST association, TNC packet cluster monitoring, RF announcements and periodic voice and CW IDs. These are project supplied history rather than behavior verified by executing the archive.
+My dad, Dave Hockaday (WB4IUY), and Kevin Leggett (KT4BN) created DX Talker in the early 1990s. It monitored DX clusters through a TNC packet node, announced spots over RF and identified with voice and CW. The archive gives us useful details about the original implementation, although it doesn't answer every question.
 
-## Reuse boundaries
+## Working with the files
 
 Preserve the ZIP and its checksum in [the archive description](../Original_Files/Description.md). Derive small reviewed parser fixtures in a future implementation change, with provenance and unrelated correspondence removed. Do not publish transfer log content as documentation or assume bundled recordings and dependencies may be shipped in a new installer.
 
 ## Remaining questions
 
-The QST citation, original release versions, PTT hardware wiring and exact ID behavior cannot be established from this inspection. Seek author clarification for those details if they affect modernization choices. Full source recovery is not a prerequisite for a new implementation.
+I still need to confirm the QST reference, original release versions, PTT wiring and exact ID behavior. Those are questions for Dad and Kevin as we work through the design. We can start the modern implementation without recovering every original detail.

@@ -1,53 +1,55 @@
-# Decision record
+# Project decisions
 
 Updated October 17, 2026.
 
 ## D001 Windows first
 
-State: accepted project direction from Chris Hockaday.
+Decided.
 
-The first modern application targets Windows and connects radio audio and PTT through compatible USB interfaces. Other platforms remain future possibilities. Exact supported Windows versions and hardware are unresolved.
+I'm starting with a Windows application using a compatible USB interface for radio audio and PTT. The first supported Windows versions and radio interfaces still need to be chosen.
 
-## D002 Independent CW and voice settings
+## D002 Separate CW and voice settings
 
-State: accepted project direction from Chris Hockaday.
+Decided.
 
-Provide separate text fields for CW and voice identification. Generated speech is the default voice method and a WAV file is an optional alternative. The initial CW design uses audio Morse through the radio audio device. Confirm scheduling policy separately.
+CW and voice identification will have separate text fields. Voice will use text to speech by default, with an optional WAV recording. CW will be generated as audio Morse through the radio connection. The timing and whether the two IDs alternate still need to be settled.
 
-## D003 Preserved archive and traceable help
+## D003 Original archive and help pages
 
-State: accepted documentation baseline.
+Decided.
 
-Keep the original archive unchanged. Use docs/help as the canonical operator manual with stable topic IDs. Behavior changes update help and implementation status in the same change. Planned behavior must remain distinguishable from shipped behavior.
+Keep the original ZIP unchanged. The pages in docs/help will become the application's operator manual. Keep their topic IDs stable and update the relevant help page whenever a feature changes.
 
-## D004 Separate source adapters
+## D004 Separate cluster and web feed connections
 
-State: proposed technical approach.
+Proposed.
 
-Use a TCP/Telnet adapter for the supplied endpoint and a separate provider specific adapter for a confirmed HTTP or HTTPS feed. This preserves the user's internet feed goal without pretending a cluster host and port is a web API.
+Use one connection method for TCP/Telnet clusters and another for supported HTTP or HTTPS feeds. The W4MR host and port are the initial cluster example. A web feed provider still needs to be selected.
 
-## D005 Central transmission ownership
+## D005 One place to manage transmission
 
-State: proposed technical approach.
+Proposed.
 
-Route all audio and PTT through one coordinator to prevent overlapping announcements and IDs. Require deliberate RF enable after startup or fault recovery. Validate behavior on actual hardware before unattended operation.
+One part of the application should manage all radio audio and PTT so announcements and IDs cannot overlap. Transmission should stay disabled after startup or a fault until the operator enables it. This needs testing with the supported hardware before unattended use.
 
-## D006 Technology stack
+## D006 Development tools
 
-State: open.
+Still open.
 
-No language, framework, speech library, audio library, PTT library or installer technology has been chosen. Record alternatives, current dependency evidence, rationale and verification here when selecting them.
+The language, framework, audio and speech libraries, PTT libraries and installer tools haven't been chosen. Record the choices and why they fit the project here as they're made.
 
-## D007 Rights reserved separately for modern and historical material
+## D007 Separate rights for new and original work
 
-State: accepted project owner decision from Chris Hockaday on October 17, 2026.
+Decided October 17, 2026.
 
-Reserve all rights for the modern project for now, with no public use, modification or redistribution license. Preserve historical rights separately in Original_Files/LICENSE and expressly exclude the archive from the modern notice. Existing valid permissions, applicable law, GitHub's applicable terms and third party terms remain unaffected. Keep the original ZIP unchanged.
+I'm reserving all rights for now. The [modern project notice](../LICENSE) excludes the historical archive, which has its [own notice](../Original_Files/LICENSE).
 
-Chris may revisit the modern policy later, subject to authorization from applicable copyright holders. This decision does not establish current historical ownership or claim ownership of bundled components. Confirm ownership and historical publishing agreements before historical reuse or licensing.
+I may change the modern license later with any necessary permissions. That won't automatically change the original files' terms. Existing permissions and bundled components' terms still apply. Ownership and any publishing agreements need to be checked before licensing or reusing historical material.
 
-## D008 Standalone hardware and direct repeater integration
+## D008 Standalone hardware and repeater integration
 
-State: accepted future project direction from Chris Hockaday (KF4DBX) on October 17, 2026.
+Planned October 17, 2026.
 
-Keep Windows as the first application target. Plan a standalone radio connected device using WiFi for internet access and a direct repeater integration option for systems using ASL3, Allmon and Asterisk. These are separate future deployment paths, with hardware, integration methods, supported versions and timing still open. This records direction rather than claiming working compatibility.
+After the Windows application, I'm planning a standalone device that connects to a radio and uses WiFi for internet access. I'm also planning direct integration for repeater systems using ASL3, Allmon and Asterisk.
+
+The hardware, integration method, supported versions and release timing still need to be worked out.

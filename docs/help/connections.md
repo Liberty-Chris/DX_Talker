@@ -1,12 +1,12 @@
 # Source connections
 
-Status: planned. No source adapter or successful live sign in has been verified yet.
+These are the planned connection options. Setup instructions will be completed as the application is built and tested.
 
 ## Cluster host and port
 
-The supplied example uses host `w4mr.ddns.net`, port `7373` and a TCP/Telnet connection. This is not a web page URL. In the intended application, choose the cluster connection type and enter host and port separately.
+The initial cluster example uses host `w4mr.ddns.net`, port `7373` and a TCP/Telnet connection. This is not a web page URL. In the intended application, choose the cluster connection type and enter host and port separately.
 
-The source may prompt for a callsign, password or other information. Its actual exchange must be confirmed before final instructions are written. Signing in to a cluster is separate from a DX Talker account. No application account is currently planned as a prerequisite.
+The source may prompt for a callsign, password or other information. We'll confirm the current prompts before writing the final setup instructions. Signing in to a cluster is separate from a DX Talker account. No application account is currently planned as a prerequisite.
 
 Plain TCP/Telnet does not inherently encrypt submitted credentials. Use the service's documented connection method and do not assume HTTPS protections apply.
 

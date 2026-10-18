@@ -2,7 +2,7 @@
 
 Updated October 17, 2026.
 
-Only M0 is complete. All application milestones remain planned. This file is a shared execution guide for people and coding agents. [Status](docs/STATUS.md) records the current implementation baseline.
+The initial documentation is in place. Next comes choosing the hardware and development tools, then building the Windows application. [Project status](docs/STATUS.md) tracks progress.
 
 ## Milestones
 
@@ -17,7 +17,7 @@ Only M0 is complete. All application milestones remain planned. This file is a s
 | M6 Windows pilot | Planned | Installer, settings migration, diagnostics, accessible UI and packaged Help and Info | Clean machine install, upgrade, removal and operator acceptance with named hardware and Windows versions |
 | M7 First release | Planned | Resolve pilot defects and publish supported scope | Release checklist complete, accurate help and known limitations published |
 
-M1 precedes technical commitments. M2 and M3 precede live feed driven RF work. M4 must establish controlled radio operation before M5 enables unattended scheduling. The web URL adapter is a separate deliverable after M1 identifies a real provider and format. It may join the first release if that source is confirmed and validated; generic arbitrary URL support is not promised.
+Work through the connection and local audio stages before enabling radio transmission. Test radio control before adding unattended scheduling. Web feed support needs a selected provider and format, so its place in the first release depends on that choice.
 
 ## Immediate next task
 
@@ -37,7 +37,7 @@ The pilot must demonstrate ordinary operation and failure recovery using actual 
 
 Planned follow ons are a standalone device that connects to a radio and uses WiFi for internet access, plus direct repeater integration for systems using ASL3, Allmon and Asterisk. Neither is implemented or included in the initial Windows release. Hardware selection, integration methods, supported versions and release timing remain open. Both paths require their own implementation and bench verification before release.
 
-Candidates include additional web feed providers, additional PTT adapters, radio control integration, richer spot filters, pronunciation profiles and additional platforms. These are ideas rather than committed release requirements.
+Candidates include additional web feed providers, additional PTT adapters, radio control integration, richer spot filters, pronunciation profiles and additional platforms. These are possibilities for later versions.
 
 ## Updating this roadmap
 

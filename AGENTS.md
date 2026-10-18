@@ -2,6 +2,10 @@
 
 Read [README.md](README.md), [ROADMAP.md](ROADMAP.md), [docs/STATUS.md](docs/STATUS.md), [requirements](docs/requirements.md), [architecture](docs/architecture.md) and [open questions](docs/questions.md) before starting work. Read relevant operator help before changing user behavior.
 
+## Writing style
+
+Write public project pages naturally from Chris Hockaday's (KF4DBX) perspective. Avoid referring to him as an outside source with phrases such as "Chris confirmed" or "history supplied by Chris." State progress plainly and keep detailed test records in the relevant technical documents. Keep planned features clear without repeating disclaimers in every paragraph. Preserve manual edits and existing Markdown formatting when making unrelated changes.
+
 ## Evidence and scope
 
 This repository currently contains historical binaries and planning documentation. Do not invent recovered source, a working modern application, confirmed hardware compatibility or successful endpoint tests. Separate user supplied history, direct archive observations, proposals and validated implementation.

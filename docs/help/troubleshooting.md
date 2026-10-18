@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Status: planned recovery guidance. Actual error messages and controls will be documented with implementation.
+This is a draft of the troubleshooting guide. We'll add the application's actual messages and controls as they're built.
 
 ## Cannot connect to the source
 

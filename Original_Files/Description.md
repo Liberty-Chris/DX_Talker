@@ -1,8 +1,8 @@
 # Original DX Talker files
 
-This directory preserves the historical DX Talker archive supplied for the modernization project. Kevin Leggett (KT4BN) and Dave Hockaday (WB4IUY) created the original application in the early 1990s, according to the project history supplied by Chris Hockaday.
+This is the original DX Talker archive. My dad, Dave Hockaday (WB4IUY), and Kevin Leggett (KT4BN) created the application in the early 1990s. I'm keeping these files together as part of bringing DX Talker forward.
 
-The original monitored a DX cluster through a TNC packet node and retransmitted the information over RF, with periodic voice and CW identification. The QST publication reference and exact release chronology remain unverified.
+The original monitored a DX cluster through a TNC packet node and retransmitted the information over RF, with periodic voice and CW identification. I'm still looking for the exact QST reference and release dates.
 
 ## Archive contents
 
@@ -18,13 +18,13 @@ The capture at `DX-TALKER/dxtalker/wav/hyperlog.cap` contains DX spot lines alon
 
 ## Preservation
 
-The ZIP was inspected statically on October 14, 2026. No archived executable was run. Its SHA256 is:
+The archive review on October 14, 2026 examined the files without running the old programs. Its SHA256 is:
 
 ```text
 e9ac3463fae15baeff4279ad452a9471ab09bb420e7742e26e876a3da3420485
 ```
 
-Keep the original ZIP unchanged. Place extracted working material outside this directory and record any derived findings in [legacy findings](../docs/legacy.md). Do not treat bundled runtime files or audio as automatically licensed for redistribution with the modern application.
+Keep the original ZIP unchanged. Place extracted working material outside this directory and record what you learn in [legacy findings](../docs/legacy.md). Do not treat bundled runtime files or audio as automatically licensed for redistribution with the modern application.
 
 See the [main README](../README.md), [roadmap](../ROADMAP.md) and [questions](../docs/questions.md) for the modernization effort.
 

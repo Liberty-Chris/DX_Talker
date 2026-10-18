@@ -1,20 +1,20 @@
 # About DX Talker
 
-DX Talker is a modernization of the application created by Kevin Leggett (KT4BN) and Dave Hockaday (WB4IUY) in the early 1990s.
+My dad, Dave Hockaday (WB4IUY), and Kevin Leggett (KT4BN) created DX Talker in the early 1990s. I'm Chris Hockaday (KF4DBX), and I'm bringing it into the modern era.
 
 The original application was associated with QST, received DX cluster information through a TNC packet node and retransmitted announcements over RF with periodic voice and CW identification. We are still tracking down the exact QST issue and article reference.
 
-Chris Hockaday (KF4DBX) is bringing DX Talker into the modern era, starting with a Windows application using internet DX sources, USB radio audio and compatible PTT control, generated speech, audio Morse IDs and optional recorded voice IDs.
+I'm starting with a Windows application using internet DX sources, USB radio audio and compatible PTT control, generated speech, audio Morse IDs and optional recorded voice IDs.
 
 Future plans include a standalone device that connects to a radio and uses WiFi for internet access, plus direct repeater integration for systems using ASL3, Allmon and Asterisk. These options are not available yet. Hardware and integration support will be confirmed during development.
 
 ## Version and support
 
-There is no modern application release yet. The eventual Info section must show the application version, documentation version or build identity, project link, supported Windows versions, tested interface support and applicable notices.
+There isn't a modern release yet. When the application is available, its Info page will show the version, project link, supported Windows versions, tested radio interfaces and license notices. It will also identify the included help version.
 
 ## Historical archive
 
-The repository preserves the original software archive. Static inspection found compiled Visual Basic 3 era Windows programs, audio clips and a DX capture rather than editable source code. Original authorship and applicable permissions remain distinct from new development.
+The original archive includes compiled Windows programs from the Visual Basic 3 era, audio clips and a captured cluster session. It doesn't include the editable source. See the [archive description](../../Original_Files/Description.md) for details.
 
 ## Rights and permissions
 

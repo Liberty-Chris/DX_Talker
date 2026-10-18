@@ -6,11 +6,11 @@ Status: planned. Updated October 17, 2026.
 
 The first product is a Windows desktop application that turns selected internet DX spots into spoken announcements over a radio with station identification. It modernizes the original workflow while preserving attribution to Kevin Leggett (KT4BN) and Dave Hockaday (WB4IUY).
 
-## Planned follow ons
+## After the Windows application
 
-After the initial Windows application, plan a standalone device with a radio connection and WiFi internet access, plus direct repeater integration for systems using ASL3, Allmon and Asterisk. The device should operate without a companion Windows computer. The repeater option should deliver announcements through the existing repeater system without a separate feeder radio.
+I'm planning a standalone device with a radio connection and WiFi internet access, plus direct repeater integration for systems using ASL3, Allmon and Asterisk. The device should operate without a companion Windows computer. The repeater option should deliver announcements through the existing repeater system without a separate feeder radio.
 
-These are future product directions rather than implemented features or first release requirements. Radio interfaces, power and hardware, software integration methods and supported repeater versions remain to be selected and tested. Transmission coordination and station identification must be addressed for each deployment.
+These will follow the Windows application. Radio interfaces, power and hardware, software integration methods and supported repeater versions remain to be selected and tested. Transmission coordination and station identification must be addressed for each deployment.
 
 ## Required behavior
 
@@ -37,9 +37,9 @@ These are future product directions rather than implemented features or first re
 
 ## Feed interpretation
 
-The supplied endpoint is `w4mr.ddns.net:7373`. It implies a TCP connection using a Telnet style cluster interface, not a confirmed HTTP feed. Login fields and prompts must come from service evidence rather than assumptions. Source login is distinct from an application account; no DX Talker account or cloud synchronization is currently required.
+The supplied endpoint is `w4mr.ddns.net:7373`. It implies a TCP connection using a Telnet style cluster interface, not a confirmed HTTP feed. Confirm the login prompts with the service before implementing them. Source login is distinct from an application account; no DX Talker account or cloud synchronization is currently required.
 
-For web feeds, authentication may use a provider specific token or other mechanism. Do not invent an API contract. Plain TCP/Telnet may expose submitted credentials in transit; describe the chosen service's transport accurately in help.
+For web feeds, authentication may use a provider specific token or other mechanism. Document the chosen provider's API before implementing its adapter. Plain TCP/Telnet may expose submitted credentials in transit; describe the chosen service's transport accurately in help.
 
 ## Announcement policy
 
@@ -63,4 +63,4 @@ Busy channel detection is unresolved because audio and PTT alone do not establis
 
 ## Release limits
 
-Initial hardware support is limited to interfaces actually tested. No universal USB compatibility, recovered legacy source, exact original behavior, specific Windows version or live provider availability is claimed.
+Initial hardware support is limited to interfaces actually tested. Publish the supported Windows versions, interfaces and feed providers once they've been tested.

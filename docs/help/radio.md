@@ -1,6 +1,6 @@
 # Radio audio and PTT
 
-Status: planned. No interface compatibility is claimed yet.
+This page describes the planned radio setup. Tested interface models and connection instructions will be added during development.
 
 ## Two separate functions
 

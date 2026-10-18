@@ -1,41 +1,45 @@
 # Open questions
 
-Updated October 17, 2026. Record answers here with the date, evidence and any resulting decision.
+Updated October 17, 2026.
 
-## Needed before implementation commitments
+These are the details I still need to work out as development gets started. Record answers here so the plans and help pages stay current.
 
-| ID | Question | Why it matters | Source of answer |
-| :--- | :--- | :--- | :--- |
-| Q01 | Which radio and USB interface should be supported first? | Determines audio connection and PTT control method | Chris and interface documentation |
-| Q02 | What exact prompts and login fields does W4MR require? | Defines source authentication without guessing | Authorized operator transcript and service operator |
-| Q03 | Is the initial source the supplied TCP/Telnet service, a web feed or both? If a web feed, which URL and format? | Sets first release scope | Chris and source provider |
-| Q04 | Which Windows versions and processor architectures are required? | Controls stack, packaging and test targets | Chris and pilot users |
-| Q05 | Should voice and CW IDs alternate or both run, at what intervals and after which transmissions? | Defines scheduler behavior | Chris and station operating policy |
-| Q06 | How will channel availability be established for automatic announcements? | Audio plus PTT does not necessarily supply a busy signal | Station operator and selected hardware |
-| Q07 | Which spot fields, filters and repeat limits should be spoken? | Controls usefulness and channel occupancy | Chris and pilot operators |
+## Windows application
 
-## Future deployment questions
-
-Before implementing the standalone device, choose its hardware, power requirements, radio audio and PTT connections, WiFi setup and local controls. Before implementing direct repeater integration, confirm the target ASL3, Allmon and Asterisk versions, the audio and control interfaces and how announcements coordinate with existing repeater identification and traffic.
-
-## Useful questions for Dave Hockaday (WB4IUY)
-
-| ID | Question | Evidence so far |
+| ID | Question | Why it matters |
 | :--- | :--- | :--- |
-| H01 | What QST issue, article title and author credits describe DX Talker? | History supplied by Chris; citation not in reviewed files |
-| H02 | What PTT interface and port wiring did the original use? | IOPORT.VBX appears in archive |
-| H03 | How were CW and voice IDs scheduled and configured? | ID.wav is referenced but absent; CW behavior supplied by Chris |
-| H04 | Are the original Visual Basic source and missing ID recording still available? | Archive contains compiled programs and audio assets |
-| H05 | Which original behaviors should the modern application preserve? | Spot capture and speech fragment filenames offer partial clues |
+| Q01 | Which radio and USB interface should we support first? | Determines the audio and PTT connections |
+| Q02 | What does the W4MR login process ask for? | Lets us build and test the connection properly |
+| Q03 | Should the first release support the TCP/Telnet cluster, a web feed or both? Which web provider and format? | Sets the connection work for the first release |
+| Q04 | Which Windows versions and processor architectures should we support? | Helps choose development tools and test machines |
+| Q05 | Should voice and CW IDs alternate or both run? At what intervals and after which transmissions? | Defines the ID schedule |
+| Q06 | How will the application know whether the channel is busy? | Audio and PTT connections alone may not provide that information |
+| Q07 | Which spot details, filters and repeat limits do we want? | Determines what gets announced and how often |
 
-Ask about gaps that affect a concrete decision. Work on known requirements can proceed without recovering every historical detail.
+## Standalone hardware and repeater integration
 
-## Release decisions
+For the standalone device, choose the hardware, power supply, radio connections, WiFi setup and local controls.
 
-The current policy reserves all rights in the modern project and separately preserves the rights of the historical archive's applicable holders. See [the modern project notice](../LICENSE) and [the original files notice](../Original_Files/LICENSE). Confirm current historical ownership, any original publishing agreements and permissions before reusing or distributing historical assets. Any later public license requires appropriate authorization and an explicit scope. Decide application name and versioning, distribution channel, update strategy and supported hardware list before releasing an installer.
+For direct repeater integration, choose the target ASL3, Allmon and Asterisk versions and work out how to connect audio and control. Announcements need to fit around repeater traffic and existing station identification.
 
-## Resolved clarifications
+## Questions for Dad, Dave Hockaday (WB4IUY)
 
-On October 14, 2026, inspection established that the supplied address is a host and port example for TCP/Telnet rather than an identified HTTP feed. This does not resolve Q03 or verify the service itself.
+| ID | Question | What we have so far |
+| :--- | :--- | :--- |
+| H01 | Which QST issue and article covered DX Talker? | The exact reference hasn't been located |
+| H02 | What PTT interface and wiring did the original use? | IOPORT.VBX is in the archive |
+| H03 | How were voice and CW IDs configured and scheduled? | The program references ID.wav, but that recording isn't in the archive |
+| H04 | Are the Visual Basic source and missing ID recording still around? | The archive contains compiled programs and audio files |
+| H05 | Which original behaviors should we carry forward? | The captured spots and speech clips give us a starting point |
 
-On October 14, 2026, static archive inspection found no editable Visual Basic source files. Modern development can proceed from documented requirements without assuming those files exist.
+## Before release
+
+Choose the version numbering, distribution channel, update method and supported hardware list. Review permissions before using original recordings or bundled components in a new release.
+
+Rights are reserved for now under the [modern project notice](../LICENSE) and [original files notice](../Original_Files/LICENSE). Any later license change needs to be clear about which material it covers and have the necessary permissions.
+
+## What we've already checked
+
+The W4MR example is a TCP/Telnet host and port. We still need to test its login process and choose a web feed provider if web feed support is included.
+
+The archive review on October 14, 2026 found compiled programs but no editable Visual Basic source. We can build the modern application from the requirements while looking for the original source.

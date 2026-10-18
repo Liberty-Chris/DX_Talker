@@ -2,26 +2,28 @@
 
 Updated October 17, 2026.
 
-## Current baseline
+## Where things stand
 
-The repository contains the preserved original ZIP and a documentation foundation. Static inspection found compiled Windows programs, recordings, installer dependencies and a sample cluster capture. No editable project source was found.
+I'm working on the plans for the new DX Talker. The original software is archived here, and the initial requirements, roadmap and help pages are in place. There isn't a modern application or installer to download yet.
 
-M0 is complete. No modern application code, installer, automated build or application test suite exists. No live cluster login, Windows audio test, PTT bench test or RF transmission has been performed for this modernization.
+The archive contains the old Windows programs, audio recordings and supporting files. It doesn't include the editable Visual Basic source. Details are in the [archive description](../Original_Files/Description.md) and [legacy notes](legacy.md).
 
-## Verification
+## What's coming
 
-The original ZIP was read without executing its programs. Its 107 file entries were inventoried, selected executable headers and strings were inspected and its SHA256 was recorded in [the archive description](../Original_Files/Description.md).
+The Windows application comes first. It will receive DX spots over the internet, announce them through a radio interface and handle voice and CW identification.
 
-Documentation verification covers relative link targets, help manifest targets and preservation of the ZIP blob. This is documentation verification only.
+After that, I'm planning a standalone device with WiFi and a radio connection, plus direct integration for repeater systems using ASL3, Allmon and Asterisk.
 
-## Planned deployment options
+## What I'm working out next
 
-Chris Hockaday (KF4DBX) confirmed plans on October 17, 2026 for a standalone device with a radio connection and WiFi internet access, plus direct repeater integration for systems using ASL3, Allmon and Asterisk. These follow the initial Windows application. No hardware design or repeater integration is implemented or tested, and no delivery date is set.
+The next step is choosing the first radio interface, supported Windows versions and development tools. I also need to confirm the cluster login process and decide how voice and CW IDs will be scheduled.
 
-## Next work
+The [open questions](questions.md) cover those details. The [roadmap](../ROADMAP.md) lays out the development stages.
 
-M1 discovery is next. Confirm the initial radio interface, source login exchange, Windows support target and identification policy. See [questions](questions.md) and [roadmap](../ROADMAP.md). Stack selection remains open.
+## Testing
 
-## Current rights policy
+So far, the original archive has been examined without running its programs, and the documentation links have been checked. Testing the new application, live cluster connection and radio interface will come during development.
 
-On October 17, 2026, Chris Hockaday directed that rights be reserved for both the modern project and original archive for now. Separate notices are maintained in [LICENSE](../LICENSE) and [Original_Files/LICENSE](../Original_Files/LICENSE). Historical ownership and asset reuse permissions remain to be confirmed. No application milestone changed.
+## Licensing
+
+I'm keeping all rights reserved for now, with separate notices for the [modern project](../LICENSE) and [original files](../Original_Files/LICENSE). The modern license may change later. Reusing original recordings or bundled components will need a review of their permissions first.

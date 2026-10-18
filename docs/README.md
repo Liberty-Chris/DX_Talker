@@ -1,19 +1,21 @@
-# Documentation index
+# Documentation
 
-This documentation describes a planned modernization. The [status record](STATUS.md) is authoritative about what exists today.
+Start with [project status](STATUS.md) for where things stand and the [roadmap](../ROADMAP.md) for what's next.
 
-## Project and engineering
+## Development
 
-[Requirements](requirements.md) captures intended behavior and acceptance criteria. [Architecture](architecture.md) describes proposed component boundaries. [Decisions](decisions.md) records accepted choices and proposals. [Questions](questions.md) holds unresolved details. [Legacy findings](legacy.md) records what the archive actually reveals.
+[Requirements](requirements.md) describes what the application needs to do. [Architecture](architecture.md) outlines the proposed design. [Project decisions](decisions.md) records choices we've made and options we're considering. [Open questions](questions.md) covers what we still need to work out.
 
-The root [roadmap](../ROADMAP.md) orders delivery. [Agent instructions](../AGENTS.md) establish the maintenance workflow. The [changelog](../CHANGELOG.md) records meaningful repository changes.
+The [legacy notes](legacy.md) and [archive description](../Original_Files/Description.md) explain what's in the original files. The [changelog](../CHANGELOG.md) tracks updates.
 
-## Operator documentation
+## Operator help
 
-[Help and Info](help/index.md) is the canonical source for the future application's operator documentation. [Getting started](help/getting_started.md), [source connections](help/connections.md), [radio setup](help/radio.md), [identification](help/identification.md), [troubleshooting](help/troubleshooting.md) and [About](help/about.md) are initial pages.
+The [Help and Info pages](help/index.md) will become the application's manual. They cover [getting started](help/getting_started.md), [connections](help/connections.md), [radio setup](help/radio.md), [station identification](help/identification.md), [troubleshooting](help/troubleshooting.md) and [About DX Talker](help/about.md).
 
-## Keeping help current
+These pages describe planned features for now. They'll be updated with tested instructions as the application takes shape.
 
-Each behavior change updates the relevant help page in the same change. Keep planned behavior clearly labeled until tested implementation replaces it. Preserve stable page IDs in [the help manifest](help/manifest.json) so the app can open a specific topic from a setting or error.
+## Keeping the documentation current
 
-The future build must package these Markdown pages for offline use. Rendering technology is undecided. Before release, validate manifest targets, local links, navigation and correspondence between the packaged manual and application version. Development evidence belongs in project documents while operator instructions belong in help.
+Update the relevant help page when a feature changes. Keep the topic IDs in the [help manifest](help/manifest.json) stable so the app can open the right page from a setting or error message.
+
+The manual will be included with the application for offline use. Before a release, check that the links work and the instructions match that version. See the [development instructions](../AGENTS.md) for the full workflow.
