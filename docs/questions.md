@@ -14,6 +14,10 @@ Updated October 17, 2026. Record answers here with the date, evidence and any re
 | Q06 | How will channel availability be established for automatic announcements? | Audio plus PTT does not necessarily supply a busy signal | Station operator and selected hardware |
 | Q07 | Which spot fields, filters and repeat limits should be spoken? | Controls usefulness and channel occupancy | Chris and pilot operators |
 
+## Future deployment questions
+
+Before implementing the standalone device, choose its hardware, power requirements, radio audio and PTT connections, WiFi setup and local controls. Before implementing direct repeater integration, confirm the target ASL3, Allmon and Asterisk versions, the audio and control interfaces and how announcements coordinate with existing repeater identification and traffic.
+
 ## Useful questions for Dave Hockaday (WB4IUY)
 
 | ID | Question | Evidence so far |

@@ -1,6 +1,6 @@
 # DX Talker modernization roadmap
 
-Updated October 14, 2026.
+Updated October 17, 2026.
 
 Only M0 is complete. All application milestones remain planned. This file is a shared execution guide for people and coding agents. [Status](docs/STATUS.md) records the current implementation baseline.
 
@@ -34,6 +34,8 @@ Enabling transmission is explicit. Parsed spots enter a bounded queue, stale spo
 The pilot must demonstrate ordinary operation and failure recovery using actual supported hardware. Application Help and Info are generated from the maintained documentation and accurately describe the released version.
 
 ## Beyond the first release
+
+Planned follow ons are a standalone device that connects to a radio and uses WiFi for internet access, plus direct repeater integration for systems using ASL3, Allmon and Asterisk. Neither is implemented or included in the initial Windows release. Hardware selection, integration methods, supported versions and release timing remain open. Both paths require their own implementation and bench verification before release.
 
 Candidates include additional web feed providers, additional PTT adapters, radio control integration, richer spot filters, pronunciation profiles and additional platforms. These are ideas rather than committed release requirements.
 

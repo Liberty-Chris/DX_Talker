@@ -2,9 +2,11 @@
 
 DX Talker is a modernization of the application created by Kevin Leggett (KT4BN) and Dave Hockaday (WB4IUY) in the early 1990s.
 
-According to the history supplied by Chris Hockaday, the original application was associated with QST, received DX cluster information through a TNC packet node and retransmitted announcements over RF with periodic voice and CW identification. The exact QST citation is still being located.
+The original application was associated with QST, received DX cluster information through a TNC packet node and retransmitted announcements over RF with periodic voice and CW identification. We are still tracking down the exact QST issue and article reference.
 
-The modern project plans a Windows application using internet DX sources, USB radio audio and compatible PTT control, generated speech, audio Morse IDs and optional recorded voice IDs.
+Chris Hockaday (KF4DBX) is bringing DX Talker into the modern era, starting with a Windows application using internet DX sources, USB radio audio and compatible PTT control, generated speech, audio Morse IDs and optional recorded voice IDs.
+
+Future plans include a standalone device that connects to a radio and uses WiFi for internet access, plus direct repeater integration for systems using ASL3, Allmon and Asterisk. These options are not available yet. Hardware and integration support will be confirmed during development.
 
 ## Version and support
 

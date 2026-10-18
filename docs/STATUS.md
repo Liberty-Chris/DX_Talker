@@ -14,6 +14,10 @@ The original ZIP was read without executing its programs. Its 107 file entries w
 
 Documentation verification covers relative link targets, help manifest targets and preservation of the ZIP blob. This is documentation verification only.
 
+## Planned deployment options
+
+Chris Hockaday (KF4DBX) confirmed plans on October 17, 2026 for a standalone device with a radio connection and WiFi internet access, plus direct repeater integration for systems using ASL3, Allmon and Asterisk. These follow the initial Windows application. No hardware design or repeater integration is implemented or tested, and no delivery date is set.
+
 ## Next work
 
 M1 discovery is next. Confirm the initial radio interface, source login exchange, Windows support target and identification policy. See [questions](questions.md) and [roadmap](../ROADMAP.md). Stack selection remains open.

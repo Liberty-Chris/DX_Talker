@@ -45,3 +45,9 @@ State: accepted project owner decision from Chris Hockaday on October 17, 2026.
 Reserve all rights for the modern project for now, with no public use, modification or redistribution license. Preserve historical rights separately in Original_Files/LICENSE and expressly exclude the archive from the modern notice. Existing valid permissions, applicable law, GitHub's applicable terms and third party terms remain unaffected. Keep the original ZIP unchanged.
 
 Chris may revisit the modern policy later, subject to authorization from applicable copyright holders. This decision does not establish current historical ownership or claim ownership of bundled components. Confirm ownership and historical publishing agreements before historical reuse or licensing.
+
+## D008 Standalone hardware and direct repeater integration
+
+State: accepted future project direction from Chris Hockaday (KF4DBX) on October 17, 2026.
+
+Keep Windows as the first application target. Plan a standalone radio connected device using WiFi for internet access and a direct repeater integration option for systems using ASL3, Allmon and Asterisk. These are separate future deployment paths, with hardware, integration methods, supported versions and timing still open. This records direction rather than claiming working compatibility.

@@ -1,10 +1,16 @@
 # Product requirements
 
-Status: planned. Updated October 14, 2026.
+Status: planned. Updated October 17, 2026.
 
 ## Purpose and scope
 
 The first product is a Windows desktop application that turns selected internet DX spots into spoken announcements over a radio with station identification. It modernizes the original workflow while preserving attribution to Kevin Leggett (KT4BN) and Dave Hockaday (WB4IUY).
+
+## Planned follow ons
+
+After the initial Windows application, plan a standalone device with a radio connection and WiFi internet access, plus direct repeater integration for systems using ASL3, Allmon and Asterisk. The device should operate without a companion Windows computer. The repeater option should deliver announcements through the existing repeater system without a separate feeder radio.
+
+These are future product directions rather than implemented features or first release requirements. Radio interfaces, power and hardware, software integration methods and supported repeater versions remain to be selected and tested. Transmission coordination and station identification must be addressed for each deployment.
 
 ## Required behavior
 
