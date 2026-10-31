@@ -12,6 +12,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 from . import __version__
+from .appearance import PALETTES, load_appearance, save_appearance
 from .audio import AudioOutput, WindowsSpeech
 from .engine import Engine
 from .models import UTC, Settings, load_settings, parse_line, save_settings, settings_path
@@ -51,8 +52,17 @@ class Application:
         self.engine.rf_allowed = lambda: self.source is not None and self.source.ready.is_set()
         self.variables = {}
         self.combos = {}
+        self.theme = tk.StringVar(value=load_appearance())
+        brand = resource_root() / "assets/brand"
+        self.logos = {name: tk.PhotoImage(file=str(brand / f"logo-{name.lower()}.png")).subsample(2)
+                      for name in PALETTES}
+        self.icon = tk.PhotoImage(file=str(brand / "icon.png"))
+        root.iconphoto(True, self.icon)
+        if sys.platform == "win32":
+            root.iconbitmap(str(brand / "dxt.ico"))
         self._style()
         self._build()
+        self._paint_widgets()
         self.initializing = False
         self._refresh_devices()
         self._load_voices()
@@ -62,36 +72,104 @@ class Application:
         root.after(75, self._poll)
 
     def _style(self):
-        style = ttk.Style()
+        p = PALETTES[self.theme.get()]
+        style = ttk.Style(self.root)
         style.theme_use("clam")
-        style.configure(".", font=("Segoe UI", 10))
-        style.configure("TFrame", background="#edf2f7")
-        style.configure("TLabel", background="#edf2f7", foreground="#172a43")
-        style.configure("Title.TLabel", font=("Segoe UI", 23, "bold"), background="#12243a", foreground="white")
-        style.configure("Header.TLabel", background="#12243a", foreground="#c8d8e9")
-        style.configure("Header.TFrame", background="#12243a")
-        style.configure("TButton", padding=(12, 7))
-        style.configure("Stop.TButton", background="#a52335", foreground="white", font=("Segoe UI", 11, "bold"))
-        style.map("Stop.TButton", background=[("active", "#811a29")])
-        style.configure("Treeview", rowheight=27, font=("Segoe UI", 10))
-        style.configure("Treeview.Heading", font=("Segoe UI", 10, "bold"))
-        style.configure("TNotebook.Tab", padding=(12, 9))
+        self.root.configure(background=p["bg"])
+        style.configure(".", font=("Segoe UI", 10), background=p["bg"], foreground=p["ink"],
+                        troughcolor=p["bg"], bordercolor=p["edge"], lightcolor=p["edge"], darkcolor=p["edge"])
+        style.configure("TFrame", background=p["bg"])
+        style.configure("TLabel", background=p["bg"], foreground=p["ink"])
+        style.configure("Header.TFrame", background=p["panel"])
+        style.configure("Header.TLabel", background=p["panel"], foreground=p["muted"])
+        style.configure("Brand.TLabel", background=p["panel"])
+        style.configure("Status.TFrame", background=p["panel"])
+        style.configure("Status.TLabel", background=p["panel"], foreground=p["ink"], padding=(14, 4))
+        style.configure("Eyebrow.TLabel", background=p["panel"], foreground=p["muted"], font=("Segoe UI", 9))
+        style.configure("TButton", padding=(10, 7), background=p["field"], foreground=p["ink"], borderwidth=1)
+        style.map("TButton", background=[("active", p["selected"]), ("pressed", p["selected"])],
+                  foreground=[("disabled", p["muted"])])
+        style.configure("Accent.TButton", background=p["accent"], foreground="#ffffff" if self.theme.get() == "Light" else "#071722")
+        style.map("Accent.TButton", background=[("active", "#36c9f4")], foreground=[("active", "#071722")])
+        style.configure("Stop.TButton", background="#b22b42", foreground="white", font=("Segoe UI", 10, "bold"))
+        style.map("Stop.TButton", background=[("active", "#d63852")], foreground=[("active", "white")])
+        style.configure("TEntry", fieldbackground=p["field"], foreground=p["ink"], insertcolor=p["ink"], padding=6)
+        style.configure("TCombobox", fieldbackground=p["field"], background=p["field"], foreground=p["ink"],
+                        arrowcolor=p["ink"], padding=5)
+        style.map("TCombobox", fieldbackground=[("readonly", p["field"])], foreground=[("readonly", p["ink"])],
+                  selectbackground=[("readonly", p["selected"])], selectforeground=[("readonly", p["ink"])])
+        self.root.option_add("*TCombobox*Listbox.background", p["field"])
+        self.root.option_add("*TCombobox*Listbox.foreground", p["ink"])
+        self.root.option_add("*TCombobox*Listbox.selectBackground", p["selected"])
+        self.root.option_add("*TCombobox*Listbox.selectForeground", p["ink"])
+        style.configure("TCheckbutton", background=p["bg"], foreground=p["ink"])
+        style.map("TCheckbutton", background=[("active", p["bg"])], indicatorbackground=[("selected", p["accent"])])
+        style.configure("Treeview", background=p["panel"], fieldbackground=p["panel"], foreground=p["ink"],
+                        rowheight=32, font=("Segoe UI", 10), borderwidth=0)
+        style.map("Treeview", background=[("selected", p["selected"])], foreground=[("selected", p["ink"])])
+        style.configure("Treeview.Heading", background=p["field"], foreground=p["muted"],
+                        font=("Segoe UI", 9, "bold"), padding=(8, 9))
+        style.map("Treeview.Heading", background=[("active", p["selected"])])
+        style.configure("TNotebook", background=p["bg"], borderwidth=0)
+        style.configure("TNotebook.Tab", padding=(12, 9), background=p["bg"], foreground=p["muted"])
+        style.map("TNotebook.Tab", background=[("selected", p["panel"]), ("active", p["field"])],
+                  foreground=[("selected", p["accent"]), ("active", p["ink"])])
+        style.configure("Vertical.TScrollbar", background=p["field"], arrowcolor=p["muted"])
+
+    def _paint_widgets(self):
+        p = PALETTES[self.theme.get()]
+        self.brand_label.configure(image=self.logos[self.theme.get()])
+        self.accent_line.configure(background=p["accent"])
+        for text in (self.log, self.help_text):
+            text.configure(background=p["panel"], foreground=p["ink"], insertbackground=p["ink"],
+                           selectbackground=p["selected"], selectforeground=p["ink"], highlightthickness=0)
+        for _, canvas in self.scroll_tabs:
+            canvas.configure(background=p["bg"])
+        self.tree.tag_configure("alternate", background=p["field"])
+
+    def _change_theme(self, event=None):
+        # Appearance never applies radio settings, stops a transmission or rearms RF.
+        self._style()
+        self._paint_widgets()
+        try:
+            save_appearance(self.theme.get())
+        except OSError:
+            messagebox.showwarning("Appearance", "The theme changed, but could not be saved for next time.")
 
     def _build(self):
-        header = ttk.Frame(self.root, style="Header.TFrame", padding=18)
+        header = ttk.Frame(self.root, style="Header.TFrame", padding=(20, 14))
         header.pack(fill="x")
-        ttk.Label(header, text="DX Talker", style="Title.TLabel").pack(side="left")
-        ttk.Label(header, text="WINDOWS PILOT  /  " + __version__, style="Header.TLabel").pack(side="left", padx=20)
-        ttk.Button(header, text="STOP ALL OUTPUT", style="Stop.TButton", command=self._stop).pack(side="right")
+        self.brand_label = ttk.Label(header, image=self.logos[self.theme.get()], style="Brand.TLabel")
+        self.brand_label.pack(side="left")
+        identity = ttk.Frame(header, style="Header.TFrame")
+        identity.pack(side="left", padx=16)
+        ttk.Label(identity, text="DX TALKER", style="Header.TLabel", font=("Segoe UI", 11, "bold")).pack(anchor="w")
+        ttk.Label(identity, text="Windows pilot  /  " + __version__, style="Header.TLabel").pack(anchor="w", pady=(4, 0))
+        self.stop_button = ttk.Button(header, text="STOP ALL OUTPUT", style="Stop.TButton", command=self._stop)
+        self.stop_button.pack(side="right")
+        appearance = ttk.Frame(header, style="Header.TFrame")
+        appearance.pack(side="right", padx=18)
+        ttk.Label(appearance, text="APPEARANCE", style="Eyebrow.TLabel").pack(anchor="w", pady=(0, 4))
+        self.theme_picker = ttk.Combobox(appearance, textvariable=self.theme, values=list(PALETTES),
+                                         state="readonly", width=7)
+        self.theme_picker.pack()
+        self.theme_picker.bind("<<ComboboxSelected>>", self._change_theme)
+        self.accent_line = tk.Frame(self.root, height=2, background=PALETTES[self.theme.get()]["accent"])
+        self.accent_line.pack(fill="x")
 
-        status = ttk.Frame(self.root, padding=(18, 12))
+        status = ttk.Frame(self.root, padding=(18, 10))
         status.pack(fill="x")
         self.source_status = tk.StringVar(value="Source: disconnected")
         self.output_status = tk.StringVar(value="RF disabled")
         self.activity = tk.StringVar(value="Idle")
-        ttk.Label(status, textvariable=self.source_status).pack(anchor="w")
-        ttk.Label(status, textvariable=self.output_status).pack(anchor="w", pady=(5, 0))
-        ttk.Label(status, textvariable=self.activity).pack(anchor="w", pady=(5, 0))
+        for column, (title, variable) in enumerate((("CONNECTION", self.source_status),
+                                                  ("RADIO OUTPUT", self.output_status),
+                                                  ("ACTIVITY", self.activity))):
+            status.columnconfigure(column, weight=1, uniform="status")
+            card = ttk.Frame(status, style="Status.TFrame", padding=(0, 8))
+            card.grid(row=0, column=column, sticky="nsew", padx=(0 if column == 0 else 4, 0))
+            ttk.Label(card, text=title, style="Eyebrow.TLabel", padding=(14, 0)).pack(anchor="w")
+            ttk.Label(card, textvariable=variable, style="Status.TLabel", wraplength=280).pack(anchor="w")
         notebook = ttk.Notebook(self.root)
         self.notebook = notebook
         notebook.pack(fill="both", expand=True, padx=18, pady=(0, 8))
@@ -104,7 +182,7 @@ class Application:
             else:
                 container = ttk.Frame(notebook)
                 notebook.add(container, text=name)
-                canvas = tk.Canvas(container, background="#edf2f7", highlightthickness=0)
+                canvas = tk.Canvas(container, background=PALETTES[self.theme.get()]["bg"], highlightthickness=0)
                 scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
                 canvas.configure(yscrollcommand=scrollbar.set)
                 scrollbar.pack(side="right", fill="y")
@@ -124,7 +202,7 @@ class Application:
         footer = ttk.Frame(self.root, padding=(18, 5, 18, 12))
         footer.pack(side="bottom", fill="x", before=notebook)
         ttk.Label(footer, text="Settings apply only when saved. Passwords and tokens are never saved.").pack(side="left")
-        self.save_button = ttk.Button(footer, text="Save and apply settings", command=self.guard(self._apply))
+        self.save_button = ttk.Button(footer, text="Save and apply settings", style="Accent.TButton", command=self.guard(self._apply))
         self.save_button.pack(side="right")
         for index, (frame, canvas) in enumerate(self.scroll_tabs):
             tag = f"SettingsScroll{index}"
@@ -176,16 +254,19 @@ class Application:
 
     def _live_tab(self):
         frame = self.tabs["Live spots"]
+        frame.columnconfigure(0, weight=1)
+        frame.rowconfigure(2, weight=1)
         toolbar = ttk.Frame(frame)
-        toolbar.pack(fill="x", pady=(0, 12))
-        for text, action in (("Connect", self._connect), ("Disconnect", self._disconnect),
+        toolbar.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        for index, (text, action) in enumerate((("Connect", self._connect), ("Disconnect", self._disconnect),
                              ("Load sample spots", self._samples), ("Preview selected", self._preview_spot),
-                             ("Enable RF", self._enable), ("Send ID now", self.engine.identify)):
-            ttk.Button(toolbar, text=text, command=self.guard(action)).pack(side="left", padx=(0, 6))
-        ttk.Label(frame, text="Spots appear here before RF is enabled. Select one to preview it locally.").pack(anchor="w", pady=(0, 8))
+                             ("Enable RF", self._enable), ("Send ID now", self.engine.identify))):
+            ttk.Button(toolbar, text=text, command=self.guard(action)).grid(
+                row=index // 4, column=index % 4, sticky="ew", padx=(0, 6), pady=(0, 6))
+        ttk.Label(frame, text="Spots appear here before RF is enabled. Select one to preview it locally.").grid(row=1, column=0, sticky="w", pady=(0, 8))
         columns = ("time", "dx", "frequency", "spotter", "source")
         table = ttk.Frame(frame)
-        table.pack(fill="both", expand=True)
+        table.grid(row=2, column=0, sticky="nsew")
         self.tree = ttk.Treeview(table, columns=columns, show="headings", height=10, selectmode="browse")
         for key, title, width in zip(columns, ("UTC", "DX callsign", "Frequency kHz", "Spotted by", "Source"), (100, 170, 170, 160, 100)):
             self.tree.heading(key, text=title)
@@ -195,9 +276,9 @@ class Application:
         scroll.pack(side="right", fill="y")
         self.tree.pack(side="left", fill="both", expand=True)
         # The activity journal contains application events, never raw cluster text.
-        ttk.Label(frame, text="Activity").pack(anchor="w", pady=(12, 4))
-        self.log = tk.Text(frame, height=5, wrap="word", state="disabled", font=("Consolas", 9), relief="flat")
-        self.log.pack(fill="x")
+        ttk.Label(frame, text="Activity").grid(row=3, column=0, sticky="w", pady=(8, 4))
+        self.log = tk.Text(frame, height=3, wrap="word", state="disabled", font=("Consolas", 9), relief="flat")
+        self.log.grid(row=4, column=0, sticky="ew")
 
     def _source_tab(self):
         frame = self.tabs["Source"]
@@ -363,7 +444,8 @@ class Application:
 
     def _add_spot(self, spot):
         item = self.tree.insert("", 0, values=(spot.timestamp.strftime("%H:%MZ"), spot.dx_call,
-                                                str(spot.frequency_khz), spot.spotter, spot.source))
+                                                str(spot.frequency_khz), spot.spotter, spot.source),
+                                tags=("alternate",) if len(self.spots) % 2 else ())
         self.spots[item] = spot
         if len(self.spots) > 500:
             last = self.tree.get_children()[-1]
@@ -496,6 +578,9 @@ class Application:
 
 
 def main():
+    if sys.platform == "win32":
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("DXTalker.Desktop")
     root = tk.Tk()
     Application(root)
     root.mainloop()

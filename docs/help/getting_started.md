@@ -4,6 +4,10 @@
 
 Extract the portable Windows package and keep its internal files alongside DXTalker.exe. Launch the EXE. To run from source, follow the repository's Windows setup document.
 
+## Appearance
+
+Choose Light or Dark from Appearance in the header. The DXt logo and interface colors change together. This choice is remembered immediately and does not apply pending radio settings or change RF state. New installations start in Dark mode.
+
 ## Try it without a cluster or radio
 
 In Audio and PTT, choose your speakers or headphones as Local preview output. Save and apply settings. In Live spots, choose Load sample spots, select a row and choose Preview selected. Sample spots never enter the radio queue.

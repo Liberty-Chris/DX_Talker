@@ -1,5 +1,11 @@
 # Changelog
 
+## October 31, 2026. Windows pilot 0.1.0a2
+
+Added the DXt identity to the application header and Windows icon, plus EXE product and version information. Added light and dark themes with a separate saved appearance preference. Updated status panels, spot table colors and action spacing. Appearance changes leave radio settings and RF state alone.
+
+Included the branding assets in the portable package and extended Windows smoke checks to exercise both themes.
+
 ## October 31, 2026. Windows pilot 0.1.0a1
 
 Added the first Windows application source, including a live spot view, TCP/Telnet sign in, manual cluster responses, generic HTTPS JSON feeds, local sample spots and saved settings. Passwords and tokens remain in memory.

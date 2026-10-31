@@ -68,3 +68,12 @@ Keep hardware selection configurable. Start with a TCP/Telnet source and a docum
 Schedule voice, CW, alternating IDs or both according to an explicit operator setting. The initial default is CW every ten minutes while RF is enabled, including an ID before the first automatic spot. The operator must supply ID text before enabling RF. This is a configurable product default and does not establish a station's legal identification policy.
 
 Automatic shared channel access detection is deferred. The pilot requires the operator to acknowledge supervised use on a clear or coordinated channel. Startup, source loss, settings changes and faults disable RF and clear queued work. Reconnect never rearms transmission.
+
+
+## D010 DXt identity and appearance
+
+Selected October 31, 2026.
+
+Use the approved minimalist DXt lettering with a cyan lowercase t. The D and X use graphite on light surfaces and white on dark surfaces. A vector master supplies clean transparent header assets and a multiresolution Windows icon. Use a stable charcoal tile for the shell icon so it remains visible against either Windows theme.
+
+Store appearance in appearance.json beside settings.json. Switching themes is cosmetic and must not apply pending settings, stop output or enable RF. Default to Dark and provide an explicit Light option. Ship generated PNG and ICO assets so the Windows build and runtime need no vector rendering dependency.
