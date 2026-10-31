@@ -34,9 +34,13 @@ One part of the application should manage all radio audio and PTT so announcemen
 
 ## D006 Development tools
 
-Still open.
+Selected October 31, 2026 for the first Windows pilot.
 
-The language, framework, audio and speech libraries, PTT libraries and installer tools haven't been chosen. Record the choices and why they fit the project here as they're made.
+Use Python 3.12 with Tkinter for the desktop interface, sounddevice for explicit audio output selection and pyserial for RTS and DTR control. Use Windows System.Speech through a bounded PowerShell child process to generate WAV audio before keying. Package with PyInstaller on a Windows GitHub Actions runner.
+
+This keeps the parsing, connection and transmission policies testable on other systems while keeping the actual product focused on Windows. Native .NET was considered but is not required for this first implementation. The Windows package and hardware behavior still need pilot verification. Target Windows 11 x64 first. Other Windows versions and architectures are not claimed.
+
+Audio selection uses an exact host API and device name and rejects ambiguous matches. Device indexes are resolved again before playback. Serial PTT supports RTS, DTR or both, with explicit active polarity. VOX is an operator selected alternative. CM108 HID, CAT and vendor specific PTT remain future adapters.
 
 ## D007 Separate rights for new and original work
 
@@ -53,3 +57,14 @@ Planned October 17, 2026.
 After the Windows application, I'm planning a standalone device that connects to a radio and uses WiFi for internet access. I'm also planning direct integration for repeater systems using ASL3, Allmon and Asterisk.
 
 The hardware, integration method, supported versions and release timing still need to be worked out.
+
+
+## D009 Initial configurable operating policy
+
+Selected October 31, 2026 for the pilot.
+
+Keep hardware selection configurable. Start with a TCP/Telnet source and a documented generic HTTPS JSON feed contract. Provide offline sample spots and local audio preview. Store settings locally but keep source passwords and tokens in memory for the session.
+
+Schedule voice, CW, alternating IDs or both according to an explicit operator setting. The initial default is CW every ten minutes while RF is enabled, including an ID before the first automatic spot. The operator must supply ID text before enabling RF. This is a configurable product default and does not establish a station's legal identification policy.
+
+Automatic shared channel access detection is deferred. The pilot requires the operator to acknowledge supervised use on a clear or coordinated channel. Startup, source loss, settings changes and faults disable RF and clear queued work. Reconnect never rearms transmission.

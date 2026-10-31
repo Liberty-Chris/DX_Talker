@@ -6,9 +6,9 @@ The original DX Talker monitored a DX cluster through a TNC packet node, announc
 
 ## Project status
 
-I'm starting with a modern Windows application, with a standalone hardware device and direct repeater integration planned to follow. This repository holds the original software archive and the plans for the new versions.
+I'm starting with a modern Windows application, with a standalone hardware device and direct repeater integration planned to follow. This repository holds the original software archive, the Windows application and the plans for future versions.
 
-Development is still in the planning stage. There isn't a modern application or installer available yet. The features below describe where the project is headed. The [status record](docs/STATUS.md) tracks what's actually been built and tested.
+The first Windows pilot is now implemented in source. It includes cluster connections, incoming spots, audio previews, configurable radio outputs and station identification. Windows packaging and verification run through GitHub Actions. See [Windows setup](README_WINDOWS.md) for build and testing instructions and the [status record](docs/STATUS.md) for verification limits.
 
 ## The modern application
 
@@ -34,9 +34,9 @@ The integration method, configuration and supported versions still need to be wo
 
 One source I'm working toward supporting is `w4mr.ddns.net` on port `7373`. This is a TCP/Telnet DX cluster connection that requires a sign in before spots can be received.
 
-I still need to confirm its current login prompts, access requirements and feed permissions. It hasn't been connected to or tested as part of this project yet.
+The TCP/Telnet adapter recognizes common callsign and password prompts and also provides a manual response field. Its connection handling has been tested against a local test server. W4MR itself still needs a live operator test.
 
-I also plan to support web feeds once a provider, feed format and authentication method are selected. A cluster host and port and an HTTP or HTTPS feed need different connection methods. An ordinary web page URL won't work as a DX feed on its own.
+The pilot also accepts an HTTPS JSON feed using the [documented format](docs/feed_contract.md), with an optional bearer token. Provider specific adapters can follow. An ordinary web page URL will not work as a DX feed on its own.
 
 ## Documentation
 

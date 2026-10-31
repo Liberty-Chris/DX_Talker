@@ -1,13 +1,9 @@
 # Help and Info
 
-Status: planned operator documentation. No modern DX Talker application is available yet. These pages describe the intended workflows and will be updated as each feature becomes usable.
+DX Talker 0.1.0a1 is the first Windows pilot. Start by testing audio locally, then connect your source and configure radio output.
 
-## Topics
+Use the topic selector above this page to open Getting started, Source connections, Radio audio and PTT, Station identification, Troubleshooting or About DX Talker.
 
-[Getting started](getting_started.md) explains the overall setup sequence. [Source connections](connections.md) explains cluster sign in and the difference between a cluster endpoint and a web feed. [Radio setup](radio.md) explains audio and PTT.
+RF starts disabled. STOP ALL OUTPUT is always available at the top of the window. The activity area reports connection and output state without retaining raw cluster traffic or passwords.
 
-[Station identification](identification.md) covers separate CW and voice settings, generated speech and recorded IDs. [Troubleshooting](troubleshooting.md) describes intended recovery guidance. [About DX Talker](about.md) supplies project history and explains release information.
-
-## Availability
-
-No menu names or button locations are finalized. The first usable application must package these pages for offline Help and Info, show its actual version and make planned or unsupported features clear.
+This manual is bundled with the application and is available without internet access. Physical interface compatibility is established through bench testing. The pilot supports serial RTS and DTR and an operator selected VOX mode. CM108 HID and CAT remain future options.

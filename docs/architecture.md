@@ -1,6 +1,6 @@
 # Proposed architecture
 
-Status: proposal. No framework, language or library is selected.
+Status: initial implementation. The Windows pilot uses Python, Tkinter, sounddevice, pyserial and Windows System.Speech. See the decision record for rationale and the status page for verification limits.
 
 ## Components and responsibilities
 
@@ -25,7 +25,7 @@ TCP packet boundaries are not line boundaries. Preserve partial lines across rea
 
 ## Spot model
 
-Use an internal identifier, source identifier, spotter, DX callsign, frequency with explicit units, raw timestamp, normalized UTC timestamp when resolvable, receipt time, comment and parse outcome. Preserve raw source text only in bounded redacted diagnostics when useful.
+The initial Spot record stores source, spotter, DX callsign, decimal frequency in kHz, normalized UTC timestamp and receipt time. Comments are excluded. A UI row identifier is separate from the callsign and frequency duplicate key. Raw prompts and source traffic are not retained in diagnostics. Preserve raw source text only in bounded redacted diagnostics when useful.
 
 The archive's time fields often contain only HHMMZ and sometimes are wrapped or incomplete. Do not invent a historical date. Live date inference and midnight rollover require explicit tests and a documented rule. Freshness checks must distinguish receipt time from source time.
 
@@ -45,4 +45,4 @@ Physical verification must cover the named interface, operating system, audio ro
 
 ## Technology decision
 
-Evaluate candidate Windows stacks against audio endpoint stability, speech synthesis, serial and vendor PTT integrations, accessibility, installer support and testability. Record the chosen stack and dependency versions in [decisions](decisions.md) before creating the application scaffold.
+The selected stack and pinned direct dependency versions are recorded in [decisions](decisions.md), requirements.txt and requirements-build.txt. The portable Windows build packages the application runtime and canonical help pages. Native APIs remain behind AudioOutput, WindowsSpeech and serial PTT adapters.

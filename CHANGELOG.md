@@ -1,5 +1,13 @@
 # Changelog
 
+## October 31, 2026. Windows pilot 0.1.0a1
+
+Added the first Windows application source, including a live spot view, TCP/Telnet sign in, manual cluster responses, generic HTTPS JSON feeds, local sample spots and saved settings. Passwords and tokens remain in memory.
+
+Added explicit preview and radio output selection, Windows speech, audio Morse, optional WAV IDs and serial RTS, DTR or VOX output configuration. One coordinator controls playback, ID priority, queue expiry, cancellation and PTT release attempts.
+
+Added automated core tests, Windows source and packaged smoke checks and a portable Windows build workflow. Updated the canonical help to match the pilot. Physical radio testing, W4MR testing and release installation work remain open.
+
 ## October 17, 2026
 
 Reworked the project documentation to read more naturally and removed repeated reporting language. Simplified the status page so it explains where the project stands and what's next.

@@ -1,6 +1,6 @@
 # Product requirements
 
-Status: planned. Updated October 17, 2026.
+Status: initial Windows pilot implemented; release acceptance remains open. Updated October 31, 2026.
 
 ## Purpose and scope
 
@@ -37,19 +37,19 @@ These will follow the Windows application. Radio interfaces, power and hardware,
 
 ## Feed interpretation
 
-The supplied endpoint is `w4mr.ddns.net:7373`. It implies a TCP connection using a Telnet style cluster interface, not a confirmed HTTP feed. Confirm the login prompts with the service before implementing them. Source login is distinct from an application account; no DX Talker account or cloud synchronization is currently required.
+The supplied endpoint is `w4mr.ddns.net:7373`. It implies a TCP connection using a Telnet style cluster interface, not a confirmed HTTP feed. Common callsign and password prompts are implemented and locally tested. Confirm W4MR service compatibility during the live pilot. Source login is distinct from an application account; no DX Talker account or cloud synchronization is currently required.
 
-For web feeds, authentication may use a provider specific token or other mechanism. Document the chosen provider's API before implementing its adapter. Plain TCP/Telnet may expose submitted credentials in transit; describe the chosen service's transport accurately in help.
+The initial HTTPS adapter uses the explicit generic JSON contract documented in feed_contract.md, with an optional session bearer token. Provider specific schemas and authentication remain future adapters. Plain TCP/Telnet may expose submitted credentials in transit; describe the chosen service's transport accurately in help.
 
 ## Announcement policy
 
-Initial proposed spoken content is the DX callsign and frequency. Band filters, duplicate suppression, spot age and whether to include spotter, time or comments require an operator decision. Free text comments are excluded from RF speech by default pending that decision.
+The pilot speaks the DX callsign and frequency only. Frequency limits, duplicate suppression, maximum age and announcement spacing are configurable. Comments are excluded from speech. Additional field selection and band presets can follow operator feedback.
 
 Preserve the frequency value and explicit units. Use a documented callsign pronunciation policy that handles digits and portable suffixes. Test speech with the installed Windows voice rather than assuming ordinary word pronunciation is sufficient.
 
 ## Identification policy
 
-CW and voice text are separate settings. Whether to alternate them or schedule both, interval limits, end of transmission behavior and overdue handling require a confirmed operating policy. The scheduler must not starve identification behind a busy spot queue. A failed required ID must visibly pause further automatic announcements until the configured policy can be satisfied.
+CW and voice text are separate settings. The pilot supports CW, Voice, Alternate and Both policies with intervals from 1 to 30 minutes. It identifies immediately on enable, prioritizes due IDs and does not add a final ID on stop. The chosen station operating policy still needs operator acceptance. The scheduler must not starve identification behind a busy spot queue. A failed required ID must visibly pause further automatic announcements until the configured policy can be satisfied.
 
 In this scope, CW means audio Morse sent through the radio audio path. Direct hardware keying of an HF CW input is a separate possible feature.
 

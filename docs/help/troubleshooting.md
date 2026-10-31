@@ -1,37 +1,45 @@
 # Troubleshooting
 
-This is a draft of the troubleshooting guide. We'll add the application's actual messages and controls as they're built.
+## No audio devices or COM ports
 
-## Cannot connect to the source
+Connect the interface and choose Refresh audio and serial devices. If running from source, install requirements.txt into the same Python environment used to launch the app. Use a uniquely named output if duplicate device names are reported.
 
-Check source type, hostname and port or supported feed URL. The W4MR example is a TCP/Telnet host and port rather than an HTTP URL. Check whether the application reports a network failure or an incomplete sign in.
+## Connected but no spots
 
-If the service's prompts have changed, retain a sanitized diagnostic excerpt for investigation. Never include passwords or access tokens in a report.
+Check the cluster hostname, port and callsign. The supplied example is a TCP/Telnet connection, not a web URL. The cluster may be awaiting a different login response or may be quiet. Use the masked manual response field if its login procedure requires another command. Raw prompts are not displayed in this pilot.
 
-## Connected but no spots appear
+For HTTPS, confirm the feed uses the documented array format and has current timezone aware timestamps. HTML pages and other JSON schemas are not accepted. Redirected URLs must be replaced with the final direct feed URL.
 
-A connection may still be awaiting login. The source may be quiet or incoming records may be rejected as chat, banners or malformed lines. The intended diagnostics should distinguish these cases.
+## Cannot enable RF
 
-## Preview sounds wrong
+Wait until the source has delivered a valid spot or a valid HTTPS response. Choose a radio audio device, configure serial PTT if used and fill the ID fields required by your policy. Read the supervised channel acknowledgement in Announcements. Save and apply before enabling.
 
-Confirm the local listening device and voice selection. Listen to callsign digits, portable suffixes and decimal frequencies. Report the sample text and chosen voice when pronunciation is ambiguous.
+A local preview must finish before enabling. Wait for Idle after stopping output. The sample spot loader only supports local preview and does not make a live source ready.
 
-## Radio has no audio or does not key
+## Voice synthesis fails
 
-Verify the selected radio audio endpoint and the independently configured PTT method. USB audio alone may not include PTT. Interface specific connection and level guidance will be supplied after hardware validation.
+Check that Windows speech support and the selected voice are installed. Choose a blank voice to use the default. Speech is rendered before keying. A synthesis failure disables RF and leaves PTT unasserted.
 
-## An audio device disappears
+## WAV fails
 
-The intended behavior is to stop RF output, release PTT where possible and report the missing device. Reconnect and select the correct device, then deliberately enable RF after checking configuration.
+Use uncompressed PCM16 WAV audio with a supported rate and channel count. Both ID policy requires mono 22050 Hz. The app does not resample a recording for the selected audio device. Convert the recording or choose a compatible device and format.
 
-## Transmission does not stop
+## Audio reaches the wrong place
 
-Use the application's stop control. If hardware remains keyed, use the station's physical means of stopping transmission. Preserve redacted diagnostics after control is restored. The supported interface's recovery procedure must be documented following bench tests.
+Check Local preview output and Radio audio output separately. The app never intentionally changes to a default device when the selected one is unavailable. If a device name changed, refresh and select it again.
 
-## A WAV ID cannot play
+## No PTT
 
-Check that the recording exists and can be decoded in preview. Replace or reselect it, or explicitly choose generated speech. Do not assume the app silently substitutes another ID.
+VOX does not drive a PTT line. Configure radio or interface VOX separately or use supported serial wiring with RTS or DTR. Check COM port and polarity. CM108 HID and CAT require future support.
 
-## Reporting a problem
+## Output does not stop
 
-Include the released application version, Windows version, radio interface model, PTT method, source type, observed behavior and redacted diagnostics. The future Info section should make version information easy to copy.
+Use STOP ALL OUTPUT. If the hardware remains keyed, stop transmission using the station's physical controls. The app attempts serial release but cannot override failed hardware or a forced process termination. Verify release behavior on your actual interface before normal use.
+
+## Settings do not apply
+
+Stop output and wait for Idle, then save and apply. Passwords and tokens are session only. Settings are at %LOCALAPPDATA%\DXTalker\settings.json. If the file is unreadable or from an unsupported schema, move it aside to start with defaults. Keep a copy for investigation.
+
+## Report a problem
+
+Include the version shown in Help and Info, Windows version, interface model, audio device name, PTT mode, source type and the application activity messages. Do not include passwords, tokens or private source URLs. Source and packaged smoke reports describe automated checks only, not physical radio compatibility.

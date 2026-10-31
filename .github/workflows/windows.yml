@@ -1,0 +1,58 @@
+name: Windows pilot
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tests -v
+      - run: python scripts/check_docs.py
+
+  windows:
+    needs: tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements-build.txt
+      - name: Check source UI and Windows speech without RF
+        run: |
+          python run_dxtalker.py --self-test source-smoke.json
+          if ($LASTEXITCODE -ne 0) { Get-Content source-smoke.json; throw 'Source smoke test failed' }
+      - name: Build portable Windows application
+        run: ./scripts/build_windows.ps1
+      - name: Check packaged UI and Windows speech without RF
+        run: |
+          $process = Start-Process -FilePath ./dist/DXTalker/DXTalker.exe -ArgumentList '--self-test', "$PWD/package-smoke.json" -PassThru
+          if (-not $process.WaitForExit(90000)) { $process.Kill(); throw 'Package smoke test timed out' }
+          if ($process.ExitCode -ne 0) { Get-Content package-smoke.json; throw 'Package smoke test failed' }
+          $report = Get-Content package-smoke.json -Raw | ConvertFrom-Json
+          if (-not $report.ok) { throw 'Package report failed' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Windows-verification
+          path: |
+            *-smoke.json
+            *-smoke.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DXTalker-Windows-x64
+          path: dist/DXTalker/
+          if-no-files-found: error
