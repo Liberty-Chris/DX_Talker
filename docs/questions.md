@@ -43,3 +43,12 @@ Rights are reserved for now under the [modern project notice](../LICENSE) and [o
 The W4MR example is a TCP/Telnet host and port. We still need to test its login process and choose a web feed provider if web feed support is included.
 
 The archive review on October 14, 2026 found compiled programs but no editable Visual Basic source. We can build the modern application from the requirements while looking for the original source.
+
+
+## Windows pilot decisions on October 31, 2026
+
+Keep radio support configurable while the first test hardware is unknown. The first adapters provide explicit audio selection, serial RTS, DTR, both lines and an operator selected VOX mode. Physical interface compatibility still needs bench evidence.
+
+Target Windows 11 x64 for the initial pilot. Use a TCP/Telnet adapter and a generic HTTPS JSON contract. W4MR's live sign in remains to be tested. ID timing is configurable, with CW, Voice, Alternate and Both policies. The initial default is CW every ten minutes while RF is enabled, starting with an ID.
+
+Announce callsigns with phonetics and frequency digits in kHz. Keep comments out of speech. Provide age, repeat, frequency and spacing controls. Automatic busy channel detection is deferred, with an explicit supervised operation acknowledgement in the pilot.

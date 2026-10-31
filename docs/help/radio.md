@@ -1,25 +1,31 @@
 # Radio audio and PTT
 
-This page describes the planned radio setup. Tested interface models and connection instructions will be added during development.
+## Choose outputs
 
-## Two separate functions
+Local preview output is the device used by preview controls. Radio audio output is the device used while RF is enabled. Choose exact device names and prefer Windows WASAPI where available. Save and apply settings.
 
-Audio carries the generated speech, recorded ID and audio Morse to the radio. PTT tells the radio when to transmit. A USB audio adapter may provide only audio. Some radio interfaces also expose a serial port or a vendor specific control for PTT.
+A preview can still reach the radio if both roles use the same device. This is particularly relevant for VOX, which can key from any incoming audio. Separate local and radio outputs for listening tests.
 
-The first supported interface and method will be named after bench testing. Do not assume a generic USB cable or every USB sound device provides both functions.
+The app resolves the selected device before playback. Missing or ambiguous names stop output instead of falling back to another device. Refresh audio and serial devices after connecting an interface. Refreshing disables RF.
 
-## Intended controls
+## PTT methods
 
-Select the radio's Windows audio output explicitly. Set PTT device and control method according to the tested interface instructions. Lead time allows the transmitter to settle before audio and tail time holds it briefly after playback.
+VOX sends audio without controlling a PTT line. Your radio or interface must already be configured to key from that audio.
 
-Preview uses an explicitly selected local listening device without asserting PTT. If the radio audio device disappears, RF output should stop and the application should report the fault.
+RTS, DTR and RTS+DTR control compatible serial PTT wiring. Select the COM port and PTT active high setting. Unchecking active high reverses the selected line's polarity. Unused lines stay low. Serial flow control is not used.
 
-## Stopping transmission
+A USB audio device does not necessarily supply PTT. CM108 HID interfaces, including RIM devices, are not controlled by these serial modes. CAT and vendor specific interfaces are also not included yet. Exact hardware compatibility needs a bench test.
 
-The planned stop control cancels pending RF output and attempts immediate PTT release. A maximum transmit duration bounds normal software operation. The application will document any hardware timeout or idle behavior supported by the selected interface.
+## Timing and level
 
-Behavior after cable removal or process termination requires actual hardware testing. Recovery should require the operator to reenable RF deliberately.
+PTT lead time delays playback after keying. Tail time delays release after audio ends. Maximum transmit seconds includes lead, playback and tail. Audio that cannot fit within this limit is rejected before keying. A watchdog makes a separate release attempt if output stalls.
 
-## Shared channels
+Audio level percent scales generated audio and WAV playback. Set the radio's input gain using the interface and radio instructions. This app does not measure deviation.
 
-Channel availability detection is not yet designed. USB audio and PTT alone may not tell the application whether another station is using the frequency. Supported automatic operation will depend on a confirmed station and channel access policy.
+## Stop and faults
+
+STOP ALL OUTPUT cancels pending work and attempts release. Source loss, output errors and settings changes disable RF. Wait for Idle before applying changes and explicitly enable output after recovery.
+
+Some serial drivers can pulse control lines when a port opens. Test that behavior before connecting PTT for normal use. Software cannot guarantee release after forced process termination, USB failure or a hardware latch. Verify your station's physical stop method and any interface timeout.
+
+The pilot does not detect a busy channel. Enable RF only under the supervised channel policy acknowledged in Announcements.

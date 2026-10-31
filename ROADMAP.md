@@ -1,19 +1,19 @@
 # DX Talker modernization roadmap
 
-Updated October 17, 2026.
+Updated October 31, 2026.
 
-The initial documentation is in place. Next comes choosing the hardware and development tools, then building the Windows application. [Project status](docs/STATUS.md) tracks progress.
+The first Windows pilot is implemented in source. Automated tests cover the portable core and the Windows workflow checks and packages the desktop application. Live source and physical radio verification remain open. [Project status](docs/STATUS.md) tracks progress.
 
 ## Milestones
 
 | Milestone | State | Scope | Completion evidence |
 | :--- | :--- | :--- | :--- |
 | M0 Documentation foundation | Complete | Archive review, requirements, help structure and project workflow | Static archive findings recorded and documentation links checked |
-| M1 Discovery and decisions | Planned | Confirm cluster sign in, choose initial interface and supported Windows target, decide stack and ID policy | Sanitized cluster transcript, interface specification and accepted decision records |
-| M2 Local Windows prototype | Planned | Desktop shell, settings, spot model, offline replay, speech and Morse previews | Valid and malformed fixture tests, pronunciation examples and local audio verification with RF disabled |
-| M3 Live source connection | Planned | TCP/Telnet adapter for supplied example, explicit login states, reconnect and parsing | Authorized connection test plus deterministic login, framing, disconnect and duplicate tests |
-| M4 Radio integration | Planned | Selected USB audio device, selected PTT method and transmission coordinator | Bench evidence for correct routing, lead and tail timing, stop, timeout, unplug and shutdown behavior |
-| M5 Identification and announcements | Planned | Separate CW and voice fields, default speech, WAV option, scheduling and spot filtering | ID deadlines, queue limits, stale spot expiry, WAV failure and no overlapping transmissions verified |
+| M1 Discovery and decisions | In progress | Confirm cluster sign in, choose initial interface and supported Windows target, decide stack and ID policy | Sanitized cluster transcript, interface specification and accepted decision records |
+| M2 Local Windows prototype | In progress | Desktop shell, settings, spot model, offline replay, speech and Morse previews | Valid and malformed fixture tests, pronunciation examples and local audio verification with RF disabled |
+| M3 Live source connection | In progress | TCP/Telnet adapter for supplied example, explicit login states, reconnect and parsing | Authorized connection test plus deterministic login, framing, disconnect and duplicate tests |
+| M4 Radio integration | In progress | Selected USB audio device, selected PTT method and transmission coordinator | Bench evidence for correct routing, lead and tail timing, stop, timeout, unplug and shutdown behavior |
+| M5 Identification and announcements | In progress | Separate CW and voice fields, default speech, WAV option, scheduling and spot filtering | ID deadlines, queue limits, stale spot expiry, WAV failure and no overlapping transmissions verified |
 | M6 Windows pilot | Planned | Installer, settings migration, diagnostics, accessible UI and packaged Help and Info | Clean machine install, upgrade, removal and operator acceptance with named hardware and Windows versions |
 | M7 First release | Planned | Resolve pilot defects and publish supported scope | Release checklist complete, accurate help and known limitations published |
 
@@ -21,9 +21,9 @@ Work through the connection and local audio stages before enabling radio transmi
 
 ## Immediate next task
 
-Confirm the desired initial USB radio interface and obtain a sanitized description of the W4MR sign in prompts through an authorized operator. The project can meanwhile turn the archived cluster capture into reviewed parser examples without running the old program or transmitting.
+Build the Windows pilot and test local sample spots and ID previews on Windows 11. Connect a live source next and record any login differences. Then select the first physical radio interface and verify its audio routing, PTT polarity, stop and failure behavior.
 
-Record the framework choice only after comparing Windows audio device selection, speech availability, serial or vendor PTT support, packaging and testability. No language or framework is selected yet.
+The initial adapters keep hardware choice open through explicit audio selection, serial RTS and DTR modes and VOX. HID and CAT adapters are future work. The language and dependencies are selected in the decision record. The portable package does not yet provide an installer, automatic updates or audio format conversion.
 
 ## First release acceptance
 

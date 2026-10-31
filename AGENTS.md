@@ -8,7 +8,7 @@ Write public project pages naturally from Chris Hockaday's (KF4DBX) perspective.
 
 ## Evidence and scope
 
-This repository currently contains historical binaries and planning documentation. Do not invent recovered source, a working modern application, confirmed hardware compatibility or successful endpoint tests. Separate user supplied history, direct archive observations, proposals and validated implementation.
+This repository contains historical binaries, a Python Windows pilot and maintained documentation. Do not invent recovered source, a working modern application, confirmed hardware compatibility or successful endpoint tests. Separate user supplied history, direct archive observations, proposals and validated implementation.
 
 Preserve the original ZIP byte for byte. Do not run legacy binaries as part of ordinary development. Record static findings with archive paths and inspection methods. Do not silently convert uncertain history into fact.
 

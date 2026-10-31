@@ -1,27 +1,25 @@
 # Station identification
 
-Status: planned. Final scheduling and operating policy are not yet selected.
+## CW ID
 
-## CW identification
+Enter the complete identification in CW ID text. Supported characters are letters, digits, spaces, slash, period, dash, question mark and equals. Text can contain up to 120 characters and generated audio must fit the transmit duration limit.
 
-Enter identification text in the dedicated CW field. The proposed application turns this into audio Morse through the selected radio audio device, with configurable speed and tone and a local preview.
+Set CW speed from 5 to 50 words per minute and tone from 300 to 1500 Hz. Preview CW locally plays audio Morse through the local preview device without asserting serial PTT. This feature does not directly key a radio's CW input.
 
-This design does not directly key a radio's CW key input. Any such hardware support would be documented as a separate feature.
+## Voice ID
 
-## Voice identification
+Enter Voice ID text and select Speech or WAV as the source. Speech uses Windows System.Speech. A blank voice selection uses the Windows default. Rate ranges from minus 10 to 10, with zero as normal.
 
-Enter voice identification text in its own field. Generated speech is the default. The intended controls allow selecting an available voice and speech rate and previewing the result locally.
+For WAV, browse to an uncompressed 16 bit PCM recording, mono or stereo, with a sample rate from 8 to 96 kHz and duration no longer than 120 seconds. It must also fit your maximum transmit time. Missing or invalid WAV audio stops output with an error; the app does not silently substitute another ID.
 
-Callsign pronunciation must be checked by listening to the preview. Voice availability depends on the eventual speech implementation and installed Windows voices.
+Use Preview voice locally and listen to the complete result. Voice ID text is spoken as written. Live spot callsigns are spelled using phonetics and frequency digits.
 
-## Recorded WAV identification
+## ID policy
 
-Choose a WAV recording as an alternative to generated speech for the voice ID. The application must verify that it can decode the file, check its duration and provide a local preview before it can be selected for RF use.
+CW sends only the CW ID. Voice sends only the selected voice ID. Alternate starts with CW and alternates CW and voice on subsequent IDs. Both sends CW followed by voice in one transmission with a short gap. Both requires a mono 22050 Hz PCM16 WAV when using a recording.
 
-If the selected recording becomes unavailable, the application should show an actionable error. Any fallback to generated speech must be explicit and documented rather than silently changing the station's identification.
+The interval can be set from 1 to 30 minutes. The default is CW every ten minutes while RF is enabled. Configure an interval and text appropriate to your station's operating policy.
 
-## Timing
+Enable RF begins with an ID. Due IDs take priority over queued spots. Send ID now requests an ID immediately. Timing for the next scheduled ID starts after the previous one completes. No automatic IDs transmit while RF is disabled.
 
-Separate text fields do not determine whether voice and CW alternate or both transmit. That policy and its intervals are still open. Identification must receive priority over a busy queue of spots.
-
-The completed help will describe exact intervals, overdue behavior and any end of transmission identification supported by the released scheduler.
+An ID failure disables automatic RF output. Correct the problem, preview the ID and enable RF deliberately when ready. The pilot does not add a separate final ID when output is stopped.

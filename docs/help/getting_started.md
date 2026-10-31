@@ -1,21 +1,29 @@
 # Getting started
 
-Status: planned workflow. An installer and supported hardware list are not available yet.
+## Launch
 
-## Before setup
+Extract the portable Windows package and keep its internal files alongside DXTalker.exe. Launch the EXE. To run from source, follow the repository's Windows setup document.
 
-You will need the released Windows application, a supported radio interface, a radio audio connection, a supported PTT connection and access to a supported DX source. The radio interface may present audio and PTT as separate Windows devices.
+## Try it without a cluster or radio
 
-## Initial setup sequence
+In Audio and PTT, choose your speakers or headphones as Local preview output. Save and apply settings. In Live spots, choose Load sample spots, select a row and choose Preview selected. Sample spots never enter the radio queue.
 
-Start with RF transmission disabled. Configure the source and complete its required sign in. Confirm that valid DX spots appear in the application before configuring automatic announcements.
+In Identification, enter the CW and voice text you want to use. Try Preview CW locally and Preview voice locally. These controls do not assert serial PTT. Use headphones or speakers separate from the radio audio path, especially if your radio uses VOX.
 
-Select the radio audio device and PTT method. Choose a separate local preview device and listen to sample callsigns, frequencies and IDs without keying the radio. Configure the CW ID text and voice ID text, then select generated voice or a validated WAV recording.
+## Receive spots
 
-Verify interface behavior under the published setup procedure before deliberately enabling RF. Start with supervised tests and confirm the stop control releases PTT. Exact controls and hardware instructions will be documented when implemented.
+In Source, enter the cluster hostname, port and login callsign. Enter a session password only if required and choose Connect using these settings. Common prompts are handled automatically. A masked manual field lets you send an unusual login response or cluster command.
 
-## While operating
+The source becomes ready when valid spots arrive. The initial example is w4mr.ddns.net, port 7373. Its live behavior still needs operator verification. You can also use an HTTPS JSON feed matching the supported contract described in Source connections.
 
-Watch connection status, queue state and the transmission indicator. A source connection alone does not mean RF is enabled. Startup and recovery are intended to require deliberate transmission enable.
+## Set up radio output
 
-See [connections](connections.md), [radio setup](radio.md) and [identification](identification.md) for the corresponding settings.
+Choose the radio audio device and PTT method in Audio and PTT. In Identification, configure the required ID text and schedule. In Announcements, set filters and acknowledge supervised operation on a clear or coordinated channel.
+
+Save and apply settings. When a source is ready, Enable RF starts with identification. New live spots are then eligible for announcement. Previously displayed spots are not replayed. Send ID now requests the configured ID immediately.
+
+## Stop and recover
+
+STOP ALL OUTPUT cancels current and queued output and requests PTT release. Wait for Idle before applying changes or previewing. Source loss or an output fault disables RF. Reconnect does not automatically enable it again.
+
+Settings are saved locally. Passwords, tokens, RF enable state and the supervised channel acknowledgement are not saved.
