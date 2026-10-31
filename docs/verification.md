@@ -6,7 +6,7 @@ Updated October 31, 2026.
 
 The implementation was checked with Python 3.12.14 on Linux using python -m unittest discover -s tests -v, python -m compileall -q dxtalker run_dxtalker.py and python scripts/check_docs.py.
 
-All 43 core tests pass locally. Tests use a local socket server for the cluster sign in and inject fake hardware for RF coordination. They cover split prompts and Telnet negotiation, secret redaction, HTTPS parsing and redirect policy, settings validation and persistence, midnight timestamps, malformed input, Morse timing, WAV formats, explicit device resolution, serial polarity, queue capacity, ID priority, cancellation and release after output faults.
+All 45 core tests pass locally, including appearance persistence and damaged preference recovery. Tests use a local socket server for the cluster sign in and inject fake hardware for RF coordination. They cover split prompts and Telnet negotiation, secret redaction, HTTPS parsing and redirect policy, settings validation and persistence, midnight timestamps, malformed input, Morse timing, WAV formats, explicit device resolution, serial polarity, queue capacity, ID priority, cancellation and release after output faults.
 
 The suite does not connect to W4MR or perform any RF operation. Windows APIs cannot be verified by those portable tests alone.
 
@@ -25,3 +25,10 @@ Verify stop, timeout, device removal, source loss and application exit. Record r
 ## Preservation
 
 The original archive blob remains unchanged. Documentation is checked for local link targets, stable unique help IDs and packaged topic targets. Historical executable files are not run or included in the modern portable package.
+
+
+## DXt branding pass
+
+Local checks cover both themes, all six tabs and visible stop, appearance and save controls at 1160 by 830 and 900 by 600 using Tk on a Linux virtual display. Device discovery and voice enumeration are stubbed for this visual check. Sample spots are synthetic. Appearance persistence is checked separately from the radio profile and theme switching is checked without calls to engine stop, configure or enable.
+
+The Windows source and packaged smoke checks now exercise both themes and publish an additional light theme screenshot. A successful run is still required for the updated commit; local checks do not establish Windows shell icon behavior or physical radio compatibility.

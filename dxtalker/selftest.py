@@ -16,6 +16,7 @@ def run(report_path):
         from .app import Application
         from .audio import AudioOutput, WindowsSpeech
         from .models import Settings
+        from .appearance import load_appearance
         from .ptt import serial_ports
 
         speech = WindowsSpeech()
@@ -38,6 +39,29 @@ def run(report_path):
                 assert len(app.spots) == 3
                 assert app._read_settings() == Settings()
                 app._apply()
+                assert app.icon.width() == 256
+                for theme in ("Light", "Dark"):
+                    app.theme.set(theme)
+                    app._change_theme()
+                    root.update()
+                    assert load_appearance() == theme
+                    assert not app.engine.enabled
+                    assert app.brand_label.cget("image")
+                report["appearance"] = ["Light", "Dark"]
+                normal_geometry = root.geometry()
+                root.geometry("900x600")
+                root.update()
+                for index in range(6):
+                    app.notebook.select(index)
+                    root.update()
+                    for control in (app.save_button, app.stop_button, app.theme_picker):
+                        assert control.winfo_ismapped()
+                        assert control.winfo_rooty() + control.winfo_height() <= root.winfo_rooty() + root.winfo_height()
+                        assert control.winfo_rootx() + control.winfo_width() <= root.winfo_rootx() + root.winfo_width()
+                report["small_window_controls"] = True
+                root.geometry(normal_geometry)
+                app.notebook.select(0)
+                root.update()
                 assert (Path(folder) / "DXTalker/settings.json").exists()
                 root.lift()
                 root.update()
@@ -68,6 +92,15 @@ try {
                                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20,
                                          creationflags=subprocess.CREATE_NO_WINDOW)
                 report["identification_screenshot"] = capture.returncode == 0 and Path(env["DX_IMAGE"]).exists()
+                app.notebook.select(0)
+                app.theme.set("Light")
+                app._change_theme()
+                root.update()
+                env["DX_IMAGE"] = str(Path(image).with_name(Path(image).stem + "_light.png"))
+                capture = subprocess.run([shell, "-NoProfile", "-NonInteractive", "-Command", script], env=env,
+                                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20,
+                                         creationflags=subprocess.CREATE_NO_WINDOW)
+                report["light_screenshot"] = capture.returncode == 0 and Path(env["DX_IMAGE"]).exists()
                 root.after(500, app.close)
                 root.mainloop()
             finally:
