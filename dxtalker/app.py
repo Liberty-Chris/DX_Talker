@@ -27,8 +27,10 @@ class Application:
     def __init__(self, root):
         self.root = root
         root.title(f"DX Talker {__version__}")
-        root.geometry("1160x830")
-        root.minsize(980, 720)
+        width = max(900, min(1160, root.winfo_screenwidth() - 60))
+        height = max(600, min(830, root.winfo_screenheight() - 100))
+        root.geometry(f"{width}x{height}+20+10")
+        root.minsize(900, 600)
         self.events = queue.Queue(maxsize=1500)
         self.control_events = queue.SimpleQueue()
         self.source = None
@@ -91,11 +93,27 @@ class Application:
         ttk.Label(status, textvariable=self.output_status).pack(anchor="w", pady=(5, 0))
         ttk.Label(status, textvariable=self.activity).pack(anchor="w", pady=(5, 0))
         notebook = ttk.Notebook(self.root)
+        self.notebook = notebook
         notebook.pack(fill="both", expand=True, padx=18, pady=(0, 8))
         self.tabs = {}
+        self.scroll_tabs = []
         for name in ("Live spots", "Source", "Audio and PTT", "Identification", "Announcements", "Help and Info"):
-            frame = ttk.Frame(notebook, padding=16)
-            notebook.add(frame, text=name)
+            if name in ("Live spots", "Help and Info"):
+                frame = ttk.Frame(notebook, padding=16)
+                notebook.add(frame, text=name)
+            else:
+                container = ttk.Frame(notebook)
+                notebook.add(container, text=name)
+                canvas = tk.Canvas(container, background="#edf2f7", highlightthickness=0)
+                scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+                canvas.configure(yscrollcommand=scrollbar.set)
+                scrollbar.pack(side="right", fill="y")
+                canvas.pack(side="left", fill="both", expand=True)
+                frame = ttk.Frame(canvas, padding=16)
+                item = canvas.create_window(0, 0, window=frame, anchor="nw")
+                frame.bind("<Configure>", lambda event, c=canvas: c.configure(scrollregion=c.bbox("all")))
+                canvas.bind("<Configure>", lambda event, c=canvas, i=item: c.itemconfigure(i, width=event.width))
+                self.scroll_tabs.append((frame, canvas))
             self.tabs[name] = frame
         self._live_tab()
         self._source_tab()
@@ -104,9 +122,25 @@ class Application:
         self._policy_tab()
         self._help_tab()
         footer = ttk.Frame(self.root, padding=(18, 5, 18, 12))
-        footer.pack(fill="x")
+        footer.pack(side="bottom", fill="x", before=notebook)
         ttk.Label(footer, text="Settings apply only when saved. Passwords and tokens are never saved.").pack(side="left")
-        ttk.Button(footer, text="Save and apply settings", command=self.guard(self._apply)).pack(side="right")
+        self.save_button = ttk.Button(footer, text="Save and apply settings", command=self.guard(self._apply))
+        self.save_button.pack(side="right")
+        for index, (frame, canvas) in enumerate(self.scroll_tabs):
+            tag = f"SettingsScroll{index}"
+
+            def wheel(event, c=canvas):
+                c.yview_scroll(-int(event.delta / 120), "units")
+                return "break"
+
+            self.root.bind_class(tag, "<MouseWheel>", wheel)
+
+            def bind_children(widget):
+                widget.bindtags((tag,) + widget.bindtags())
+                for child in widget.winfo_children():
+                    bind_children(child)
+
+            bind_children(frame)
 
     def guard(self, action):
         def wrapped():

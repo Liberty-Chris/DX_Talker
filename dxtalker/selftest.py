@@ -31,6 +31,7 @@ def run(report_path):
                 root = tk.Tk()
                 app = Application(root)
                 root.update()
+                assert app.save_button.winfo_rooty() + app.save_button.winfo_height() <= root.winfo_rooty() + root.winfo_height()
                 assert set(app.variables) == {f.name for f in fields(Settings)}
                 assert not app.engine.enabled
                 app._samples()
@@ -60,6 +61,13 @@ try {
                                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20,
                                          creationflags=subprocess.CREATE_NO_WINDOW)
                 report["screenshot"] = capture.returncode == 0 and Path(image).exists()
+                app.notebook.select(3)
+                root.update()
+                env["DX_IMAGE"] = str(Path(image).with_name(Path(image).stem + "_identification.png"))
+                capture = subprocess.run([shell, "-NoProfile", "-NonInteractive", "-Command", script], env=env,
+                                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20,
+                                         creationflags=subprocess.CREATE_NO_WINDOW)
+                report["identification_screenshot"] = capture.returncode == 0 and Path(env["DX_IMAGE"]).exists()
                 root.after(500, app.close)
                 root.mainloop()
             finally:
