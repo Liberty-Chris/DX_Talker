@@ -41,12 +41,21 @@ class SerialPTT:
 
     def close(self):
         if self.serial:
+            port = self.serial
+            failure = None
             try:
-                if self.serial.is_open:
-                    self.set(False)
+                if port.is_open:
+                    for line in ("RTS", "DTR"):
+                        if line in self.method:
+                            try:
+                                setattr(port, line.lower(), not self.active_high)
+                            except Exception as exc:
+                                failure = exc
             finally:
-                self.serial.close()
                 self.serial = None
+                port.close()
+            if failure:
+                raise failure
 
 
 def create_ptt(settings):

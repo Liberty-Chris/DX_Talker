@@ -5,6 +5,7 @@ from pathlib import Path
 import tempfile
 import threading
 import traceback
+import subprocess
 
 
 def run(report_path):
@@ -37,6 +38,28 @@ def run(report_path):
                 assert app._read_settings() == Settings()
                 app._apply()
                 assert (Path(folder) / "DXTalker/settings.json").exists()
+                root.lift()
+                root.update()
+                # Capture only the synthetic runner UI for layout review. No audio
+                # endpoint or radio connection is opened by this operation.
+                image = str(Path(report_path).resolve().with_suffix(".png"))
+                script = r'''
+Add-Type -AssemblyName System.Drawing
+$bmp = New-Object System.Drawing.Bitmap ([int]$env:DX_WIDTH), ([int]$env:DX_HEIGHT)
+$g = [System.Drawing.Graphics]::FromImage($bmp)
+try {
+  $g.CopyFromScreen([int]$env:DX_X, [int]$env:DX_Y, 0, 0, $bmp.Size)
+  $bmp.Save($env:DX_IMAGE, [System.Drawing.Imaging.ImageFormat]::Png)
+} finally { $g.Dispose(); $bmp.Dispose() }
+'''
+                env = {**os.environ, "DX_IMAGE": image, "DX_X": str(root.winfo_rootx()),
+                       "DX_Y": str(root.winfo_rooty()), "DX_WIDTH": str(root.winfo_width()),
+                       "DX_HEIGHT": str(root.winfo_height())}
+                shell = str(Path(os.environ["SystemRoot"]) / "System32/WindowsPowerShell/v1.0/powershell.exe")
+                capture = subprocess.run([shell, "-NoProfile", "-NonInteractive", "-Command", script], env=env,
+                                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20,
+                                         creationflags=subprocess.CREATE_NO_WINDOW)
+                report["screenshot"] = capture.returncode == 0 and Path(image).exists()
                 root.after(500, app.close)
                 root.mainloop()
             finally:

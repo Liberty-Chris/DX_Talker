@@ -4,6 +4,8 @@ import tempfile
 import threading
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
+import time
 import wave
 
 from dxtalker.audio import AudioOutput, Clip, join_clips, morse_clip, validate_morse, wav_clip
@@ -62,3 +64,44 @@ class AudioTests(unittest.TestCase):
             for key in ("Windows WASAPI :: USB", "Windows WASAPI :: Missing"):
                 with self.assertRaises(ValueError):
                     AudioOutput.resolve(key, 1)
+
+    def test_playback_volume_completion_and_underflow(self):
+        class Stop(Exception):
+            pass
+
+        class Abort(Exception):
+            pass
+
+        for underflow in (False, True):
+            captured = []
+
+            class Stream:
+                def __init__(self, **kwargs):
+                    self.kwargs = kwargs
+                    self.active = True
+
+                def __enter__(self):
+                    output = bytearray(8)
+                    try:
+                        self.kwargs["callback"](output, 4, None, underflow)
+                    except (Stop, Abort):
+                        pass
+                    captured.append(output)
+                    self.kwargs["finished_callback"]()
+                    return self
+
+                def __exit__(self, *args):
+                    pass
+
+            fake = SimpleNamespace(RawOutputStream=Stream, CallbackStop=Stop, CallbackAbort=Abort)
+            audio = AudioOutput()
+            samples = array("h", [1000, -1000])
+            with patch.dict("sys.modules", {"sounddevice": fake}), patch.object(audio, "resolve", return_value=4):
+                if underflow:
+                    with self.assertRaises(RuntimeError):
+                        audio.play(Clip(samples.tobytes()), "chosen", 50, threading.Event(), time.monotonic() + 1)
+                else:
+                    audio.play(Clip(samples.tobytes()), "chosen", 50, threading.Event(), time.monotonic() + 1)
+                    decoded = array("h")
+                    decoded.frombytes(captured[0])
+                    self.assertEqual(list(decoded), [500, -500, 0, 0])

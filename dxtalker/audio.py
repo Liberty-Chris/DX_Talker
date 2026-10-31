@@ -182,10 +182,14 @@ class AudioOutput:
             data.byteswap()
         pcm, offset, total = data.tobytes(), 0, len(data) * 2
         finished = __import__("threading").Event()
+        audio_fault = []
 
         def callback(out, frames, timing, status):
             nonlocal offset
             if cancel.is_set() or time.monotonic() > deadline:
+                raise sd.CallbackAbort
+            if status:
+                audio_fault.append(True)
                 raise sd.CallbackAbort
             size = frames * clip.channels * 2
             count = min(size, total - offset)
@@ -209,5 +213,7 @@ class AudioOutput:
             raise Cancelled()
         if time.monotonic() > deadline:
             raise TimeoutError("Maximum playback duration reached")
+        if audio_fault:
+            raise RuntimeError("Audio stream reported a playback fault")
         if offset < total:
             raise RuntimeError("Audio output did not complete")

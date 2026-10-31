@@ -4,7 +4,7 @@ Version 0.1.0a1. Initial target: Windows 11 x64.
 
 ## Portable application
 
-The Windows pilot workflow builds DXTalker-Windows-x64.zip after core tests and Windows smoke checks pass. Open the successful run under the repository's Actions tab and download the DXTalker-Windows-x64 artifact. Extract the artifact wrapper and then extract the application ZIP. Keep DXTalker.exe alongside its _internal folder and launch the EXE. Python is bundled in that package.
+The Windows pilot workflow builds DXTalker-Windows-x64.zip after core tests and Windows smoke checks pass. Open the successful run under the repository's Actions tab and download the DXTalker-Windows-x64 artifact. Extract the downloaded ZIP. Keep DXTalker.exe alongside its _internal folder and launch the EXE. Python is bundled in that package.
 
 The package is unsigned and is a pilot build. It is not yet a published installer or a hardware certified release. The Windows verification reports in the same run identify which automated checks actually passed.
 

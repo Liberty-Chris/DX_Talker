@@ -167,6 +167,37 @@ class EngineTests(unittest.TestCase):
             self.engine._transmit(Clip(b"\0\0" * 22050 * 121), self.settings)
         self.assertEqual(self.ptts, [])
 
+    def test_source_gate_prevents_enable_and_transmit(self):
+        self.engine.rf_allowed = lambda: False
+        with self.assertRaises(ValueError):
+            self.engine.enable()
+        with self.assertRaises(Cancelled):
+            self.engine._transmit(Clip(b"\0\0" * 100), self.settings)
+        self.assertEqual(self.ptts, [])
+
+    def test_watchdog_releases_independently_of_a_stalled_audio_call(self):
+        released = threading.Event()
+
+        class StalledAudio(FakeAudio):
+            def play(self, *args):
+                # Ignore cancellation, as a stuck native call might do.
+                self.entered.set()
+                released.wait(7)
+
+        class WatchPTT(FakePTT):
+            def set(self, keyed):
+                super().set(keyed)
+                if not keyed:
+                    released.set()
+
+        self.engine.audio = StalledAudio()
+        self.engine.ptt_factory = lambda s: WatchPTT()
+        self.engine.configure(replace(self.settings, max_tx_seconds=5))
+        self.engine.enable()
+        self.assertTrue(released.wait(6))
+        wait_for(lambda: not self.engine.busy)
+        self.assertFalse(self.engine.enabled)
+
     def test_resume_does_not_replay_disabled_backlog(self):
         self.engine.offer(self.spot())
         self.enable_and_id()

@@ -229,6 +229,8 @@ class Application:
         ttk.Label(frame, text="Announcements spell the DX callsign using phonetics and read the frequency digit by digit in kilohertz.\nComments, chat, banners and cluster commands are never announced. The queue holds at most 100 spots.\nSpots received while RF is disabled are displayed but are not queued for later transmission.",
                   wraplength=900).grid(row=5, column=0, columnspan=3, sticky="w", pady=20)
         self.channel_ack = tk.BooleanVar(value=False)
+        self.channel_ack.trace_add("write", lambda *args: self.engine.stop("Channel acknowledgement cleared. RF disabled.")
+                                   if not self.channel_ack.get() else None)
         ttk.Checkbutton(frame, text="I am supervising operation on a clear or coordinated channel. This pilot does not detect a busy channel.",
                         variable=self.channel_ack).grid(row=6, column=0, columnspan=3, sticky="w")
 
@@ -339,11 +341,18 @@ class Application:
         if not selected:
             raise ValueError("Select a spot first or load the sample spots")
         self._apply()
-        self.engine.preview("spot", self.spots[selected[0]].speech)
+        if self._confirm_preview():
+            self.engine.preview("spot", self.spots[selected[0]].speech)
 
     def _preview(self, kind):
         self._apply()
-        self.engine.preview(kind)
+        if self._confirm_preview():
+            self.engine.preview(kind)
+
+    def _confirm_preview(self):
+        if self.settings.preview_device and self.settings.preview_device == self.settings.radio_device:
+            return messagebox.askyesno("Preview audio reaches radio output", "Preview and radio outputs are the same device. Preview audio may key a VOX radio. Play it on this device?")
+        return True
 
     def _enable(self):
         self._apply()
