@@ -44,6 +44,10 @@ jobs:
           if ($process.ExitCode -ne 0) { Get-Content package-smoke.json; throw 'Package smoke test failed' }
           $report = Get-Content package-smoke.json -Raw | ConvertFrom-Json
           if (-not $report.ok) { throw 'Package report failed' }
+      - name: Build Windows installer
+        run: ./scripts/build_installer.ps1
+      - name: Verify install, shortcuts, installed launch, reinstall and removal
+        run: ./scripts/check_installer.ps1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -55,4 +59,9 @@ jobs:
         with:
           name: DXTalker-Windows-x64
           path: dist/DXTalker/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DXTalker-Setup-Windows-x64
+          path: dist/DXTalker-Setup-Windows-x64.exe
           if-no-files-found: error

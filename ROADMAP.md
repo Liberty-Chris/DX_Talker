@@ -14,7 +14,7 @@ The first Windows pilot is implemented in source. Automated tests cover the port
 | M3 Live source connection | In progress | TCP/Telnet adapter for supplied example, explicit login states, reconnect and parsing | Authorized connection test plus deterministic login, framing, disconnect and duplicate tests |
 | M4 Radio integration | In progress | Selected USB audio device, selected PTT method and transmission coordinator | Bench evidence for correct routing, lead and tail timing, stop, timeout, unplug and shutdown behavior |
 | M5 Identification and announcements | In progress | Separate CW and voice fields, default speech, WAV option, scheduling and spot filtering | ID deadlines, queue limits, stale spot expiry, WAV failure and no overlapping transmissions verified |
-| M6 Windows pilot | Planned | Installer, settings migration, diagnostics, accessible UI and packaged Help and Info | Clean machine install, upgrade, removal and operator acceptance with named hardware and Windows versions |
+| M6 Windows pilot | In progress | Installer, settings migration, diagnostics, accessible UI and packaged Help and Info | Clean machine install, upgrade, removal and operator acceptance with named hardware and Windows versions |
 | M7 First release | Planned | Resolve pilot defects and publish supported scope | Release checklist complete, accurate help and known limitations published |
 
 Work through the connection and local audio stages before enabling radio transmission. Test radio control before adding unattended scheduling. Web feed support needs a selected provider and format, so its place in the first release depends on that choice.
@@ -23,7 +23,7 @@ Work through the connection and local audio stages before enabling radio transmi
 
 Build the Windows pilot and test local sample spots and ID previews on Windows 11. Connect a live source next and record any login differences. Then select the first physical radio interface and verify its audio routing, PTT polarity, stop and failure behavior.
 
-The initial adapters keep hardware choice open through explicit audio selection, serial RTS and DTR modes and VOX. HID and CAT adapters are future work. The language and dependencies are selected in the decision record. The portable package does not yet provide an installer, automatic updates or audio format conversion.
+The initial adapters keep hardware choice open through explicit audio selection, serial RTS and DTR modes and VOX. HID and CAT adapters are future work. The language and dependencies are selected in the decision record. An Inno Setup installer and automated installation checks are now defined alongside the portable package. Windows 10 and Windows 11 acceptance tests remain open. Automatic updates and audio format conversion remain future work.
 
 ## First release acceptance
 
