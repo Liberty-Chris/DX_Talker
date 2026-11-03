@@ -2,7 +2,9 @@
 
 ## Launch
 
-Extract the portable Windows package and keep its internal files alongside DXTalker.exe. Launch the EXE. To run from source, follow the repository's Windows setup document.
+The setup program targets Windows 10 22H2 and Windows 11 on x64 PCs. Run DXTalker-Setup-Windows-x64.exe to install for your Windows account. Python is included. Setup creates a Start menu entry and a desktop shortcut by default, using the DXt icon. You can clear the desktop shortcut option during setup. Close DX Talker before installing an update. Run the new setup program to update the existing installation. Remove DX Talker through Windows Settings. Settings and appearance preferences under %LOCALAPPDATA%\DXTalker are retained during updates and removal. The installer is unsigned, so Windows may show a publisher or SmartScreen warning. Actual Windows 10 and Windows 11 acceptance tests remain open.
+
+For the portable option, extract the portable Windows package and keep its internal files alongside DXTalker.exe. Launch the EXE. To run from source, follow the repository's Windows setup document.
 
 ## Appearance
 

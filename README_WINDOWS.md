@@ -1,12 +1,18 @@
 # DX Talker Windows pilot
 
-Version 0.1.0a2. Initial target: Windows 11 x64.
+Version 0.1.0a2. Installer targets: Windows 10 22H2 and Windows 11, x64.
+
+## Install DX Talker
+
+Download the DXTalker-Setup-Windows-x64 artifact from a successful Windows pilot workflow run. Extract the downloaded ZIP to find the setup EXE.
+
+The setup program targets Windows 10 22H2 and Windows 11 on x64 PCs. Run DXTalker-Setup-Windows-x64.exe to install for your Windows account. Python is included. Setup creates a Start menu entry and a desktop shortcut by default, using the DXt icon. You can clear the desktop shortcut option during setup. Close DX Talker before installing an update. Run the new setup program to update the existing installation. Remove DX Talker through Windows Settings. Settings and appearance preferences under %LOCALAPPDATA%\DXTalker are retained during updates and removal. The installer is unsigned, so Windows may show a publisher or SmartScreen warning. Actual Windows 10 and Windows 11 acceptance tests remain open.
 
 ## Portable application
 
 The Windows pilot workflow builds DXTalker-Windows-x64.zip after core tests and Windows smoke checks pass. Open the successful run under the repository's Actions tab and download the DXTalker-Windows-x64 artifact. Extract the downloaded ZIP. Keep DXTalker.exe alongside its _internal folder and launch the EXE. Python is bundled in that package.
 
-The package is unsigned and is a pilot build. It is not yet a published installer or a hardware certified release. The Windows verification reports in the same run identify which automated checks actually passed.
+The package is unsigned and is a pilot build. It is not yet a hardware certified release. The Windows verification reports in the same run identify which automated checks actually passed.
 
 ## Appearance
 
@@ -55,6 +61,8 @@ Changing a setting while RF is enabled disarms output. Save and apply the change
 The app refuses missing or ambiguous audio device names instead of switching devices. The first pilot does not provide automatic audio format conversion. Select a device supporting the recording's format or convert the recording.
 
 ## Developer checks and build
+
+Install Inno Setup 6 before building the setup program. After the portable build below, run `./scripts/build_installer.ps1`. The hosted Windows build uses its preinstalled Inno Setup 6 compiler. Run `./scripts/check_installer.ps1` only in a disposable Windows account with no existing DX Talker installation or settings. It installs, launches the installed self test, reinstalls and removes the app while checking shortcuts and user data preservation.
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v

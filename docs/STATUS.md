@@ -1,6 +1,6 @@
 # Project status
 
-Updated October 31, 2026.
+Updated November 2, 2026.
 
 ## Where things stand
 
@@ -19,6 +19,10 @@ PTT adapters support serial RTS, DTR, both lines and an explicit VOX mode. CM108
 One coordinator prioritizes IDs, serializes audio, limits the queue, expires spots and attempts PTT release on completion, cancellation and errors. Source loss disables RF. Startup, settings changes and recovery require deliberate RF enable. Passwords and tokens are not saved or journaled.
 
 The desktop now includes the DXt header, light and dark appearance, a matching Windows icon and EXE version information. Appearance is saved independently of radio settings.
+
+The installer source adds account based installation, the DXt desktop shortcut, a Start menu entry and Windows removal support. Its minimum target is Windows 10 22H2 x64, also targeting Windows 11 x64. The workflow compiles setup and checks install, shortcuts, installed UI and speech, reinstall and removal on its hosted Windows runner. These new checks must pass before a setup artifact is available. Separate acceptance tests on Windows 10 and Windows 11 remain open.
+
+Local application testing is reported to be working well. The exact Windows build and hardware coverage were not supplied with that report.
 
 ## Verification
 

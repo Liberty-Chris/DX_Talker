@@ -1,5 +1,9 @@
 # Changelog
 
+## November 2, 2026. Windows installer
+
+Added an Inno Setup installer targeting Windows 10 22H2 and Windows 11 x64. Setup creates DXt desktop and Start menu shortcuts, installs the bundled runtime and provides removal through Windows Settings. Updates and removal retain local preferences. Added workflow checks for installation, shortcuts, the installed application self test, reinstallation and removal. Actual Windows 10 and Windows 11 acceptance remains open.
+
 ## October 31, 2026. Windows pilot 0.1.0a2
 
 Added the DXt identity to the application header and Windows icon, plus EXE product and version information. Added light and dark themes with a separate saved appearance preference. Updated status panels, spot table colors and action spacing. Appearance changes leave radio settings and RF state alone.

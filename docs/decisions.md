@@ -77,3 +77,9 @@ Selected October 31, 2026.
 Use the approved minimalist DXt lettering with a cyan lowercase t. The D and X use graphite on light surfaces and white on dark surfaces. A vector master supplies clean transparent header assets and a multiresolution Windows icon. Use a stable charcoal tile for the shell icon so it remains visible against either Windows theme.
 
 Store appearance in appearance.json beside settings.json. Switching themes is cosmetic and must not apply pending settings, stop output or enable RF. Default to Dark and provide an explicit Light option. Ship generated PNG and ICO assets so the Windows build and runtime need no vector rendering dependency.
+
+## D011 Windows installer
+
+Selected November 2, 2026.
+
+Use Inno Setup 6 around the existing portable package. One x64 setup targets Windows 10 22H2 and Windows 11. Keep the installer AppId stable for updates. Install for the current account without requiring administrator access. Include Start menu and desktop shortcuts with the DXt icon, with the desktop option selected initially. Keep user settings outside the installation directory and retain them on removal. Keep the portable download available. Verify installation lifecycle on the hosted runner and record actual Windows 10 and Windows 11 acceptance separately before claiming tested compatibility.
