@@ -20,7 +20,7 @@ One coordinator prioritizes IDs, serializes audio, limits the queue, expires spo
 
 The desktop now includes the DXt header, light and dark appearance, a matching Windows icon and EXE version information. Appearance is saved independently of radio settings.
 
-The installer source adds account based installation, the DXt desktop shortcut, a Start menu entry and Windows removal support. Its minimum target is Windows 10 22H2 x64, also targeting Windows 11 x64. The workflow compiles setup and checks install, shortcuts, installed UI and speech, reinstall and removal on its hosted Windows runner. These new checks must pass before a setup artifact is available. Separate acceptance tests on Windows 10 and Windows 11 remain open.
+The installer source adds account based installation, the DXt desktop shortcut, a Start menu entry and Windows removal support. Its minimum target is Windows 10 22H2 x64, also targeting Windows 11 x64. The workflow compiles setup and checks install, shortcuts, installed UI and speech, reinstall and removal on its hosted Windows runner. The [Windows verification run](https://github.com/Liberty-Chris/DX_Talker/actions/runs/41570491770) passed core tests and documentation checks on Windows and Linux, source and packaged UI and speech checks, installer compilation, installation, shortcut targets, installed launch, reinstallation and removal. The setup artifact is available in that run. Separate acceptance tests on Windows 10 and Windows 11 remain open.
 
 Local application testing is reported to be working well. The exact Windows build and hardware coverage were not supplied with that report.
 
