@@ -94,3 +94,22 @@ class SettingsTests(unittest.TestCase):
         replace(s, ptt_method="RTS", serial_port="COM10").validate_rf()
         with self.assertRaises(ValueError):
             replace(s, id_mode="Voice").validate_rf()
+
+
+    def test_format_validation_and_legacy_settings_defaults(self):
+        for changes in ({'announcement_order': 'intro,intro,frequency'},
+                        {'announcement_order': 'intro,frequency,comment'},
+                        {'announcement_intro': 'x' * 81}, {'announcement_intro': ''},
+                        {'include_intro': False, 'include_callsign': False, 'include_frequency': False},
+                        {'speak_units': 'false'}, {'announcement_intro': 'text\ncommand'}):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                replace(Settings(), **changes).validate()
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'settings.json'
+            path.write_text('{"schema_version": 1, "frequency_unit": "MHz"}')
+            settings = load_settings(path)
+            self.assertEqual(settings.announcement_order, 'intro,frequency,callsign')
+            self.assertTrue(settings.speak_units)
+            custom = replace(settings, announcement_order='callsign,frequency,intro', include_intro=False, speak_units=False)
+            save_settings(custom, path)
+            self.assertEqual(load_settings(path), custom)

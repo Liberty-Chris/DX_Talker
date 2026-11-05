@@ -62,3 +62,6 @@ Future platform certificate alignment: evaluate supported native trust services 
 
 
 The 0.2.0a5 followup compacts IDs and makes RF a source independent output toggle over applied settings. Radio configuration, identification, serialization and fault handling remain required for transmission. Offline IDs can operate without a cluster.
+
+
+The 0.2.0a6 format editor adds presets, optional sections and spoken units, custom intro text and keyboard accessible reorder controls. Format previews use a temporary settings snapshot through the shared coordinator.

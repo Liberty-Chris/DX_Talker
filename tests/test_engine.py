@@ -261,3 +261,14 @@ class EngineTests(unittest.TestCase):
         self.engine.offer(self.spot())
         wait_for(lambda: len(self.audio.played) == 1 and not self.engine.busy)
         self.assertEqual(self.audio.volumes, [34])
+
+
+    def test_preview_uses_format_snapshot_without_applying_settings_or_keying(self):
+        custom = replace(self.settings, announcement_order='intro,callsign,frequency',
+                         announcement_intro='New DX', speak_units=False, frequency_unit='MHz')
+        self.engine.preview('spot', self.spot(), settings=custom)
+        wait_for(lambda: len(self.audio.played) == 1 and not self.engine.busy)
+        self.assertEqual(self.speech.texts[0], 'New DX. Kilo Tango four Bravo November. seven point zero seven four.')
+        self.assertIs(self.engine.settings, self.settings)
+        self.assertEqual(self.ptts, [])
+        self.assertFalse(self.engine.enabled)

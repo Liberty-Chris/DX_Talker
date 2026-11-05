@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections import deque
+from dataclasses import dataclass
 from datetime import datetime
 import threading
 import time
@@ -10,6 +11,12 @@ from .audio import AudioOutput, Cancelled, scale_clip, join_clips, morse_clip, w
 from .models import UTC
 from .speech import SpeechService
 from .ptt import create_ptt
+
+
+@dataclass(frozen=True)
+class PreviewRequest:
+    value: object
+    settings: object
 
 
 class Engine:
@@ -83,16 +90,18 @@ class Engine:
         self.wake.set()
         return True
 
-    def preview(self, kind, text=None):
+    def preview(self, kind, text=None, settings=None):
         if kind not in ("voice", "cw", "spot"):
             raise ValueError("Unknown preview")
         with self.lock:
             if self.enabled or self.local_enabled or self.busy or self.items:
                 raise ValueError("Stop RF output and wait for Idle before previewing")
-            if not self.settings.preview_device:
+            preview_settings = settings or self.settings
+            preview_settings.validate()
+            if not preview_settings.preview_device:
                 raise ValueError("Choose a local preview audio device")
             self.cancel.clear()
-            self.items.append(("preview_" + kind, text))
+            self.items.append(("preview_" + kind, PreviewRequest(text, preview_settings)))
         self.wake.set()
 
     def identify(self):
@@ -116,6 +125,8 @@ class Engine:
                     return None
                 self.items.popleft()
                 self.busy = True
+                if kind.startswith("preview_") and isinstance(value, PreviewRequest):
+                    return kind, value.value, value.settings
                 return kind, value, self.settings
         return None
 
@@ -143,7 +154,7 @@ class Engine:
     def _spot_audio(self, spot, s):
         if hasattr(self.speech, "render_spot"):
             return self.speech.render_spot(spot, s, self.cancel)
-        return self._speak(spot.speech_in(s.frequency_unit), s)
+        return self._speak(". ".join(text for _, text in spot.announcement_groups(s)) + ".", s)
 
     def _voice(self, s):
         clip = wav_clip(s.voice_wav) if s.voice_mode == "WAV" else self._speak(s.voice_text, s)

@@ -101,3 +101,47 @@ class SpeechTests(unittest.TestCase):
         for freq, expected in (("7074", "7.074"), ("50125", "50.125"), ("1807", "1.807"), ("1000", "1"), ("1.0001", "0.0010001")):
             value = parse_line(f"DX de N0CALL: {freq} WB4IUY {now:%H%M}Z", "cluster", now)
             self.assertEqual(value.frequency_text("MHz"), expected)
+
+
+    def test_every_order_and_inclusion_with_optional_units_and_pauses(self):
+        import itertools
+        now = datetime.now(UTC)
+        spot = parse_line(f"DX de N0CALL: 14025.5 WB4IUY/P untrusted comment {now:%H%M}Z", "cluster", now)
+        for order in itertools.permutations(('intro', 'callsign', 'frequency')):
+            for flags in itertools.product((False, True), repeat=3):
+                if not any(flags):
+                    continue
+                included = dict(zip(('intro', 'callsign', 'frequency'), flags))
+                for unit, units in (('kHz', 'kilohertz'), ('MHz', 'megahertz')):
+                    for speak_units in (False, True):
+                        for pause in (0, 125):
+                            settings = Settings(announcement_order=','.join(order), announcement_intro='New DX',
+                                                include_intro=flags[0], include_callsign=flags[1], include_frequency=flags[2],
+                                                frequency_unit=unit, speak_units=speak_units, character_pause_ms=pause,
+                                                group_pause_ms=650)
+                            frequency = ('one four zero two five point five' if unit == 'kHz' else
+                                         'one four point zero two five five') + (' ' + units if speak_units else '')
+                            text = {'intro': 'New DX', 'callsign': 'Whiskey Bravo four India Uniform Yankee stroke Papa',
+                                    'frequency': frequency}
+                            expected = [text[name] for name in order if included[name]]
+                            plan = spot_plan(spot, settings)
+                            self.assertEqual(' '.join(t for t, _ in plan), ' '.join(expected))
+                            self.assertEqual(plan[-1][1], 0)
+                            self.assertEqual(sum(ms == 650 for _, ms in plan), len(expected) - 1)
+                            self.assertNotIn('untrusted', plan_ssml(plan))
+        self.assertEqual(str(spot.frequency_khz), '14025.5')
+
+    def test_custom_intro_is_escaped_and_both_providers_share_the_format(self):
+        now = datetime.now(UTC)
+        spot = parse_line(f"DX de N0CALL: 7074 KT4BN {now:%H%M}Z", 'cluster', now)
+        for provider in ('Windows', 'Piper'):
+            settings = Settings(speech_provider=provider, announcement_intro='DX <notice> & news',
+                                announcement_order='callsign,intro,frequency', speak_units=False)
+            with patch.object(SpeechService, '_render', return_value=Clip(b'\0\0' * 100)) as render:
+                SpeechService().render_spot(spot, settings, threading.Event())
+            plan = render.call_args.args[0]
+            self.assertEqual(plan[0][0], 'Kilo Tango four Bravo November')
+            self.assertEqual(plan[-1][0], 'seven zero seven four')
+            root = ET.fromstring(plan_ssml(plan))
+            self.assertNotIn('<notice>', plan_ssml(plan))
+            self.assertIn('DX <notice> & news', ''.join(root.itertext()))

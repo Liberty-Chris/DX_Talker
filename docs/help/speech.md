@@ -2,7 +2,7 @@
 
 Choose Speech to adjust delivery. Windows speech remains the default provider. Select an installed voice or leave it blank and choose Any, Male or Female as a voice preference. A named voice overrides the preference. Availability depends on installed System.Speech voices; a preference cannot install a missing voice.
 
-Speech speed runs from minus 10 to 10. Zero is normal. Use the spin controls or type a value. Pause between letters and digits accepts 0 to 1000 milliseconds. Zero retains natural word spacing. Pause between announcement groups accepts 0 to 3000 milliseconds. The groups are “New DX on”, the frequency with its units and the phonetic callsign. These pauses affect spot announcements, not freeform voice ID text or recorded WAV audio.
+Speech speed runs from minus 10 to 10. Zero is normal. Use the spin controls or type a value. Pause between letters and digits accepts 0 to 1000 milliseconds. Zero retains natural word spacing. Pause between announcement groups accepts 0 to 3000 milliseconds. The included sections and their order come from Announcement format in Announcements. Units, when enabled, stay attached to frequency. These pauses affect spot announcements, not freeform voice ID text or recorded WAV audio.
 
 Choose Preview sample speech to hear a portable callsign and decimal frequency with the current settings. Save and apply changes before listening. Speech is generated before radio keying; excessive duration is rejected by the configured transmission limit.
 
@@ -69,3 +69,16 @@ The listening toggle uses already applied settings. It does not save pending edi
 ## Announcement policy controls
 
 Announcements groups Frequency range, Timing and repeats and RF supervision into compact sections. Frequency limits always use kHz. Timing fields are in seconds, with supported ranges beside them. The busy channel limitation appears as guidance; an acknowledgement checkbox no longer gates RF. Editing, validation and Save and apply behavior are unchanged.
+
+
+## Announcement format
+
+Open Announcements to choose which sections are spoken and in what order. Frequency first preserves the original “New DX on. Frequency with units. Callsign.” format. Callsign first uses “New DX. Callsign. Frequency with units.” Callsign + frequency omits the intro. Choose a preset as a starting point; further edits show Custom.
+
+Each section has an include checkbox and Up and Down buttons. Use them with the mouse or Tab and Enter/Space. Unchecking a section preserves its text and position for later use. Intro offers New DX and New DX on, or type your own single line of up to 80 characters. At least one section must be included; an included intro cannot be blank. Invalid choices show guidance in the example and cannot be saved or played.
+
+Speak units belongs to Frequency and moves with it. Uncheck it to omit kilohertz or megahertz without changing the number. Frequency units in Speech or Live spots still controls decimal placement. Excluding Frequency also excludes its units; the units choice is retained when the section is restored. Source records, history and filter limits remain in kHz.
+
+The sentence example updates immediately with a portable callsign and a decimal frequency. Actual callsigns are spoken phonetically. Listen to example uses the pending format with your saved voice, pauses and local preview output. It does not save other edits, reconnect a source or assert serial PTT. Stop active output and wait for Idle before previewing. A shared local/radio audio device can still key a VOX radio, so the usual shared device confirmation applies.
+
+Save and apply makes the format active for RF, live local listening and spot previews. Editing the format stops active output; it never resumes automatically. These controls do not change CW IDs, freeform voice ID text or recorded voice IDs.

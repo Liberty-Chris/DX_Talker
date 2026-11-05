@@ -43,7 +43,7 @@ The initial HTTPS adapter uses the explicit generic JSON contract documented in 
 
 ## Announcement policy
 
-The pilot speaks the DX callsign and frequency only. Frequency limits, duplicate suppression, maximum age and announcement spacing are configurable. Comments are excluded from speech. Additional field selection and band presets can follow operator feedback.
+The pilot speaks selected intro, phonetic DX callsign and frequency sections in an operator chosen order, with optional frequency units. Frequency limits, duplicate suppression, maximum age and announcement spacing are configurable. Comments are excluded from speech. Presets provide a starting format, with independent inclusion and order controls. Band presets remain future work.
 
 Preserve the frequency value and explicit units. Use a documented callsign pronunciation policy that handles digits and portable suffixes. Test speech with the installed Windows voice rather than assuming ordinary word pronunciation is sufficient.
 

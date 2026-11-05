@@ -250,6 +250,7 @@ class Application:
         self._id_tab()
         self._policy_tab()
         self._speech_tab()
+        self._format_changed()
         self._history_tab()
         self._help_tab()
         footer = ttk.Frame(self.root, padding=(18, 5, 18, 12))
@@ -481,8 +482,9 @@ class Application:
 
     def _policy_tab(self):
         frame = self.tabs["Announcements"]
+        self._format_editor(frame)
         frequency = ttk.LabelFrame(frame, text="Frequency range", padding=12)
-        frequency.grid(row=0, column=0, sticky="w", pady=(0, 12))
+        frequency.grid(row=1, column=0, sticky="w", pady=(0, 12))
         self._field(frequency, 0, "Minimum (kHz)", "min_khz", compact=True)
         self._field(frequency, 1, "Maximum (kHz)", "max_khz", compact=True)
         for name in ("min_khz", "max_khz"):
@@ -490,19 +492,127 @@ class Application:
         ttk.Label(frequency, text="Filter limits use kHz, including when speech and display use MHz.",
                   wraplength=550).grid(row=2, column=0, columnspan=2, sticky="w", pady=(8, 0))
         timing = ttk.LabelFrame(frame, text="Timing and repeats", padding=12)
-        timing.grid(row=1, column=0, sticky="w", pady=(0, 12))
+        timing.grid(row=2, column=0, sticky="w", pady=(0, 12))
         self._field(timing, 0, "Maximum spot age (s)", "max_age_seconds", note="30 to 600 seconds", compact=True)
         self._field(timing, 1, "Repeat suppression (s)", "repeat_seconds", note="30 to 3600 seconds", compact=True)
         self._field(timing, 2, "Gap between spots (s)", "spacing_seconds", note="1 to 120 seconds", compact=True)
         supervision = ttk.LabelFrame(frame, text="RF supervision", padding=12)
-        supervision.grid(row=2, column=0, sticky="w", pady=(0, 12))
+        supervision.grid(row=3, column=0, sticky="w", pady=(0, 12))
         self.variables["supervised_ack"] = tk.BooleanVar(value=self.settings.supervised_ack)
         self.channel_ack = self.variables["supervised_ack"]
         # Retain the old saved value for settings compatibility; it no longer gates RF.
         ttk.Label(supervision, text="The app does not detect a busy channel. Supervise operation on a clear or coordinated channel. RF Enable does not require an acknowledgement.",
                   wraplength=550).grid(row=0, column=0, sticky="w")
         ttk.Label(frame, text="Only validated spots are spoken. Comments and cluster commands are excluded.\nQueue: up to 100 spots. Starting output does not replay displayed history.",
-                  wraplength=650).grid(row=3, column=0, sticky="w")
+                  wraplength=650).grid(row=4, column=0, sticky="w")
+
+    FORMAT_FIELDS = ("announcement_order", "announcement_intro", "include_intro",
+                     "include_callsign", "include_frequency", "speak_units")
+    FORMAT_PRESETS = {
+        "Frequency first": ("intro,frequency,callsign", "New DX on", True),
+        "Callsign first": ("intro,callsign,frequency", "New DX", True),
+        "Callsign + frequency": ("callsign,frequency,intro", "New DX", False),
+    }
+
+    def _format_editor(self, parent):
+        frame = ttk.LabelFrame(parent, text="Announcement format", padding=12)
+        frame.grid(row=0, column=0, sticky="w", pady=(0, 12))
+        presets = ttk.Frame(frame)
+        presets.grid(row=0, column=0, sticky="w", pady=(0, 8))
+        ttk.Label(presets, text="Preset").pack(side="left", padx=(0, 12))
+        self.format_preset = tk.StringVar()
+        picker = ttk.Combobox(presets, textvariable=self.format_preset,
+                              values=list(self.FORMAT_PRESETS) + ["Custom"], state="readonly", width=24)
+        picker.pack(side="left")
+        picker.bind("<<ComboboxSelected>>", lambda event: self._format_preset_selected())
+        for name in self.FORMAT_FIELDS:
+            value = getattr(self.settings, name)
+            self.variables[name] = tk.BooleanVar(value=value) if type(value) is bool else tk.StringVar(value=value)
+        rows = ttk.Frame(frame)
+        rows.grid(row=1, column=0, sticky="w")
+        self.format_rows = {}
+        for part, label in (("intro", "Intro"), ("callsign", "Callsign"), ("frequency", "Frequency")):
+            row = ttk.Frame(rows)
+            include = ttk.Checkbutton(row, text=label, variable=self.variables["include_" + part], width=13)
+            include.grid(row=0, column=0, sticky="w")
+            if part == "intro":
+                content = ttk.Combobox(row, textvariable=self.variables["announcement_intro"],
+                                       values=["New DX", "New DX on"], width=28)
+            elif part == "frequency":
+                content = ttk.Checkbutton(row, text="Speak units (kHz / MHz)", variable=self.variables["speak_units"], width=30)
+            else:
+                content = ttk.Label(row, text="Phonetic callsign", width=30)
+            content.grid(row=0, column=1, sticky="w", padx=(0, 12))
+            up = ttk.Button(row, text="Up", width=5, command=lambda p=part: self._move_format(p, -1))
+            down = ttk.Button(row, text="Down", width=6, command=lambda p=part: self._move_format(p, 1))
+            up.grid(row=0, column=2, padx=(0, 4))
+            down.grid(row=0, column=3)
+            for button in (up, down):
+                def activate(event, b=button):
+                    b.invoke()
+                    return "break"
+                button.bind("<Return>", activate)
+            self.format_rows[part] = {"row": row, "content": content, "up": up, "down": down}
+        self.format_example = tk.StringVar()
+        ttk.Label(frame, textvariable=self.format_example, wraplength=610).grid(row=2, column=0, sticky="w", pady=(10, 8))
+        ttk.Button(frame, text="Listen to example", command=self.guard(self._preview_format)).grid(row=3, column=0, sticky="w")
+        ttk.Label(frame, text="Uncheck a section to omit it. Units stay with frequency. Intro accepts your own text.",
+                  wraplength=610).grid(row=4, column=0, sticky="w", pady=(8, 0))
+        for name in self.FORMAT_FIELDS + ("frequency_unit",):
+            self.variables[name].trace_add("write", self._format_changed)
+
+    def _format_settings(self):
+        values = {name: self.variables[name].get() for name in self.FORMAT_FIELDS + ("frequency_unit",)}
+        return replace(self.settings, **values).validate_format()
+
+    def _format_changed(self, *args):
+        self._setting_changed()
+        order = self.variables["announcement_order"].get().split(",")
+        content_width = max(item["content"].winfo_reqwidth() for item in self.format_rows.values()) + 12
+        for index, part in enumerate(order):
+            item = self.format_rows[part]
+            item["row"].columnconfigure(1, minsize=content_width)
+            item["row"].grid(row=index, column=0, sticky="w", pady=3)
+            item["up"].configure(state="disabled" if index == 0 else "normal")
+            item["down"].configure(state="disabled" if index == 2 else "normal")
+            item["content"].configure(state="normal" if self.variables["include_" + part].get() else "disabled")
+        self.format_preset.set("Custom")
+        try:
+            settings = self._format_settings()
+            now = datetime.now(UTC)
+            spot = parse_line(f"DX de N0CALL: 14025.5 WB4IUY/P {now:%H%M}Z", "sample", now)
+            self.format_example.set("Example: " + ". ".join(text for _, text in spot.announcement_groups(settings, phonetic=False)) + ".")
+            for label, (order, intro, include) in self.FORMAT_PRESETS.items():
+                if (settings.announcement_order == order and settings.announcement_intro == intro and
+                        settings.include_intro == include and settings.include_callsign and
+                        settings.include_frequency and settings.speak_units):
+                    self.format_preset.set(label)
+        except ValueError as exc:
+            self.format_example.set(str(exc))
+
+    def _move_format(self, part, direction):
+        order = self.variables["announcement_order"].get().split(",")
+        index = order.index(part)
+        target = index + direction
+        if 0 <= target < len(order):
+            order[index], order[target] = order[target], order[index]
+            self.variables["announcement_order"].set(",".join(order))
+
+    def _format_preset_selected(self):
+        preset = self.FORMAT_PRESETS.get(self.format_preset.get())
+        if preset:
+            order, intro, include = preset
+            for name, value in (("announcement_order", order), ("announcement_intro", intro),
+                                ("include_intro", include), ("include_callsign", True),
+                                ("include_frequency", True), ("speak_units", True)):
+                self.variables[name].set(value)
+
+    def _preview_format(self):
+        settings = self._format_settings()
+        now = datetime.now(UTC)
+        spot = parse_line(f"DX de N0CALL: 14025.5 WB4IUY/P {now:%H%M}Z", "sample", now)
+        if self._confirm_preview():
+            self.engine.preview("spot", spot, settings=settings)
 
     def _connection_control(self, parent):
         return self._state_control(parent, "connection")
@@ -695,7 +805,7 @@ class Application:
 
     def _speech_tab(self):
         frame = self.tabs["Speech and access"]
-        ttk.Label(frame, text="New DX on. Frequency. Callsign.").grid(row=0, column=0, sticky="w", pady=(0, 10))
+        ttk.Label(frame, text="Set announcement format in Announcements.").grid(row=0, column=0, sticky="w", pady=(0, 10))
         delivery = ttk.LabelFrame(frame, text="Speech delivery", padding=12)
         delivery.grid(row=1, column=0, sticky="w", pady=(0, 12))
         self._field(delivery, 0, "Provider", "speech_provider", ["Windows", "Piper"], compact=True)
