@@ -64,3 +64,16 @@ The Windows workflow now includes real Piper rendering with a downloaded test mo
 Piper child processes set ORT_DISABLE_TELEMETRY=1 before startup. Model files are not included in the application package. The local real model render passed using en_US-lessac-medium, producing 8.12 seconds of PCM in 5.01 seconds on Linux without opening audio or PTT. All 72 tests pass with the virtual display, including six desktop integration tests. Windows verification for this followup is pending.
 
 The first installed Windows update from 0.2.0a1 to 0.2.0a2 is an operator acceptance test after release publication. It has not been claimed as completed.
+
+
+## 0.2.0a3 speech and operation controls
+
+Announcements now speak intro, frequency with units and phonetic callsign. A saved kHz/MHz choice is shared by Speech and Live spots. Decimal conversion affects display and speech only. Canonical received data, history and filters remain in kHz. Speech controls use compact groups with only the chosen provider visible.
+
+Connection controls now share one action per page: Connect, Connecting or Reconnecting, Connected and a Disconnect action on hover or keyboard focus. Transport connectivity is separate from login status and validated spots. Local listening has a matching toggle. Starting and stopping listening uses applied settings and does not reconnect the source or apply pending edits.
+
+A test reproduced a missed login prompt when a banner followed it in the same socket read. The adapter now processes lines and partial prompts after removing terminal formatting and NUL padding. Socket cleanup occurs before retry backoff and handles cancellation while connecting. This finding does not establish the cause of Dad's reported server trouble.
+
+The published 0.2.0a2 release has a valid installer and checksum asset. The same public GitHub request succeeds from this environment. Dad's generic update error is not enough to determine his machine's failure category. The new status distinguishes DNS, TLS verification, timeout, HTTP and public API rate limits and explains Pilot versus Stable selection.
+
+Verification: 84 tests pass under the local virtual display, including ten desktop integration tests. Documentation, help manifest and version alignment checks pass. Visual review covers the compact live page and speech groups. Windows package, native speech and installer verification will run on the feature branch. Physical radio acceptance and Dad's final installed upgrade remain open.

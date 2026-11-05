@@ -145,7 +145,7 @@ class Engine:
     def _spot_audio(self, spot, s):
         if hasattr(self.speech, "render_spot"):
             return self.speech.render_spot(spot, s, self.cancel)
-        return self._speak(spot.speech, s)
+        return self._speak(spot.speech_in(s.frequency_unit), s)
 
     def _voice(self, s):
         clip = wav_clip(s.voice_wav) if s.voice_mode == "WAV" else self._speak(s.voice_text, s)

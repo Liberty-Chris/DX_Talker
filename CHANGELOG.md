@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0a3. November 5, 2026
+
+Announce intro, frequency and callsign in that order. Add exact kHz/MHz selection shared by speech and live display. Keep source data, filters and logs in kHz.
+
+Compact the speech page, hide inactive provider settings and put previews at the top. Replace separate connection actions with one control that reflects actual transport state, highlights a connected state and offers red Disconnect on hover or keyboard focus.
+
+Make local listening a true output toggle that does not apply settings or reconnect the cluster.
+
+Fix a reproduced login prompt framing failure, fragmented terminal formatting and socket cleanup before retry. Improve update status with installed version, channel and distinct network error categories.
+
 ## 0.2.0a2. November 5, 2026
 
 Removed command masking. Added a temporary Show and Hide eye control to the dedicated source password field. Only source relevant controls are active, and duplicate connection buttons are removed. Changing source type clears the session secret; profile changes conceal it again.

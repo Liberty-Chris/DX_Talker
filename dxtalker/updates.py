@@ -4,8 +4,10 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import socket
+import ssl
 import threading
-from urllib import request
+from urllib import request, error
 from urllib.parse import urlsplit
 
 from . import __version__
@@ -44,6 +46,8 @@ class Release:
 def select_release(releases, current=__version__, channel="Pilot"):
     candidates = []
     for item in releases:
+        if not isinstance(item, dict):
+            continue
         if item.get("draft") or (item.get("prerelease") and channel == "Stable"):
             continue
         try:
@@ -74,10 +78,10 @@ class HTTPSRedirect(request.HTTPRedirectHandler):
 
 def open_url(url):
     return request.build_opener(HTTPSRedirect()).open(request.Request(url, headers={"User-Agent": "DXTalker/" + __version__,
-                                                       "Accept": "application/vnd.github+json"}), timeout=15)
+                                                       "Accept": "application/vnd.github+json", "Cache-Control": "no-cache"}), timeout=15)
 
 
-def check(channel="Pilot", opener=open_url):
+def read_releases(opener=open_url):
     with opener(API) as response:
         body = response.read(1024 * 1024 + 1)
     if len(body) > 1024 * 1024:
@@ -85,7 +89,46 @@ def check(channel="Pilot", opener=open_url):
     releases = json.loads(body)
     if not isinstance(releases, list):
         raise ValueError("Release service did not return a release list")
-    return select_release(releases, channel=channel)
+    return releases
+
+
+def check(channel="Pilot", opener=open_url):
+    return select_release(read_releases(opener), channel=channel)
+
+
+@dataclass(frozen=True)
+class CheckResult:
+    release: Release | None
+    status: str
+
+
+def check_report(channel="Pilot", current=__version__, opener=open_url):
+    releases = read_releases(opener)
+    selected = select_release(releases, current=current, channel=channel)
+    context = f"Installed {current}. Channel: {channel}. "
+    if selected:
+        return CheckResult(selected, context + "Update available: " + selected.version)
+    preview = select_release(releases, current=current, channel="Pilot")
+    if channel == "Stable" and preview:
+        return CheckResult(None, context + f"Preview {preview.version} is available. Choose Pilot and Check now to see preview updates.")
+    if not releases:
+        return CheckResult(None, context + "No releases have been published yet.")
+    return CheckResult(None, context + "No newer compatible release is available.")
+
+
+def describe_error(exc):
+    if isinstance(exc, error.HTTPError):
+        if exc.code == 429 or (exc.code == 403 and (exc.headers or {}).get("X-RateLimit-Remaining") == "0"):
+            return "GitHub's public update check limit was reached. Wait and retry, or open Release page to download manually."
+        return f"Update service returned HTTP {exc.code}. Try again or open Release page."
+    reason = exc.reason if isinstance(exc, error.URLError) else exc
+    if isinstance(reason, ssl.SSLCertVerificationError):
+        return "The secure update connection could not be verified. Check the Windows clock and HTTPS filtering, or open Release page."
+    if isinstance(reason, socket.gaierror):
+        return "The update service hostname could not be resolved. Check the internet connection or open Release page."
+    if isinstance(reason, TimeoutError):
+        return "The update check timed out. Try Check now again or open Release page."
+    return "Could not check for updates. Check your connection and try Check now, or open Release page."
 
 
 def checksum_for(data):

@@ -102,3 +102,16 @@ Accessibility additions include live local listening, independent audio levels, 
 Keep cluster commands visible at all times. Confine visibility toggling to the dedicated password or token field, with an eye icon plus Show and Hide text. Visibility is temporary and resets at profile or source boundaries. Clear a session secret when manually changing source type to avoid sending a cluster password to an HTTPS service. Preserve inactive connection fields while disabling them.
 
 Add an explicit workflow dispatch option for publishing from main after verification. This provides a release path without requiring local Git credentials, while ordinary branch and PR builds cannot publish. Preview tags remain visible to the Pilot channel. Require real neural rendering alongside existing tests before publication. Set ORT_DISABLE_TELEMETRY=1 before every Piper process so local speech does not initialize the runtime telemetry uploader.
+
+
+## November 5, 2026: Announcement order and connection clarity
+
+Use intro, frequency with units and phonetic callsign for all spot speech providers. Convert kHz to MHz with Decimal only at the display and speech boundary. Keep incoming data, filtering and logs in canonical kHz. Use one saved unit selection across the live view and speech page.
+
+Compact speech settings into delivery, active provider and interface groups. Use one connection action per page with a neutral disconnected state, an appearance accent on connected transport and a red disconnect action on hover or keyboard focus. Connecting and retrying remain distinct and cancellable. An open socket must not imply authenticated login or valid DX data.
+
+A deterministic regression test reproduced a missed login prompt when a banner followed it in the same TCP read. Match framed lines and partial prompts after removing terminal presentation sequences. Close sockets before retry backoff and discard connections that finish after cancellation. Do not attribute the reported server trouble to this bug without operator evidence.
+
+Update failures must describe DNS, TLS, HTTP, timeout and rate limit categories without showing remote exception text. Report installed version and channel after successful checks and explain preview availability to Stable users. Do not weaken HTTPS verification.
+
+Local listening is a true output toggle, using applied settings. Stopping it cancels audio and queued announcements while preserving the source generation, socket and incoming live view. This prevents a button intended to stop listening from implicitly applying source edits or restarting a session. Its visual state follows the engine, with a brief disabled Stopping state while playback cleanup finishes.

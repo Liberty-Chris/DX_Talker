@@ -43,6 +43,9 @@ class Application:
         self.control_events = queue.SimpleQueue()
         self.raw_events = queue.Queue(maxsize=30)
         self.source = None
+        self.connection_phase = "disconnected"
+        self.connection_controls = []
+        self.listening_controls = []
         self.source_generation = 0
         self.source_ready = False
         self.spots = {}
@@ -87,6 +90,7 @@ class Application:
         self._paint_widgets()
         self.initializing = False
         self._refresh_devices()
+        self._refresh_spot_units()
         self._load_voices()
         self._configure_history()
         self.root.bind("<Escape>", lambda event: self._stop())
@@ -168,6 +172,7 @@ class Application:
             for y in range(5, 9):
                 self.eye_icon.put(p["ink"], (x, y))
         self.secret_toggle.configure(image=self.eye_icon, compound="left")
+        self._render_connections()
 
     def _change_theme(self, event=None):
         # Appearance never applies radio settings, stops a transmission or rearms RF.
@@ -277,12 +282,14 @@ class Application:
                 messagebox.showerror("DX Talker", str(exc))
         return wrapped
 
-    def _field(self, parent, row, label, name, choices=None, note=None, browse=False):
-        parent.columnconfigure(1, weight=1)
+    def _field(self, parent, row, label, name, choices=None, note=None, browse=False, compact=False):
+        parent.columnconfigure(1, weight=0 if compact else 1)
         value = getattr(self.settings, name)
-        var = tk.BooleanVar(value=value) if type(value) is bool else tk.StringVar(value=str(value))
+        var = self.variables.get(name)
+        if var is None:
+            var = tk.BooleanVar(value=value) if type(value) is bool else tk.StringVar(value=str(value))
         self.variables[name] = var
-        ttk.Label(parent, text=label).grid(row=row, column=0, sticky="w", padx=(0, 18), pady=6)
+        ttk.Label(parent, text=label).grid(row=row, column=0, sticky="w", padx=(0, 18), pady=3 if compact else 6)
         if type(value) is bool:
             widget = ttk.Checkbutton(parent, variable=var)
         elif choices is not None:
@@ -296,8 +303,11 @@ class Application:
             widget = ttk.Spinbox(parent, textvariable=var, from_=low, to=high, width=12)
         else:
             widget = ttk.Entry(parent, textvariable=var, width=48)
+        if compact and type(value) is not bool:
+            width = 36 if name == "voice" else 44 if name.startswith("piper_") else 18 if choices is not None else 10
+            widget.configure(width=width)
         self.field_widgets[name] = widget
-        widget.grid(row=row, column=1, sticky="ew", pady=6)
+        widget.grid(row=row, column=1, sticky="w" if compact else "ew", pady=3 if compact else 6)
         if browse:
             ttk.Button(parent, text="Browse", command=self.guard(self._browse_wav)).grid(row=row, column=2, padx=6)
         elif note:
@@ -319,15 +329,20 @@ class Application:
         self.live_profile_picker = ttk.Combobox(quick, textvariable=self.profile_choice, state="readonly", width=32)
         self.live_profile_picker.pack(side="left")
         self.live_profile_picker.bind("<<ComboboxSelected>>", lambda event: self.guard(self._select_profile)())
-        ttk.Label(quick, text="Choose a saved profile, then Connect.").pack(side="left", padx=12)
+        self.variables["frequency_unit"] = tk.StringVar(value=self.settings.frequency_unit)
+        self.variables["frequency_unit"].trace_add("write", self._setting_changed)
+        units = ttk.Frame(quick)
+        units.pack(side="right", padx=8)
+        for unit in ("kHz", "MHz"):
+            ttk.Radiobutton(units, text=unit, value=unit, variable=self.variables["frequency_unit"]).pack(side="left", padx=4)
         toolbar = ttk.Frame(frame)
         toolbar.grid(row=1, column=0, sticky="ew", pady=(0, 8))
-        for index, (text, action) in enumerate((("Connect", self._connect), ("Disconnect", self._disconnect),
-                             ("Load sample spots", self._samples), ("Preview selected", self._preview_spot),
+        self._connection_control(toolbar).grid(row=0, column=0, sticky="ew", padx=(0, 6), pady=(0, 6))
+        for index, (text, action) in enumerate((("Load sample spots", self._samples), ("Preview selected", self._preview_spot),
                              ("Listen locally (F8)", self._listen), ("Clear view", self._clear_spots),
-                             ("Enable RF", self._enable), ("Send ID now", self.engine.identify))):
-            ttk.Button(toolbar, text=text, command=self.guard(action)).grid(
-                row=index // 4, column=index % 4, sticky="ew", padx=(0, 6), pady=(0, 6))
+                             ("Enable RF", self._enable), ("Send ID now", self.engine.identify)), start=1):
+            control = self._listening_control(toolbar) if action == self._listen else ttk.Button(toolbar, text=text, command=self.guard(action))
+            control.grid(row=index // 4, column=index % 4, sticky="ew", padx=(0, 6), pady=(0, 6))
         self.live_hint = ttk.Label(frame, text="Spots appear here before RF is enabled. Select one to preview it locally.")
         self.live_hint.grid(row=2, column=0, sticky="w", pady=(0, 8))
         columns = ("time", "dx", "frequency", "spotter", "source")
@@ -389,8 +404,9 @@ class Application:
         ttk.Checkbutton(profiles, text="Remember secret for this Windows account", variable=self.remember_secret).grid(row=2, column=0, columnspan=2, sticky="w")
         buttons = ttk.Frame(profiles)
         buttons.grid(row=3, column=0, columnspan=2, sticky="w", pady=8)
-        for label, action in (("New", self._new_profile), ("Save profile", self._save_profile), ("Delete", self._delete_profile), ("Connect", self._connect), ("Disconnect", self._disconnect)):
+        for label, action in (("New", self._new_profile), ("Save profile", self._save_profile), ("Delete", self._delete_profile)):
             ttk.Button(buttons, text=label, command=self.guard(action)).pack(side="left", padx=(0, 8))
+        self._connection_control(buttons).pack(side="left", padx=(0, 8))
         ttk.Label(profiles, text="Selecting a profile loads its connection details and stops output. Connect when ready.", wraplength=800).grid(row=4, column=0, columnspan=2, sticky="w")
         # Profile selection belongs at the top of Source, before editable details.
         for child in frame.winfo_children():
@@ -452,6 +468,76 @@ class Application:
                                    if not self.channel_ack.get() else None)
         ttk.Checkbutton(frame, text="I am supervising operation on a clear or coordinated channel. This pilot does not detect a busy channel.",
                         variable=self.channel_ack).grid(row=7, column=0, columnspan=3, sticky="w")
+
+    def _connection_control(self, parent):
+        return self._state_control(parent, "connection")
+
+    def _listening_control(self, parent):
+        return self._state_control(parent, "listening")
+
+    def _state_control(self, parent, kind):
+        action = self._connection_action if kind == "connection" else self._listen
+        shell = tk.Frame(parent, padx=2, pady=2)
+        button = tk.Button(shell, relief="flat", borderwidth=0, padx=10, pady=7, width=15,
+                           takefocus=True, command=self.guard(action))
+        button.pack(fill="both", expand=True)
+        item = {"shell": shell, "button": button, "hover": False, "focus": False, "kind": kind}
+        (self.connection_controls if kind == "connection" else self.listening_controls).append(item)
+        for event, key, value in (("<Enter>", "hover", True), ("<Leave>", "hover", False),
+                                  ("<FocusIn>", "focus", True), ("<FocusOut>", "focus", False)):
+            def changed(event, i=item, k=key, v=value):
+                i[k] = v
+                self._render_connections()
+            button.bind(event, changed)
+        button.bind("<Return>", lambda event: self.guard(action)())
+        self._render_connections()
+        return shell
+
+    def _connection_action(self):
+        if self.source is None:
+            self._connect()
+        else:
+            self._disconnect()
+
+    def _render_connections(self):
+        p = PALETTES[self.theme.get()]
+        active = self.source is not None
+        connected = active and getattr(self.source, "connected", threading.Event()).is_set()
+        for item in self.connection_controls + self.listening_controls:
+            attention = item["hover"] or item["focus"]
+            stopping = item["kind"] == "listening" and not self.engine.local_enabled and self.engine.busy and self.engine.cancel.is_set()
+            if item["kind"] == "listening":
+                if self.engine.local_enabled:
+                    text = "Stop listening" if attention else "Listening"
+                    edge, background = ("#d63852", "#542334") if attention else (p["accent"], p["selected"])
+                    ink = "#ffffff" if attention else p["ink"]
+                else:
+                    text = "Stopping..." if stopping else "Listen locally"
+                    edge, background, ink = (p["accent"] if attention else p["edge"]), p["field"], p["ink"]
+            elif connected:
+                text = "Disconnect" if attention else "Connected"
+                edge, background = ("#d63852", "#542334") if attention else (p["accent"], p["selected"])
+                ink = "#ffffff" if attention else p["ink"]
+            elif active:
+                text = "Cancel" if attention else "Reconnecting..." if self.connection_phase == "retrying" else "Connecting..."
+                edge, background = ("#d63852", "#542334") if attention else (p["edge"], p["field"])
+                ink = "#ffffff" if attention else p["muted"]
+            else:
+                text = "Connect"
+                edge, background, ink = (p["accent"] if attention else p["edge"]), p["field"], p["ink"]
+            item["shell"].configure(background=edge)
+            item["button"].configure(text=text, background=background, foreground=ink,
+                                     activebackground=background, activeforeground=ink,
+                                     highlightthickness=1, highlightbackground=edge, highlightcolor=edge,
+                                     font=("Segoe UI", self.settings.text_size), state="disabled" if stopping else "normal",
+                                     disabledforeground=p["muted"])
+
+    def _refresh_spot_units(self):
+        self.tree.heading("frequency", text="Frequency " + self.settings.frequency_unit)
+        for item, spot in self.spots.items():
+            values = list(self.tree.item(item, "values"))
+            values[2] = spot.frequency_text(self.settings.frequency_unit)
+            self.tree.item(item, values=values)
 
     def _responsive_layout(self, event=None):
         if event is not None and event.widget is not self.root:
@@ -566,21 +652,46 @@ class Application:
 
     def _speech_tab(self):
         frame = self.tabs["Speech and access"]
-        self._field(frame, 0, "Speech provider", "speech_provider", ["Windows", "Piper"])
-        self._field(frame, 1, "Windows voice", "voice", [""])
-        self._field(frame, 2, "Preferred Windows voice gender", "voice_gender", ["Any", "Male", "Female"],
-                    note="Used with the default voice selection. Installed voices determine availability.")
-        self._field(frame, 3, "Speech speed", "speech_rate", note="Minus 10 to 10. Zero is normal.")
-        self._field(frame, 4, "Pause between letters and digits (ms)", "character_pause_ms", note="0 to 1000. Zero keeps natural spacing.")
-        self._field(frame, 5, "Pause between announcement groups (ms)", "group_pause_ms", note="0 to 3000. Intro, callsign and frequency.")
-        self._field(frame, 6, "Piper executable", "piper_executable")
-        self._field(frame, 7, "Piper ONNX voice model", "piper_model")
-        for row, name, title in ((6, "piper_executable", "Choose Piper executable"), (7, "piper_model", "Choose Piper ONNX model")):
-            ttk.Button(frame, text="Browse", command=lambda n=name, t=title: self._browse_file(n, t)).grid(row=row, column=2, padx=8)
-        self._field(frame, 8, "Interface text size", "text_size", note="10 to 18 points. Save to apply.")
-        ttk.Button(frame, text="Preview sample speech", command=self.guard(self._preview_sample)).grid(row=9, column=1, sticky="w", pady=12)
-        ttk.Label(frame, text="Windows speech is built in. Piper is an optional local neural voice provider. Install it and a matching voice separately.\nPiper voice character is chosen by its model. Windows voice and gender controls apply only to Windows.\nF6 previews the selected spot. F8 starts local listening. Escape stops all output. Alt+C focuses cluster commands.\nCtrl+Tab changes pages. High contrast is available in Appearance. See Listening and accessibility in Help.",
-                  wraplength=800).grid(row=10, column=0, columnspan=3, sticky="w", pady=8)
+        ttk.Label(frame, text="New DX on. Frequency. Callsign.").grid(row=0, column=0, sticky="w", pady=(0, 10))
+        delivery = ttk.LabelFrame(frame, text="Speech delivery", padding=12)
+        delivery.grid(row=1, column=0, sticky="w", pady=(0, 12))
+        self._field(delivery, 0, "Provider", "speech_provider", ["Windows", "Piper"], compact=True)
+        self._field(delivery, 1, "Frequency units", "frequency_unit", ["kHz", "MHz"],
+                    note="Used by announcements and the live view.", compact=True)
+        self._field(delivery, 2, "Speed", "speech_rate", note="Minus 10 to 10. Zero is normal.", compact=True)
+        self._field(delivery, 3, "Character pause (ms)", "character_pause_ms", note="0 to 1000. Zero keeps natural spacing.", compact=True)
+        self._field(delivery, 4, "Group pause (ms)", "group_pause_ms", note="0 to 3000. Intro, frequency and callsign.", compact=True)
+        self.windows_speech_fields = ttk.LabelFrame(frame, text="Windows voice", padding=12)
+        self.windows_speech_fields.grid(row=2, column=0, sticky="w", pady=(0, 12))
+        self._field(self.windows_speech_fields, 0, "Voice", "voice", [""], compact=True)
+        self._field(self.windows_speech_fields, 1, "Gender preference", "voice_gender", ["Any", "Male", "Female"],
+                    note="Used when Voice is blank. Installed voices determine availability.", compact=True)
+        self.piper_speech_fields = ttk.LabelFrame(frame, text="Piper voice", padding=12)
+        self.piper_speech_fields.grid(row=3, column=0, sticky="w", pady=(0, 12))
+        self._field(self.piper_speech_fields, 0, "Executable", "piper_executable", compact=True)
+        self._field(self.piper_speech_fields, 1, "ONNX model", "piper_model", compact=True)
+        for row, name, title in ((0, "piper_executable", "Choose Piper executable"), (1, "piper_model", "Choose Piper ONNX model")):
+            ttk.Button(self.piper_speech_fields, text="Browse", command=lambda n=name, t=title: self._browse_file(n, t)).grid(row=row, column=2, padx=8)
+        ttk.Label(self.piper_speech_fields, text="Optional local runtime and model. The model chooses the voice.", wraplength=600).grid(row=2, column=0, columnspan=3, sticky="w", pady=(8, 0))
+        access = ttk.LabelFrame(frame, text="Interface", padding=12)
+        access.grid(row=4, column=0, sticky="w", pady=(0, 12))
+        self._field(access, 0, "Text size", "text_size", note="10 to 18 points. High contrast is in Appearance.", compact=True)
+        controls = ttk.Frame(frame)
+        controls.grid(row=0, column=0, sticky="e", pady=(0, 10))
+        ttk.Button(controls, text="Preview sample speech", command=self.guard(self._preview_sample)).pack(side="left", padx=(0, 8))
+        ttk.Button(controls, text="Speech setup and shortcuts", command=self._speech_help).pack(side="left")
+        self.combos["speech_provider"].bind("<<ComboboxSelected>>", lambda event: self._speech_provider_changed())
+        self._speech_provider_changed()
+
+    def _speech_provider_changed(self):
+        windows = self.variables["speech_provider"].get() == "Windows"
+        self.windows_speech_fields.grid() if windows else self.windows_speech_fields.grid_remove()
+        self.piper_speech_fields.grid_remove() if windows else self.piper_speech_fields.grid()
+
+    def _speech_help(self):
+        self.notebook.select(self.tabs["Help and Info"])
+        self.help_topic.set(next(page["title"] for page in self.help_topics if page["id"] == "speech"))
+        self._show_help()
 
     def _browse_file(self, name, title):
         value = filedialog.askopenfilename(title=title)
@@ -595,10 +706,15 @@ class Application:
             self.engine.preview("spot", spot)
 
     def _listen(self):
-        self._apply()
-        if not self._confirm_preview():
-            return
-        self.engine.listen_locally()
+        # Listening is an output toggle. It must never apply pending source
+        # edits, change the source generation or reconnect the cluster.
+        if self.engine.local_enabled:
+            self.engine.stop("Local listening stopped. Source remains connected.")
+        else:
+            if not self._confirm_preview():
+                return
+            self.engine.listen_locally()
+        self._render_connections()
 
     def _history_tab(self):
         frame = self.tabs["History and updates"]
@@ -684,9 +800,9 @@ class Application:
         channel = self.variables["update_channel"].get()
         def task():
             try:
-                self.emit("update_result", updates.check(channel))
-            except Exception:
-                self.emit("update_error", "Could not check for updates. Check your connection and try Check now.")
+                self.emit("update_result", updates.check_report(channel))
+            except Exception as exc:
+                self.emit("update_error", updates.describe_error(exc))
         threading.Thread(target=task, daemon=True, name="DX updates").start()
 
     def _release_page(self):
@@ -797,6 +913,7 @@ class Application:
         if history_changed or self.history is None:
             self._configure_history()
         self._trim_spots()
+        self._refresh_spot_units()
         self._style()
         self.help_text.configure(font=("Segoe UI", self.settings.text_size + 1))
         self._paint_widgets()
@@ -826,6 +943,8 @@ class Application:
             self.emit("source_event", (generation, kind, value))
 
         self.source = SourceClient(self.settings, source_event, secret)
+        self.connection_phase = "connecting"
+        self._render_connections()
         self.source.start()
 
     def _disconnect(self):
@@ -836,6 +955,8 @@ class Application:
             self.source.stop()
             self.source = None
         self.source_ready = False
+        self.connection_phase = "disconnected"
+        self._render_connections()
         self.source_status.set("Source: disconnected")
         self.engine.stop("RF disabled. Source disconnected.")
 
@@ -855,7 +976,7 @@ class Application:
 
     def _add_spot(self, spot):
         item = self.tree.insert("", 0, values=(spot.timestamp.strftime("%H:%MZ"), spot.dx_call,
-                                                str(spot.frequency_khz), spot.spotter, spot.source),
+                                                spot.frequency_text(self.settings.frequency_unit), spot.spotter, spot.source),
                                 tags=("alternate",) if len(self.spots) % 2 else ())
         self.spots[item] = spot
         self._trim_spots()
@@ -892,6 +1013,7 @@ class Application:
 
     def _stop(self):
         self.engine.stop()
+        self._render_connections()
 
     def _browse_wav(self):
         filename = filedialog.askopenfilename(title="Choose voice ID", filetypes=[("WAV audio", "*.wav")])
@@ -955,8 +1077,12 @@ class Application:
                         continue
                     if kind == "source_ready":
                         self.source_ready = True
+                        self.connection_phase = "connected"
+                    elif kind == "source_connected":
+                        self.connection_phase = "connected"
                     elif kind == "source_lost":
                         self.source_ready = False
+                        self.connection_phase = "retrying"
                     self.source_status.set("Source: " + value)
                 elif kind == "announcement":
                     self._history_record("announcement", profile=self.connected_profile, **value)
@@ -970,15 +1096,16 @@ class Application:
                     continue
                 elif kind == "update_result":
                     self.update_busy = False
-                    self.update_release = value
+                    self.update_release = value.release
                     self.update_download = None
-                    self.update_status.set("Update available: " + value.version if value else "No newer compatible release found for this channel.")
+                    self.update_status.set(value.status)
+                    value = value.release
                     self.update_banner.set("Update available: " + value.version + ". Open History / Updates." if value else "")
+                    self.release_notes.configure(state="normal")
+                    self.release_notes.delete("1.0", "end")
                     if value:
-                        self.release_notes.configure(state="normal")
-                        self.release_notes.delete("1.0", "end")
                         self.release_notes.insert("1.0", value.notes)
-                        self.release_notes.configure(state="disabled")
+                    self.release_notes.configure(state="disabled")
                     continue
                 elif kind == "update_error":
                     self.update_busy = False
@@ -995,6 +1122,7 @@ class Application:
                 elif kind == "error":
                     messagebox.showerror("Output stopped", value)
                 self._journal(str(value))
+        self._render_connections()
         self.root.after(75, self._poll)
 
     def _journal(self, text):

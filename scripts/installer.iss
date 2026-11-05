@@ -1,4 +1,4 @@
-#define AppVersion "0.2.0a2"
+#define AppVersion "0.2.0a3"
 [Setup]
 AppId={{90179E0C-5656-45D9-A6D9-12AB1E254F66}
 AppName=DX Talker

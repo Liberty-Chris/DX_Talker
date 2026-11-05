@@ -2,9 +2,9 @@
 
 ## TCP/Telnet clusters
 
-Choose TCP/Telnet and enter a hostname and port separately. The supplied example is w4mr.ddns.net on port 7373. Enter your login callsign and a password only if the service requires one. Choose Connect using these settings.
+Choose TCP/Telnet and enter a hostname and port separately. The supplied example is w4mr.ddns.net on port 7373. Enter your login callsign and a password only if the service requires one. Choose Connect.
 
-The adapter recognizes common login, callsign, username and password prompts, including prompts received in several fragments or without a newline. It also handles basic Telnet option negotiation. After the first valid spot, the status changes to Receiving DX spots.
+The adapter recognizes common login, callsign, username and password prompts, including prompts received in several fragments or without a newline. It also handles basic Telnet option negotiation. The connection control shows Connected when the network socket is open. A recognized session prompt can show Signed in while a quiet cluster waits for its first spot. Receiving DX spots still requires a validated spot.
 
 If the cluster needs a different response, use Manual response or cluster command. Commands are always visible, send one line and clear after sending. Enter sends the command too. The field is also available on Live spots. Commands and authentication responses are not written to history. The Source console shows the latest 15 incoming lines with known secrets and command echoes redacted. It remains session only and is never announced.
 
@@ -48,3 +48,12 @@ TCP/Telnet activates hostname, port and login callsign. HTTPS JSON activates the
 The password or token field has an eye button with Show and Hide text. Show reveals the current value for typo checking. Hide conceals it again. Revealing a value does not save it or change how it is protected. Visibility resets when choosing another profile, creating a profile, switching source type or restarting the app. Switching source type clears the session secret so a cluster password cannot accidentally become a feed token.
 
 Connect and Disconnect are together in the saved profile panel. They use the currently entered connection details. The manual command fields on Source and Live spots have no masking option. If a cluster asks for a password, use the dedicated password field and reconnect or knowingly send a visible manual response.
+
+
+## One connection control
+
+Source and Live spots use the same connection action. With no source connection it reads Connect in the normal neutral style. When the network is connected it reads Connected with the appearance accent border. Hovering over it or focusing it with the keyboard changes it to Disconnect with a red border; clicking closes the connection and stops output. While connecting or retrying it remains neutral and can be clicked to cancel. A Connected indicator confirms the transport, not that login succeeded or that valid spots have arrived.
+
+Prompts are processed by logical line and partial prompt, including when banners share a network read. ANSI presentation sequences and NUL padding are removed before matching. The session console can show recognized prompts without waiting for a newline. Failed sockets are closed before retry backoff; stopping during connection establishment closes the returned socket before login. Duplicate session and rejected login messages are distinguished from DNS, refused connection and timeout errors.
+
+Some clusters limit simultaneous sessions under one callsign. Close another client using that login or consult the cluster's SSID policy. Server outages, access rules and custom prompts can still require operator investigation.

@@ -1,6 +1,6 @@
 # Help and Info
 
-DX Talker 0.2.0a2 is the first Windows pilot. Start by testing audio locally, then connect your source and configure radio output.
+DX Talker 0.2.0a3 is the first Windows pilot. Start by testing audio locally, then connect your source and configure radio output.
 
 Use the topic selector above this page to open Getting started, Source connections, Radio audio and PTT, Station identification, Troubleshooting or About DX Talker.
 

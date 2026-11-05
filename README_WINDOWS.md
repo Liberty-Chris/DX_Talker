@@ -1,6 +1,6 @@
 # DX Talker Windows pilot
 
-Version 0.2.0a2. Installer targets: Windows 10 22H2 and Windows 11, x64.
+Version 0.2.0a3. Installer targets: Windows 10 22H2 and Windows 11, x64.
 
 ## Install DX Talker
 
@@ -81,4 +81,4 @@ The remaining operator checks are a live W4MR sign in, speech pronunciation and 
 
 ## Updates and operator controls
 
-The 0.2.0a2 pilot adds named sources, adjustable speech pacing, optional local neural voices, independent levels, local listening, history and application update notifications. See the bundled help topics and [release process](docs/release_process.md). Install an updater enabled build manually once; later compatible releases can be downloaded and installed from the app.
+The 0.2.0a3 pilot adds named sources, adjustable speech pacing, optional local neural voices, independent levels, local listening, history and application update notifications. See the bundled help topics and [release process](docs/release_process.md). Install an updater enabled build manually once; later compatible releases can be downloaded and installed from the app.

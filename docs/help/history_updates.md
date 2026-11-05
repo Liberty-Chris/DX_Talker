@@ -25,3 +25,10 @@ The updater installs only from the packaged Windows app. Source checkouts use Gi
 Checksums detect damaged downloads and changes after download. They are published with the release; this is not independent publisher signing. The installer remains unsigned.
 
 Existing versions without an updater need one manual installation of this updater enabled build. They cannot receive an update notification retroactively. After that, the next published compatible release can exercise the full notification and installation flow.
+
+
+## When update checking fails
+
+The status includes the installed version and selected channel after a successful check. Stable does not offer preview releases. If a newer compatible preview exists, the status explains that Pilot is needed instead of reporting only that nothing was found.
+
+A failed check is not evidence that no release exists. DNS errors, TLS certificate verification, timeouts, GitHub HTTP responses and public API rate limits receive distinct messages. GitHub can rate limit a shared public address even when ordinary internet access works. Use Release page for a manual installer download if needed. Do not disable HTTPS verification to work around a certificate error.
