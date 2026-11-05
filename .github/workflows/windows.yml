@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Publish the current main version after verification'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -68,9 +73,34 @@ jobs:
           if-no-files-found: error
 
 
+  neural_speech:
+    env:
+      ORT_DISABLE_TELEMETRY: '1'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install piper-tts==1.8.0
+      - uses: actions/cache@v4
+        with:
+          path: .piper-test-voices
+          key: piper-lessac-medium-v1
+      - run: python -m piper.download_voices --download-dir .piper-test-voices en_US-lessac-medium
+      - name: Render a real neural voice without opening audio or PTT
+        run: |
+          $piper = (Get-Command piper.exe).Source
+          python scripts/check_piper.py --executable "$piper" --model "$PWD/.piper-test-voices/en_US-lessac-medium.onnx" --report piper-smoke.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Piper-verification
+          path: piper-smoke.json
+
   publish:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [tests, windows]
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release && github.ref == 'refs/heads/main')
+    needs: [tests, windows, neural_speech]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -88,7 +118,11 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
+          if [[ "$GITHUB_REF" == refs/heads/main ]]; then
+            RELEASE_TAG="v$(python -c 'from dxtalker import __version__; print(__version__)')"
+          fi
           python scripts/check_versions.py "$RELEASE_TAG"
+          echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
           cd portable
           zip -qr ../release/DXTalker-Windows-x64.zip DXTalker
           cd ../release
@@ -96,8 +130,18 @@ jobs:
       - name: Publish tested release
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.ref_name }}
         run: |
+          if [[ "$GITHUB_REF" == refs/heads/main ]]; then
+            existing="$(git ls-remote origin "refs/tags/$RELEASE_TAG" | cut -f1)"
+            if [[ -n "$existing" && "$existing" != "$GITHUB_SHA" ]]; then
+              echo "Existing release tag points to another commit"
+              exit 1
+            fi
+            if [[ -z "$existing" ]]; then
+              git tag "$RELEASE_TAG" "$GITHUB_SHA"
+              git push origin "refs/tags/$RELEASE_TAG"
+            fi
+          fi
           extra=()
           if [[ "$RELEASE_TAG" =~ (a|b|rc)[0-9]+$ ]]; then extra+=(--prerelease); fi
           gh release create "$RELEASE_TAG" release/* --verify-tag --title "DX Talker $RELEASE_TAG" --notes-file docs/releases/current.md "${extra[@]}"

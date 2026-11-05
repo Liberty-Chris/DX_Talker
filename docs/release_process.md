@@ -23,3 +23,12 @@ Do not publish a fabricated newer release merely to force a notification. The ne
 ## Recovery
 
 The current installation remains intact until the operator opens setup. A checksum failure removes only the partial download. No background installer or automatic RF restart is used. A failed installation can be retried with the published setup. Account data is outside the install directory. The current installer is unsigned; checksum verification does not replace publisher signing.
+
+
+## Publish from the Actions page
+
+The Windows pilot workflow has an optional Publish the current main version after verification input. After merging the version changes, open Actions, choose Windows pilot, choose Run workflow, select main and enable that input. Leave it disabled for an ordinary verification build.
+
+The publish job runs only on main or a version tag and requires core tests, Windows package and installer checks plus a real Piper render check. It derives the release version from the application, verifies version alignment and creates the version tag if needed. An existing tag pointing to a different commit fails publication. A successful run publishes the installer, portable ZIP, release notes and SHA256SUMS.txt. Preview versions remain prereleases for the Pilot channel.
+
+For the first live update test, keep 0.2.0a1 installed. After publishing 0.2.0a2, open History / Updates, choose Pilot and Check now. Confirm version and change notes, then Download update and Install update. Confirm 0.2.0a2 on reopening and check that preferences remain and output is disabled. The person running the installed Windows app must confirm the final operator result.

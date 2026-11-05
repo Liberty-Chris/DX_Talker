@@ -38,3 +38,10 @@ The Windows source and packaged smoke checks now exercise both themes and publis
 Local virtual display run: `python -m unittest discover -s tests -q` passed 70 tests without skips. New coverage includes profile persistence and renaming, legacy settings defaults, bounded JSONL rotation, exact SSML break placement, provider routing, a synthetic neural CLI fixture, live local listening without PTT, independent gains, console redaction, source generation isolation, view clearing and update channel ordering, checksum, truncation, cancellation and tampering.
 
 Visual QA inspected the eight desktop tabs at 1160 by 830 and the live page at 900 by 600. The compact view retains the spot table by hiding the activity panel. The docs checker and version alignment checker pass. Windows native speech, DPAPI and packaged install tests still await the branch workflow. A real two release update and actual neural voice listening remain acceptance checks.
+
+
+## November 5, 2026 source control followup
+
+All 72 tests pass under the virtual display, including permanent command visibility, temporary password reveal and remasking on profile load, source relevant control states and session secret clearing on source type changes. Documentation and version alignment checks pass. Visual review covers the source page and compact live page.
+
+A real Piper 1.8.0 render using en_US-lessac-medium on Linux produced 8.12 seconds of PCM in 5.01 seconds, with no audio endpoint or PTT opened. ORT_DISABLE_TELEMETRY=1 was applied before the subprocess started. Windows real model rendering is added to the workflow and remains pending for this commit.

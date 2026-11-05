@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0a2. November 5, 2026
+
+Removed command masking. Added a temporary Show and Hide eye control to the dedicated source password field. Only source relevant controls are active, and duplicate connection buttons are removed. Changing source type clears the session secret; profile changes conceal it again.
+
+Piper starts with ONNX telemetry disabled. Added concrete Windows neural voice setup instructions, a real model render verification job and an explicit Actions option to publish a verified release from main for updater testing.
+
 ## 0.2.0a1. November 4, 2026
 
 Saved cluster profiles with optional Windows protected secrets, shared visible command entry, a bounded redacted source console and automatic live view clearing on source changes.

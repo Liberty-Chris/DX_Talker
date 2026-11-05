@@ -140,7 +140,7 @@ class SourceClient:
                     prompt_tail = ""
                     self.emit("source_state", "Password sent. Waiting for sign in confirmation or a valid spot.")
                 else:
-                    self.emit("source_state", "Password requested. Use Send as password beside the manual response field.")
+                    self.emit("source_state", "Password requested. Enter it in the password field and reconnect, or send a visible manual response.")
             for line in lines:
                 self._raw(line)
                 if re.search(r"(?:invalid password|login failed|access denied|authentication failed)", line, re.I):

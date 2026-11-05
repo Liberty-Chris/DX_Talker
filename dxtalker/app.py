@@ -73,6 +73,7 @@ class Application:
         self.engine.rf_allowed = lambda: self.source is not None and self.source.ready.is_set()
         self.variables = {}
         self.combos = {}
+        self.field_widgets = {}
         self.theme = tk.StringVar(value=load_appearance())
         brand = resource_root() / "assets/brand"
         self.logos = {name: tk.PhotoImage(file=str(brand / f"logo-{'light' if name == 'Light' else 'dark'}.png")).subsample(2)
@@ -158,6 +159,15 @@ class Application:
         for _, canvas in self.scroll_tabs:
             canvas.configure(background=p["bg"])
         self.tree.tag_configure("alternate", background=p["field"])
+        self.eye_icon = tk.PhotoImage(width=18, height=14)
+        for x in range(2, 16):
+            y = round(3 + 4 * ((x - 8.5) / 6.5) ** 2)
+            self.eye_icon.put(p["ink"], (x, y))
+            self.eye_icon.put(p["ink"], (x, 13 - y))
+        for x in range(7, 11):
+            for y in range(5, 9):
+                self.eye_icon.put(p["ink"], (x, y))
+        self.secret_toggle.configure(image=self.eye_icon, compound="left")
 
     def _change_theme(self, event=None):
         # Appearance never applies radio settings, stops a transmission or rearms RF.
@@ -226,8 +236,8 @@ class Application:
                 self.scroll_tabs.append((frame, canvas))
             self.tabs[name] = frame
         self.command = tk.StringVar()
-        self.command_secret = tk.BooleanVar(value=False)
         self.command_entries = []
+        self.command_buttons = []
         self._live_tab()
         self._source_tab()
         self._audio_tab()
@@ -286,6 +296,7 @@ class Application:
             widget = ttk.Spinbox(parent, textvariable=var, from_=low, to=high, width=12)
         else:
             widget = ttk.Entry(parent, textvariable=var, width=48)
+        self.field_widgets[name] = widget
         widget.grid(row=row, column=1, sticky="ew", pady=6)
         if browse:
             ttk.Button(parent, text="Browse", command=self.guard(self._browse_wav)).grid(row=row, column=2, padx=6)
@@ -343,19 +354,23 @@ class Application:
         self._field(frame, 1, "Cluster hostname", "host", note="Example: w4mr.ddns.net")
         self._field(frame, 2, "Cluster port", "port", note="Example: 7373")
         self._field(frame, 3, "Cluster login callsign", "login")
-        ttk.Label(frame, text="Password or HTTPS bearer token").grid(row=4, column=0, sticky="w", pady=6)
+        self.secret_label = ttk.Label(frame, text="Cluster password (optional)")
+        self.secret_label.grid(row=4, column=0, sticky="w", pady=6)
         self.secret = tk.StringVar()
-        ttk.Entry(frame, textvariable=self.secret, show="*", width=48).grid(row=4, column=1, sticky="ew")
+        self.secret_visible = False
+        secret_field = ttk.Frame(frame)
+        secret_field.grid(row=4, column=1, sticky="ew")
+        secret_field.columnconfigure(0, weight=1)
+        self.secret_entry = ttk.Entry(secret_field, textvariable=self.secret, show="*", width=40)
+        self.secret_entry.grid(row=0, column=0, sticky="ew")
+        self.secret_toggle = ttk.Button(secret_field, text="Show", command=self._toggle_secret, width=8)
+        self.secret_toggle.grid(row=0, column=1, padx=(8, 0))
         ttk.Label(frame, text="Session only unless remembered in a profile.", wraplength=260).grid(row=4, column=2, padx=12)
         self._field(frame, 5, "HTTPS JSON feed URL", "feed_url")
         self._field(frame, 6, "HTTPS polling interval in seconds", "poll_seconds", note="Minimum 15 seconds")
         ttk.Label(frame, text="Cluster prompts are detected for callsign and password. For an unusual prompt, send a response below.\nFor HTTPS, see the documented JSON feed format in Help. Ordinary website URLs are not feeds.",
                   wraplength=900).grid(row=7, column=0, columnspan=3, sticky="w", pady=14)
         self._command_bar(frame, 8)
-        actions = ttk.Frame(frame)
-        actions.grid(row=9, column=0, columnspan=3, sticky="ew", pady=8)
-        ttk.Button(actions, text="Connect", command=self.guard(self._connect)).pack(side="left")
-        ttk.Button(actions, text="Disconnect", command=self.guard(self._disconnect)).pack(side="left", padx=8)
         ttk.Label(frame, text="Cluster console. Latest 15 lines, session only. Never spoken or logged.").grid(row=10, column=0, columnspan=3, sticky="w")
         self.raw_console = tk.Text(frame, height=8, wrap="word", state="disabled", font=("Consolas", 10))
         self.raw_console.grid(row=11, column=0, columnspan=3, sticky="ew", pady=8)
@@ -383,6 +398,8 @@ class Application:
                 child.grid_configure(row=int(child.grid_info()["row"]) + 1)
         profiles.grid_configure(row=0)
         self._refresh_profiles()
+        self.combos["source_type"].bind("<<ComboboxSelected>>", lambda event: self._source_type_changed(clear_secret=True))
+        self._source_type_changed()
 
     def _audio_tab(self):
         frame = self.tabs["Audio and PTT"]
@@ -451,13 +468,30 @@ class Application:
         entry.grid(row=0, column=0, sticky="ew")
         entry.bind("<Return>", lambda event: self.guard(self._send)())
         self.command_entries.append(entry)
-        ttk.Checkbutton(bar, text="Send as password", variable=self.command_secret,
-                        command=self._mask_commands).grid(row=0, column=1, padx=8)
-        ttk.Button(bar, text="Send", command=self.guard(self._send)).grid(row=0, column=2)
+        send = ttk.Button(bar, text="Send", command=self.guard(self._send))
+        send.grid(row=0, column=1, padx=(8, 0))
+        self.command_buttons.append(send)
 
-    def _mask_commands(self):
-        for entry in self.command_entries:
-            entry.configure(show="*" if self.command_secret.get() else "")
+    def _set_secret_visible(self, visible):
+        self.secret_visible = visible
+        self.secret_entry.configure(show="" if visible else "*")
+        self.secret_toggle.configure(text="Hide" if visible else "Show")
+
+    def _toggle_secret(self):
+        self._set_secret_visible(not self.secret_visible)
+
+    def _source_type_changed(self, clear_secret=False):
+        tcp = self.variables["source_type"].get() == "TCP/Telnet"
+        for name in ("host", "port", "login"):
+            self.field_widgets[name].configure(state="normal" if tcp else "disabled")
+        for name in ("feed_url", "poll_seconds"):
+            self.field_widgets[name].configure(state="disabled" if tcp else "normal")
+        self.secret_label.configure(text="Cluster password (optional)" if tcp else "HTTPS bearer token (optional)")
+        for widget in self.command_entries + self.command_buttons:
+            widget.configure(state="normal" if tcp else "disabled")
+        self._set_secret_visible(False)
+        if clear_secret:
+            self.secret.set("")
 
     def _clear_console(self):
         self.raw_lines.clear()
@@ -495,6 +529,7 @@ class Application:
         self.profile_choice.set("")
         self.profile_name.set("")
         self.secret.set("")
+        self._set_secret_visible(False)
         self.remember_secret.set(False)
 
     def _select_profile(self):
@@ -512,6 +547,7 @@ class Application:
         self.remember_secret.set(bool(item["secret"]))
         for key in SOURCE_FIELDS:
             self.variables[key].set(getattr(updated, key))
+        self._source_type_changed()
 
     def _save_profile(self):
         if not self.profile_store:
@@ -808,8 +844,6 @@ class Application:
             raise ValueError("Connect to a cluster first")
         self.source.send(self.command.get())
         self.command.set("")
-        self.command_secret.set(False)
-        self._mask_commands()
         self.emit("journal", "Manual cluster response sent. Contents are not logged.")
 
     def _samples(self):

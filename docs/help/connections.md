@@ -6,7 +6,7 @@ Choose TCP/Telnet and enter a hostname and port separately. The supplied example
 
 The adapter recognizes common login, callsign, username and password prompts, including prompts received in several fragments or without a newline. It also handles basic Telnet option negotiation. After the first valid spot, the status changes to Receiving DX spots.
 
-If the cluster needs a different response, use Manual response or cluster command. Commands are visible by default, send one line and clear after sending. Enter sends the command too. Select Send as password to mask a manual authentication response. The field is also available on Live spots. Commands and authentication responses are not written to history. The Source console shows the latest 15 incoming lines with known secrets and command echoes redacted. It remains session only and is never announced.
+If the cluster needs a different response, use Manual response or cluster command. Commands are always visible, send one line and clear after sending. Enter sends the command too. The field is also available on Live spots. Commands and authentication responses are not written to history. The Source console shows the latest 15 incoming lines with known secrets and command echoes redacted. It remains session only and is never announced.
 
 A network connection alone does not prove sign in succeeded. Waiting for a valid spot can also mean the cluster is quiet. W4MR's current prompts and access requirements have not been tested live in this project.
 
@@ -40,3 +40,11 @@ Remember secret is optional. It protects a profile password or token with Window
 A session secret remains available when reconnecting the same connection. Selecting a different saved profile loads only that profile's secret. Manual commands do not carry into the next profile. Keep credentials out of profile names and feed URLs.
 
 Use Source Connect and Disconnect to change connections without restarting the application. RF and local listening must be explicitly enabled again after connecting. The Help topic Cluster customization has a reserved place for the forthcoming geographic filter guide.
+
+## Source controls and password visibility
+
+TCP/Telnet activates hostname, port and login callsign. HTTPS JSON activates the feed URL and polling interval. Inactive fields retain their values and are not used by the selected connection type. Cluster command controls are inactive for HTTPS feeds.
+
+The password or token field has an eye button with Show and Hide text. Show reveals the current value for typo checking. Hide conceals it again. Revealing a value does not save it or change how it is protected. Visibility resets when choosing another profile, creating a profile, switching source type or restarting the app. Switching source type clears the session secret so a cluster password cannot accidentally become a feed token.
+
+Connect and Disconnect are together in the saved profile panel. They use the currently entered connection details. The manual command fields on Source and Live spots have no masking option. If a cluster asks for a password, use the dedicated password field and reconnect or knowingly send a visible manual response.

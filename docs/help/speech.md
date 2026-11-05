@@ -14,7 +14,7 @@ Install a Piper CLI separately from the [Piper project](https://github.com/OHF-V
 
 Select Piper as Speech provider and preview a sample. The model determines the speaker and voice character. Windows voice and gender controls apply only to the Windows provider. Piper speed uses the same control, with positive values faster. Speech plans insert the requested PCM silence between groups and characters. Character spacing may require many CLI invocations and can substantially increase preparation time. Zero character spacing is the best starting point. Synthesis has a two minute bound and remains cancellable. No automatic fallback substitutes a different provider after failure.
 
-Piper output must be mono PCM16 WAV. DX Talker normalizes its sample rate to 22050 Hz for the shared output path. This adapter is covered with a synthetic CLI fixture; actual model quality and speed still need a listening test on the operator's computer.
+Piper output must be mono PCM16 WAV. DX Talker normalizes its sample rate to 22050 Hz for the shared output path. The adapter has synthetic fixture coverage and a real model render check. Actual voice quality and speed still need a listening test on the operator's computer. DX Talker disables ONNX Runtime telemetry in the Piper subprocess before it starts.
 
 ## Live local listening
 
@@ -29,3 +29,26 @@ F6 previews the selected spot while output is stopped. F8 starts local listening
 Choose High contrast in Appearance for white text on a dark background. Speech also contains Interface text size, from 10 to 18 points. Save to apply. Settings pages scroll vertically. At small window heights the Live spots activity panel is hidden to preserve table space. Enlarge the window to see it. Larger text can require a wider window.
 
 These controls improve keyboard and listening access. Tkinter screen reader support varies. NVDA, Windows Narrator, keyboard focus order and enlarged text need acceptance testing with visually impaired operators before claiming complete assistive technology support.
+
+
+## Windows Piper setup example
+
+Install Python 3.12 x64 if it is not already available. This is separate from the Python bundled inside DX Talker. In PowerShell, run:
+
+```powershell
+$piperHome = Join-Path $env:LOCALAPPDATA 'DXTalker\Piper'
+py -3.12 -m venv "$piperHome\venv"
+& "$piperHome\venv\Scripts\python.exe" -m pip install 'piper-tts==1.8.0'
+$env:ORT_DISABLE_TELEMETRY = '1'
+& "$piperHome\venv\Scripts\python.exe" -m piper.download_voices --download-dir "$piperHome\voices" en_US-lessac-medium
+```
+
+In Speech select Piper. Browse to %LOCALAPPDATA%\DXTalker\Piper\venv\Scripts\piper.exe as the executable and %LOCALAPPDATA%\DXTalker\Piper\voices\en_US-lessac-medium.onnx as the voice model. Keep its .onnx.json configuration beside it. Use Speech speed 0, character pause 0 and group pause 450 for the first comparison. Choose your computer speakers as Local preview output, stop output and choose Preview sample speech.
+
+Version 0.2.0a2 sets the telemetry environment switch for every Piper launch. When trying the older 0.2.0a1 build, launch DX Talker from the same PowerShell session after setting the switch so it inherits that setting:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\DXTalker\DXTalker.exe"
+```
+
+Downloading a different voice and selecting its ONNX file changes voice character. The [Piper voice samples](https://rhasspy.github.io/piper-samples/) help compare options. Runtime and voice downloads need internet access; rendering uses the installed local files. No cloud speech account is required.

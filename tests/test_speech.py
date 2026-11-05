@@ -63,10 +63,12 @@ class SpeechTests(unittest.TestCase):
             model.touch()
             model.with_suffix(".onnx.json").write_text("{}")
             commands = []
+            environments = []
             class Process:
                 returncode = 0
                 def __init__(self, command, **kwargs):
                     commands.append(command)
+                    environments.append(kwargs["env"])
                     path = command[command.index("--output_file") + 1]
                     with wave.open(path, 'wb') as output:
                         output.setparams((1, 2, 22050, 0, 'NONE', 'not compressed'))
@@ -80,5 +82,6 @@ class SpeechTests(unittest.TestCase):
             with patch("dxtalker.speech.subprocess.Popen", Process):
                 clip = SpeechService().render_spot(spot, settings, threading.Event())
             self.assertEqual(len(commands), 3)
+            self.assertTrue(all(env["ORT_DISABLE_TELEMETRY"] == "1" for env in environments))
             self.assertEqual(commands[0][commands[0].index('--model') + 1], str(model))
             self.assertAlmostEqual(clip.duration, .3 + .9, places=3)

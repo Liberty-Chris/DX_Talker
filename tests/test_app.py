@@ -96,11 +96,46 @@ class AppTests(unittest.TestCase):
         self.assertIn("WB4IUY", path.read_text())
         self.assertFalse(self.app.spots)
 
-    def test_command_fields_visible_by_default_and_password_mask_is_shared(self):
+    def test_command_fields_always_visible(self):
         self.assertEqual(len(self.app.command_entries), 2)
+        self.app.command.set("show/dx")
         for entry in self.app.command_entries:
             self.assertEqual(entry.cget("show"), "")
-        self.app.command_secret.set(True)
-        self.app._mask_commands()
+            self.assertEqual(entry.get(), "show/dx")
+        self.assertFalse(hasattr(self.app, "command_secret"))
+
+    def test_password_visibility_is_temporary_and_resets_on_profile_load(self):
+        self.app.secret.set("synthetic secret")
+        self.assertEqual(self.app.secret_entry.cget("show"), "*")
+        self.app._toggle_secret()
+        self.assertEqual(self.app.secret_entry.cget("show"), "")
+        self.assertEqual(self.app.secret_toggle.cget("text"), "Hide")
+        self.app._toggle_secret()
+        self.assertEqual(self.app.secret.get(), "synthetic secret")
+        self.assertEqual(self.app.secret_entry.cget("show"), "*")
+        self.app.profile_name.set("Home")
+        self.app._save_profile()
+        self.app._toggle_secret()
+        self.app._select_profile()
+        self.assertEqual(self.app.secret_entry.cget("show"), "*")
+        self.assertFalse(self.app.secret_visible)
+        self.assertFalse(hasattr(self.app.settings, "secret_visible"))
+
+    def test_source_type_enables_relevant_controls_and_preserves_details(self):
+        self.assertEqual(str(self.app.field_widgets["feed_url"].cget("state")), "disabled")
+        self.assertEqual(str(self.app.field_widgets["host"].cget("state")), "normal")
+        self.app.secret.set("synthetic secret")
+        self.app.variables["source_type"].set("HTTPS JSON")
+        self.app._source_type_changed(clear_secret=True)
+        self.assertEqual(self.app.secret.get(), "")
+        self.assertEqual(str(self.app.field_widgets["feed_url"].cget("state")), "normal")
+        self.assertEqual(str(self.app.field_widgets["host"].cget("state")), "disabled")
+        self.assertEqual(self.app.secret_label.cget("text"), "HTTPS bearer token (optional)")
+        self.assertEqual(self.app.variables["host"].get(), "w4mr.ddns.net")
         for entry in self.app.command_entries:
-            self.assertEqual(entry.cget("show"), "*")
+            self.assertEqual(str(entry.cget("state")), "disabled")
+        self.app.variables["source_type"].set("TCP/Telnet")
+        self.app._source_type_changed()
+        self.assertEqual(str(self.app.field_widgets["host"].cget("state")), "normal")
+        for entry in self.app.command_entries:
+            self.assertEqual(str(entry.cget("state")), "normal")
