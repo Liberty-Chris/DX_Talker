@@ -56,3 +56,6 @@ The 0.2.0a3 followup adds frequency first announcements, shared kHz/MHz units, c
 Local listening is also a stateful toggle in this followup. Its stop action preserves the connected feed, and the regression suite checks this with pending source edits present.
 
 The 0.2.0a4 interface followup applies the compact Speech layout pattern to Announcements. It groups numeric settings and supervision without changing policy behavior.
+
+
+Future platform certificate alignment: evaluate supported native trust services on macOS, Linux, iOS and Android for update and HTTPS connections. Preserve certificate and hostname validation, use consistent diagnostics and verify packaged behavior on each supported platform. The Windows updater uses native trust first; equivalent handling on the other platforms remains planned work.
