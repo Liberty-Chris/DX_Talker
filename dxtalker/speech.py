@@ -12,13 +12,14 @@ from .audio import Cancelled, Clip, WindowsSpeech, wav_clip
 
 
 def spot_plan(spot, settings):
-    intro, frequency, call = spot.spoken_groups(settings.frequency_unit)
-    plan = [(intro, settings.group_pause_ms)]
-    for group, final in ((frequency, settings.group_pause_ms), (call, 0)):
-        if settings.character_pause_ms:
+    groups = spot.announcement_groups(settings)
+    plan = []
+    for index, (kind, group) in enumerate(groups):
+        final = settings.group_pause_ms if index < len(groups) - 1 else 0
+        if settings.character_pause_ms and kind != "intro":
             words = group.split()
-            # Keep the units naturally attached to the frequency.
-            if group == frequency:
+            # Keep optional units naturally attached to the last frequency digit.
+            if kind == "frequency" and settings.speak_units:
                 words[-2:] = [" ".join(words[-2:])]
             plan.extend((word, settings.character_pause_ms if i < len(words) - 1 else final)
                         for i, word in enumerate(words))

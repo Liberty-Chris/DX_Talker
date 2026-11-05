@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0a6. November 5, 2026
+
+Add announcement presets, section inclusion and order controls, editable intro text, optional spoken frequency units and a live sentence example. Preserve frequency conversion when units are muted. Preview the pending format through the output coordinator without applying unrelated edits. Existing settings keep the prior default; IDs and source data are unchanged.
+
 ## 0.2.0a5. November 5, 2026
 
 Compact the IDs tab into CW, voice and schedule sections. Hide inactive voice source fields while preserving values. Give RF a stateful enable and disable control with accent and red stop states. Use saved settings without applying pending edits or changing the source. Remove source readiness, supervision acknowledgement and shared device confirmation gates from RF enable. Retain valid radio and ID configuration, output serialization, cancellation, fault shutdown and transmit limits.

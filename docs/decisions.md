@@ -126,3 +126,10 @@ Apply the established compact field helper to Announcements. Group frequency ran
 Use the same state control for connection, local listening and RF. The RF action reads applied settings and never saves pending edits or reconnects a source. Remove source readiness, the supervision checkbox and shared device confirmation as RF prerequisites so a configured station can identify offline. This supersedes the earlier source and acknowledgement gates. Keep output and ID validation, one transmission coordinator, cancellation, source loss shutdown and bounded transmission. Retain the legacy supervised_ack setting only for compatible settings loading.
 
 Group IDs into bounded CW, voice and schedule sections. Show only text or a recorded file for the selected voice source without discarding the inactive value.
+
+
+## November 5, 2026. Operator controlled announcement format
+
+Keep a validated permutation of Intro, Callsign and Frequency plus independent include flags. Attach optional units to frequency so moving the number cannot strand its units elsewhere. Preserve legacy frequency first delivery as the default. Support a short operator authored intro while keeping remote comments excluded. At least one section must remain included.
+
+Use presets, checkboxes and Up/Down controls rather than requiring drag gestures. Show a live readable example and send Listen to example through the existing coordinator with an immutable preview settings snapshot. This previews pending format edits without saving unrelated settings or modifying the cluster. Existing local output routing, serial PTT exclusion, cancellation and shared VOX device confirmation remain. IDs are outside the format editor.

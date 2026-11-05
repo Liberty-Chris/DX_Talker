@@ -50,6 +50,21 @@ class Spot:
         units = "megahertz" if unit == "MHz" else "kilohertz"
         return "New DX on", f"{spoken} {units}", call
 
+    def announcement_groups(self, settings, phonetic=True):
+        settings.validate_format()
+        _, frequency, call = self.spoken_groups(settings.frequency_unit)
+        if not phonetic:
+            frequency = self.frequency_text(settings.frequency_unit)
+            call = self.dx_call
+            if settings.speak_units:
+                frequency += " " + settings.frequency_unit
+        elif not settings.speak_units:
+            frequency = frequency.rsplit(" ", 1)[0]
+        content = {"intro": settings.announcement_intro.strip(), "frequency": frequency, "callsign": call}
+        included = {"intro": settings.include_intro, "frequency": settings.include_frequency,
+                    "callsign": settings.include_callsign}
+        return [(part, content[part]) for part in settings.announcement_order.split(",") if included[part]]
+
     def speech_in(self, unit="kHz") -> str:
         return ". ".join(self.spoken_groups(unit)) + "."
 
@@ -150,6 +165,12 @@ class Settings:
     voice_gender: str = "Any"
     speech_provider: str = "Windows"
     frequency_unit: str = "kHz"
+    announcement_order: str = "intro,frequency,callsign"
+    announcement_intro: str = "New DX on"
+    include_intro: bool = True
+    include_callsign: bool = True
+    include_frequency: bool = True
+    speak_units: bool = True
     piper_executable: str = ""
     piper_model: str = ""
     supervised_ack: bool = False
@@ -196,8 +217,25 @@ class Settings:
                 raise ValueError(f"Choose a valid {name.replace('_', ' ')}")
         if not all(math.isfinite(v) for v in (self.min_khz, self.max_khz)) or not 1 <= self.min_khz <= self.max_khz <= 10000000:
             raise ValueError("Frequency filter must be between 1 and 10000000 kHz")
+        self.validate_format()
         if self.log_directory and not Path(self.log_directory).is_absolute():
             raise ValueError("Choose an absolute history folder path")
+        return self
+
+    def validate_format(self):
+        if (not isinstance(self.announcement_order, str) or
+                sorted(self.announcement_order.split(",")) != ["callsign", "frequency", "intro"]):
+            raise ValueError("Announcement order must contain Intro, Callsign and Frequency once each")
+        for name in ("include_intro", "include_callsign", "include_frequency", "speak_units"):
+            if type(getattr(self, name)) is not bool:
+                raise ValueError("Choose whether to include each announcement section")
+        if not isinstance(self.announcement_intro, str) or len(self.announcement_intro) > 80 or any(
+                ord(c) < 32 for c in self.announcement_intro):
+            raise ValueError("Use a single line intro of up to 80 characters")
+        if self.include_intro and not self.announcement_intro.strip():
+            raise ValueError("Enter intro text or uncheck Intro")
+        if not (self.include_intro or self.include_callsign or self.include_frequency):
+            raise ValueError("Include at least one announcement section")
         return self
 
     def validate_connection(self):

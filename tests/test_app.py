@@ -318,3 +318,58 @@ class AppTests(unittest.TestCase):
             self.app._poll()
             self.assertFalse(engine.enabled)
             self.assertEqual(self.app.rf_controls[0]['button'].cget('text'), 'Enable RF')
+
+
+    def test_format_presets_reorder_include_and_persist(self):
+        self.assertEqual(self.app.format_preset.get(), 'Frequency first')
+        self.app.format_preset.set('Callsign first')
+        self.app._format_preset_selected()
+        self.assertEqual(self.app.variables['announcement_intro'].get(), 'New DX')
+        self.assertIn('New DX. WB4IUY/P. 14025.5 kHz.', self.app.format_example.get())
+        self.app._move_format('intro', 1)
+        self.assertEqual(self.app.variables['announcement_order'].get(), 'callsign,intro,frequency')
+        self.assertEqual(int(self.app.format_rows['intro']['row'].grid_info()['row']), 1)
+        self.assertEqual(str(self.app.format_rows['callsign']['up'].cget('state')), 'disabled')
+        self.app.variables['include_intro'].set(False)
+        self.app.variables['speak_units'].set(False)
+        self.app.variables['frequency_unit'].set('MHz')
+        self.assertEqual(self.app.format_example.get(), 'Example: WB4IUY/P. 14.0255.')
+        self.assertEqual(self.app.format_preset.get(), 'Custom')
+        self.app._apply()
+        saved = load_settings()
+        self.assertEqual(saved.announcement_order, 'callsign,intro,frequency')
+        self.assertFalse(saved.include_intro)
+        self.assertFalse(saved.speak_units)
+        self.app.variables['include_frequency'].set(False)
+        self.assertEqual(str(self.app.format_rows['frequency']['content'].cget('state')), 'disabled')
+        self.app.variables['include_frequency'].set(True)
+        self.assertFalse(self.app.variables['speak_units'].get())
+
+    def test_format_preview_does_not_save_pending_source_edits(self):
+        self.app.settings = replace(self.app.settings, preview_device='local')
+        self.app.variables['host'].set('pending.example')
+        self.app.variables['announcement_intro'].set('My station DX')
+        with patch.object(self.app, '_apply', side_effect=AssertionError('Applied pending settings')), \
+             patch.object(self.app.engine, 'preview') as preview:
+            self.app._preview_format()
+        settings = preview.call_args.kwargs['settings']
+        self.assertEqual(settings.announcement_intro, 'My station DX')
+        self.assertNotEqual(settings.host, 'pending.example')
+        self.assertEqual(self.app.variables['host'].get(), 'pending.example')
+        self.assertEqual(self.app.settings.announcement_intro, 'New DX on')
+        for part in ('intro', 'callsign', 'frequency'):
+            self.app.variables['include_' + part].set(False)
+        self.assertIn('at least one', self.app.format_example.get())
+        with self.assertRaises(ValueError):
+            self.app._preview_format()
+
+    def test_format_edits_stop_active_output_without_reconnecting(self):
+        from unittest.mock import Mock
+        source = Mock()
+        self.app.source = source
+        self.app.engine.local_enabled = True
+        self.app.variables['announcement_intro'].set('My DX')
+        self.assertFalse(self.app.engine.local_enabled)
+        self.assertTrue(self.app.engine.cancel.is_set())
+        source.stop.assert_not_called()
+        self.app.source = None

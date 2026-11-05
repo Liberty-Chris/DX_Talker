@@ -24,7 +24,7 @@ The source becomes ready when valid spots arrive. The initial example is w4mr.dd
 
 ## Set up radio output
 
-Choose the radio audio device and PTT method in Audio and PTT. In Identification, configure the required ID text and schedule. In Announcements, set the frequency filters and timing. Supervise operation on a clear or coordinated channel; no acknowledgement checkbox is required.
+Choose the radio audio device and PTT method in Audio and PTT. In Identification, configure the required ID text and schedule. In Announcements, choose the announcement format, frequency filters and timing. Supervise operation on a clear or coordinated channel; no acknowledgement checkbox is required.
 
 Save and apply settings. Enable RF uses those saved settings and starts with identification, even without a connected source. The button reads RF enabled while active, and Disable RF on hover or keyboard focus. Click again to stop RF without disconnecting the cluster. New live spots are then eligible for announcement. Previously displayed spots are not replayed. Send ID now requests the configured ID immediately.
 
