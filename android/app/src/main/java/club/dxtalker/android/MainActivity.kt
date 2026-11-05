@@ -64,8 +64,8 @@ class MainActivity : Activity() {
         refresh()
     }
     private fun showHome() {
-        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 22, 20, 24); setBackgroundColor(background) }
-        val scroll = ScrollView(this).apply { fillViewport = true; addView(root) }
+        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 22, 20, 24); setBackgroundColor(this@MainActivity.background) }
+        val scroll = ScrollView(this).apply { isFillViewport = true; addView(root) }
         setContentView(scroll)
         root.addView(label("DXt", 38f, accent).apply { setTypeface(null, Typeface.BOLD) })
         root.addView(label("DX Talker  |  Android listener", 14f, Color.LTGRAY))
@@ -103,7 +103,7 @@ class MainActivity : Activity() {
     }
     private fun profiles(): JSONArray = try { JSONArray(prefs.getString("profiles", "[]")) } catch (_: Exception) { JSONArray() }
     private fun showProfiles() {
-        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 22, 20, 24); setBackgroundColor(background) }
+        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 22, 20, 24); setBackgroundColor(this@MainActivity.background) }
         setContentView(ScrollView(this).apply { addView(root) })
         root.addView(button("Back to listener") { showHome() })
         root.addView(label("Cluster profiles", 25f, accent))
@@ -131,7 +131,7 @@ class MainActivity : Activity() {
         val profile = if (index == null) JSONObject().put("host", prefs.getString("host", "w4mr.ddns.net"))
             .put("port", prefs.getString("port", "7373")).put("call", prefs.getString("call", ""))
             else profiles().getJSONObject(index)
-        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 22, 20, 24); setBackgroundColor(background) }
+        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 22, 20, 24); setBackgroundColor(this@MainActivity.background) }
         setContentView(ScrollView(this).apply { addView(root) })
         root.addView(button("Cancel") { showProfiles() })
         val panel = section(if (index == null) "Add cluster" else "Edit cluster")
@@ -157,7 +157,7 @@ class MainActivity : Activity() {
         })
     }
     private fun showSpeech() {
-        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 22, 20, 24); setBackgroundColor(background) }
+        root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 22, 20, 24); setBackgroundColor(this@MainActivity.background) }
         setContentView(ScrollView(this).apply { addView(root) })
         root.addView(button("Back") { showHome() })
         val panel = section("Speech announcement")
