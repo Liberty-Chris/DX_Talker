@@ -33,9 +33,9 @@ Changing source settings requires a new connection. Passwords and tokens remain 
 
 ## Saved cluster profiles
 
-Save profile stores a named connection with source type, hostname, port, callsign or SSID, feed URL and polling interval. The saved profile selector is available on Source and Live spots. Selecting a profile disconnects the previous source, stops output and clears the live view and console. Connect explicitly when ready. New starts a fresh profile entry; edit its name and details before saving. Saving a selected profile updates it, including renaming. Delete removes the selected profile after confirmation.
+Save profile stores a named connection with source type, hostname, port, callsign or SSID, feed URL and polling interval. The saved profile selector is available on Source and Live spots. Selecting a profile disconnects the previous source, stops output and clears the live view and console. Connect explicitly when ready. New profile starts a separate profile with default connection details and keeps your login callsign. Enter a name and details, then Save new profile. To edit or rename a profile, select it, change its name or connection details and choose Save changes. Delete profile removes the selected profile after confirmation; cancelling keeps it. There is no fixed profile count limit. Both selectors update after save, rename or deletion. Unfinished edits in other tabs do not block profile management.
 
-Remember secret is optional. It protects a profile password or token with Windows DPAPI for the current user account. It is stored encrypted in profiles.json, separately from ordinary settings. Copying this file to another account or computer may prevent decryption; enter the secret again there. Clear Remember secret and save the profile to remove its saved secret. Without this option, the secret is session only.
+Remember password or token on this PC is optional. It does not create a secret key; it remembers the cluster password or HTTPS token you entered. It protects a profile password or token with Windows DPAPI for the current user account. It is stored encrypted in profiles.json, separately from ordinary settings. Copying this file to another account or computer may prevent decryption; enter the secret again there. Clear Remember password or token and save the profile to remove its saved secret. Without this option, the secret is session only.
 
 A session secret remains available when reconnecting the same connection. Selecting a different saved profile loads only that profile's secret. Manual commands do not carry into the next profile. Keep credentials out of profile names and feed URLs.
 
@@ -43,7 +43,7 @@ Use Source Connect and Disconnect to change connections without restarting the a
 
 ## Source controls and password visibility
 
-TCP/Telnet activates hostname, port and login callsign. HTTPS JSON activates the feed URL and polling interval. Inactive fields retain their values and are not used by the selected connection type. Cluster command controls are inactive for HTTPS feeds.
+Source groups saved profiles, connection details, manual commands and the session console. TCP/Telnet shows hostname, port and login callsign. HTTPS JSON shows the feed URL and polling interval. Hidden fields retain their values and are not used by the selected connection type. Cluster command controls are inactive for HTTPS feeds.
 
 The password or token field has an eye button with Show and Hide text. Show reveals the current value for typo checking. Hide conceals it again. Revealing a value does not save it or change how it is protected. Visibility resets when choosing another profile, creating a profile, switching source type or restarting the app. Switching source type clears the session secret so a cluster password cannot accidentally become a feed token.
 
@@ -57,3 +57,9 @@ Source and Live spots use the same connection action. With no source connection 
 Prompts are processed by logical line and partial prompt, including when banners share a network read. ANSI presentation sequences and NUL padding are removed before matching. The session console can show recognized prompts without waiting for a newline. Failed sockets are closed before retry backoff; stopping during connection establishment closes the returned socket before login. Duplicate session and rejected login messages are distinguished from DNS, refused connection and timeout errors.
 
 Some clusters limit simultaneous sessions under one callsign. Close another client using that login or consult the cluster's SSID policy. Server outages, access rules and custom prompts can still require operator investigation.
+
+
+New profile and deleting the selected profile stop the previous connection, clear its live rows and console and remove its session credential from the editor. Other saved profiles and their remembered credentials are retained. Saving a profile saves connection details only; it does not apply pending radio settings or connect automatically. Connect still applies the current settings, including any pending edits elsewhere, before starting the source.
+
+
+If Windows cannot unlock a remembered password or token, the profile's connection details still load so it can be edited or deleted. A message asks you to enter the credential again. The stored credential is preserved until you save or delete the profile. Saving with Remember unchecked removes it; checking Remember and saving stores the newly entered value for this account.

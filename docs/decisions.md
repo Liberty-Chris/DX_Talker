@@ -133,3 +133,10 @@ Group IDs into bounded CW, voice and schedule sections. Show only text or a reco
 Keep a validated permutation of Intro, Callsign and Frequency plus independent include flags. Attach optional units to frequency so moving the number cannot strand its units elsewhere. Preserve legacy frequency first delivery as the default. Support a short operator authored intro while keeping remote comments excluded. At least one section must remain included.
 
 Use presets, checkboxes and Up/Down controls rather than requiring drag gestures. Show a live readable example and send Listen to example through the existing coordinator with an immutable preview settings snapshot. This previews pending format edits without saving unrelated settings or modifying the cluster. Existing local output routing, serial PTT exclusion, cancellation and shared VOX device confirmation remain. IDs are outside the format editor.
+
+
+## November 5, 2026. Profiles and connection/audio layout
+
+Remove the fixed 100 profile cap on both save and load. Preserve stable IDs during edits and renames and reject updates to missing IDs. Use explicit Save new profile, Save changes and Delete profile actions, update both selectors and keep deletion confirmation. Profile save/load uses connection data plus applied settings as a base, so unrelated unfinished edits cannot block it or be applied accidentally.
+
+Use compact grouped Source and Audio / PTT controls with only the selected connection type and PTT fields visible. Clarify that remembered credentials are the existing cluster password or token encrypted for the current Windows account, not a newly created secret key. New/delete clears the old session display and credential while preserving other saved profiles.

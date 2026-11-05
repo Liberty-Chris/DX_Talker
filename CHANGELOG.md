@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0a7. November 5, 2026
+
+Clarify profile creation, editing, renaming and confirmed deletion. Remove the fixed profile count cap and isolate profile operations from unrelated pending settings. Explain optional Windows protected password/token storage. Compact Source and Audio / PTT, hide inactive connection and serial controls and retain their values.
+
 ## 0.2.0a6. November 5, 2026
 
 Add announcement presets, section inclusion and order controls, editable intro text, optional spoken frequency units and a live sentence example. Preserve frequency conversion when units are muted. Preview the pending format through the output coordinator without applying unrelated edits. Existing settings keep the prior default; IDs and source data are unchanged.
