@@ -1,11 +1,9 @@
-DX Talker 0.2.0a1 adds saved cluster profiles, visible commands on Source and Live spots, a session cluster console and automatic live view clearing when changing sources.
+DX Talker 0.2.0a2 makes connection controls clearer and prepares the first update test from 0.2.0a1.
 
-Speech now starts with “New DX on” and offers voice gender preference, rate, character spacing and group pauses. Windows speech remains the default. An optional external Piper installation provides local neural voices. Spot audio, CW ID, voice ID and local listening have independent levels.
+Cluster commands are always visible. The command masking option has been removed from both pages. The dedicated password or token field now has an eye button with Show and Hide text for checking entries.
 
-Live local listening, keyboard shortcuts, larger interface text and high contrast appearance improve listening and navigation. Supervised operation acknowledgement is remembered. RF and local listening remain disabled on startup and after disconnect.
+Only fields relevant to the chosen source type are active. Switching between cluster and HTTPS sources clears the session secret. Profile changes conceal passwords again. Duplicate Source connection buttons have been removed.
 
-Structured history has a selectable folder, file size and backup count. The live view limit is configurable. History excludes raw console text, commands and passwords.
+Piper launches with ONNX telemetry disabled. The bundled help now provides a concrete Windows setup example for the optional neural voice engine. Real model rendering is checked separately without playing sound or keying a radio.
 
-Updates are checked through GitHub Releases. Pilot and Stable channels, release notes, verified downloads and operator initiated installation are available. Existing installations without an updater need this setup program installed once before future update notifications can work.
-
-This is a Windows x64 pilot. Optional Piper voice quality and speed, assistive technology behavior and physical radio operation require operator testing. Mobile applications and older operating system installers are planned separately.
+After installing this update, confirm version 0.2.0a2 and verify that profiles, speech preferences and history settings remain intact. Output should remain disabled on launch.

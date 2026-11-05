@@ -18,7 +18,7 @@ In Identification, enter the CW and voice text you want to use. Try Preview CW l
 
 ## Receive spots
 
-In Source, enter the cluster hostname, port and login callsign. Enter a session password only if required and choose Connect using these settings. Common prompts are handled automatically. A visible manual field lets you send cluster commands. Select Send as password when entering an unusual authentication response. Named profiles retain each source configuration.
+In Source, enter the cluster hostname, port and login callsign. Enter a session password only if required and choose Connect using these settings. Common prompts are handled automatically. A visible manual field lets you send cluster commands. Use the dedicated password field for a secret. Its eye button shows or hides the value for checking. Named profiles retain each source configuration.
 
 The source becomes ready when valid spots arrive. The initial example is w4mr.ddns.net, port 7373. Its live behavior still needs operator verification. You can also use an HTTPS JSON feed matching the supported contract described in Source connections.
 

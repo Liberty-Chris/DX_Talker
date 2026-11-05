@@ -2,6 +2,7 @@
 from array import array
 from html import escape
 from pathlib import Path
+import os
 import subprocess
 import sys
 import tempfile
@@ -82,7 +83,8 @@ class SpeechService:
                            "--output_file", str(output), "--length_scale", str(2 ** (-settings.speech_rate / 10))]
                 flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
                 with subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
-                                      stderr=subprocess.DEVNULL, creationflags=flags) as proc:
+                                      stderr=subprocess.DEVNULL, creationflags=flags,
+                                      env={**os.environ, "ORT_DISABLE_TELEMETRY": "1"}) as proc:
                     pending = (text + "\n").encode("utf-8")
                     while True:
                         if cancel.is_set() or time.monotonic() > deadline:

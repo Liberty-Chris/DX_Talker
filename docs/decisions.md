@@ -95,3 +95,10 @@ History uses bounded rotating JSONL with a selectable folder, file size and back
 Use tested GitHub Release assets as the update channel. Offer Pilot and Stable discovery, background checks, release notes, SHA256 verified download and an operator initiated interactive installer. Publishing is gated on core, packaged Windows speech/UI and installer checks. The same AppId retains installation identity and account data. No automatic installation or restored RF state is permitted. Existing builds need one initial manual updater installation. The first two release upgrade test remains an acceptance gate.
 
 Accessibility additions include live local listening, independent audio levels, keyboard shortcuts, a high contrast theme and configurable text size. Full screen reader support requires operator acceptance; Tkinter portability alone is not evidence. Mobile and older desktop work begins with documented contracts and a capability matrix, not unverified package support claims. See platforms.md and release_process.md.
+
+
+## November 5, 2026: Clear source controls and preview publication
+
+Keep cluster commands visible at all times. Confine visibility toggling to the dedicated password or token field, with an eye icon plus Show and Hide text. Visibility is temporary and resets at profile or source boundaries. Clear a session secret when manually changing source type to avoid sending a cluster password to an HTTPS service. Preserve inactive connection fields while disabling them.
+
+Add an explicit workflow dispatch option for publishing from main after verification. This provides a release path without requiring local Git credentials, while ordinary branch and PR builds cannot publish. Preview tags remain visible to the Pilot channel. Require real neural rendering alongside existing tests before publication. Set ORT_DISABLE_TELEMETRY=1 before every Piper process so local speech does not initialize the runtime telemetry uploader.

@@ -53,3 +53,14 @@ The cluster customization help topic is reserved for Dad’s guide. Mobile and o
 The portable suite passes 70 tests, including four desktop integration tests under a Linux virtual X display. Documentation links, ten help manifest topics and release version alignment pass. Visual review covered all eight pages at 1160 by 830 and Live spots at 900 by 600; the compact layout hides the in memory activity panel to preserve table space. The historical archive is unchanged.
 
 Windows System.Speech SSML, DPAPI and packaged installer checks are defined in the workflow but have not run for this branch. No new Windows executable has been produced locally. The feature branch is authorized for publication and Windows workflow verification is pending.
+
+
+## 0.2.0a2 connection controls and first update test
+
+Commands remain visible on both pages. The dedicated source password field has a temporary eye control with Show and Hide text. Source type changes activate relevant controls and clear the session secret; profile changes conceal the field again. The duplicate lower Source connection buttons are removed.
+
+The Windows workflow now includes real Piper rendering with a downloaded test model. An optional workflow input publishes the verified main version with its installer and checksums. It cannot publish from an ordinary PR run. Windows help includes a complete optional runtime and voice setup example.
+
+Piper child processes set ORT_DISABLE_TELEMETRY=1 before startup. Model files are not included in the application package. The local real model render passed using en_US-lessac-medium, producing 8.12 seconds of PCM in 5.01 seconds on Linux without opening audio or PTT. All 72 tests pass with the virtual display, including six desktop integration tests. Windows verification for this followup is pending.
+
+The first installed Windows update from 0.2.0a1 to 0.2.0a2 is an operator acceptance test after release publication. It has not been claimed as completed.

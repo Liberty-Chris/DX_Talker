@@ -6,7 +6,7 @@ Connect the interface and choose Refresh audio and serial devices. If running fr
 
 ## Connected but no spots
 
-Check the cluster hostname, port and callsign. The supplied example is a TCP/Telnet connection, not a web URL. The cluster may be awaiting a different login response or may be quiet. Read the Source console and use the visible command input if the login procedure requires another command. Select Send as password for a secret response. Known secrets and command echoes are redacted from the console.
+Check the cluster hostname, port and callsign. The supplied example is a TCP/Telnet connection, not a web URL. The cluster may be awaiting a different login response or may be quiet. Read the Source console and use the visible command input if the login procedure requires another command. For a password, use the dedicated password field and reconnect. Its eye button reveals the value for checking. Known secrets and command echoes are redacted from the console.
 
 For HTTPS, confirm the feed uses the documented array format and has current timezone aware timestamps. HTML pages and other JSON schemas are not accepted. Redirected URLs must be replaced with the final direct feed URL.
 
