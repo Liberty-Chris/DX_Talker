@@ -103,3 +103,38 @@ class UpdateTests(unittest.TestCase):
         dns = URLError(socket.gaierror('private hostname'))
         self.assertIn('resolved', updates.describe_error(dns))
         self.assertIn('timed out', updates.describe_error(TimeoutError('private timeout')))
+
+
+    def test_update_context_requires_certificate_and_hostname_verification(self):
+        import ssl
+        context = updates.update_ssl_context()
+        self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
+        self.assertTrue(context.check_hostname)
+
+    def test_windows_updates_use_native_trust_context(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        import ssl
+        factory = Mock()
+        with patch.object(updates.sys, 'platform', 'win32'), patch.dict(
+                'sys.modules', {'truststore': SimpleNamespace(SSLContext=factory)}):
+            self.assertIs(updates.update_ssl_context(), factory.return_value)
+        factory.assert_called_once_with(ssl.PROTOCOL_TLS_CLIENT)
+
+    def test_url_opener_uses_verified_context_and_https_redirect_guard(self):
+        from unittest.mock import Mock, patch
+        from urllib.error import URLError
+        import ssl
+        context = ssl.create_default_context()
+        opener = Mock()
+        opener.open.side_effect = URLError(ssl.SSLCertVerificationError('untrusted'))
+        with patch.object(updates, 'update_ssl_context', return_value=context), patch.object(
+                updates.request, 'build_opener', return_value=opener) as build:
+            with self.assertRaises(URLError):
+                updates.open_url(updates.API)
+        redirect, https = build.call_args.args
+        self.assertIsInstance(redirect, updates.HTTPSRedirect)
+        self.assertIs(https._context, context)
+        self.assertEqual(opener.open.call_count, 1)
+        with self.assertRaises(ValueError):
+            redirect.redirect_request(None, None, 302, '', {}, 'http://example.org/')

@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import socket
 import ssl
+import sys
 import threading
 from urllib import request, error
 from urllib.parse import urlsplit
@@ -76,8 +77,17 @@ class HTTPSRedirect(request.HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
+def update_ssl_context():
+    # Windows CryptoAPI can retrieve intermediates and honor OS managed trust.
+    # Use an explicit context: do not modify SSL behavior elsewhere in the app.
+    if sys.platform == "win32":
+        import truststore
+        return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    return ssl.create_default_context()
+
+
 def open_url(url):
-    return request.build_opener(HTTPSRedirect()).open(request.Request(url, headers={"User-Agent": "DXTalker/" + __version__,
+    return request.build_opener(HTTPSRedirect(), request.HTTPSHandler(context=update_ssl_context())).open(request.Request(url, headers={"User-Agent": "DXTalker/" + __version__,
                                                        "Accept": "application/vnd.github+json", "Cache-Control": "no-cache"}), timeout=15)
 
 

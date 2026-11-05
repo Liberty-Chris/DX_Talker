@@ -77,3 +77,19 @@ A test reproduced a missed login prompt when a banner followed it in the same so
 The published 0.2.0a2 release has a valid installer and checksum asset. The same public GitHub request succeeds from this environment. Dad's generic update error is not enough to determine his machine's failure category. The new status distinguishes DNS, TLS verification, timeout, HTTP and public API rate limits and explains Pilot versus Stable selection.
 
 Verification: 84 tests pass under the local virtual display, including ten desktop integration tests. Documentation, help manifest and version alignment checks pass. Visual review covers the compact live page and speech groups. Windows package, native speech and installer verification will run on the feature branch. Physical radio acceptance and Dad's final installed upgrade remain open.
+
+
+## 0.2.0a4 Announcements layout
+
+The Announcements page groups frequency limits, timing and repeats, and RF supervision. Numeric fields use compact widths with units and range hints. Filter values remain in kHz. Settings, validation and announcement behavior are unchanged.
+
+All 84 existing tests pass under the local virtual display without skips. Documentation links, version alignment and diff whitespace checks pass. Visual review covers 1160 by 830 and 900 by 600; the smaller window scrolls while the save action remains available. Windows workflow verification is pending for the PR.
+
+
+## Windows update certificate and desktop shortcut followup
+
+The reported screenshot establishes a certificate verification failure, not its underlying cause. Update HTTPS requests now use truststore 0.10.5 on Windows with an explicit native SSL context. Certificate and hostname checks remain enabled; HTTPS redirects and installer checksum verification remain enforced. Source and packaged smoke checks construct the context to detect missing runtime dependencies. Unit coverage checks context requirements, Windows selection and propagation of verification failures without an insecure retry.
+
+The installer detects desktop shortcuts by their target path in the user and shared desktop folders. An existing shortcut suppresses both the optional task and new icon creation, including a renamed shortcut. It does not delete existing duplicates or unrelated links. Windows installer verification renames the initial shortcut, forces the desktop task during reinstall and checks that no duplicate is created. Native Windows and installer execution remain CI checks; Dad's successful installed update remains an acceptance check.
+
+Verification: all 87 tests passed locally under the virtual display without skips. Documentation, version alignment and diff whitespace checks passed. Native Windows packaging and installer checks are pending CI.

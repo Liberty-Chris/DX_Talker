@@ -1,9 +1,10 @@
-DX Talker 0.2.0a3 announces frequency before callsign: “New DX on. Frequency. Callsign.” A shared kHz/MHz selection converts both spoken frequency and live rows without changing the received data.
+DX Talker 0.2.0a4 makes Announcements easier to scan, with compact sections for frequency limits, timing and repeats and RF supervision.
 
-Speech controls are grouped into compact sections. Only the selected voice provider's settings are shown, and preview controls are at the top. Connect and Disconnect become one control: neutral Connect, accented Connected and red Disconnect on hover or keyboard focus. Clicking an active connection stops it; a pending connection can be cancelled. Local listening has a matching Listening and Stop listening toggle. Stopping local audio preserves the cluster feed and live rows.
+Numeric fields use appropriate widths. Units and supported timing ranges appear beside the settings. The page clarifies that frequency filters remain in kHz even when announcements and the live view use MHz.
 
-Cluster login handling now recognizes prompts followed by banners in the same network read, fragmented ANSI sequences and padded prompts. The connection status distinguishes an open socket, a recognized login and valid incoming spots. Failed sockets close before retrying.
+This update changes the layout and explanatory text. Saved values, validation, filtering, scheduling and output controls retain their existing behavior.
 
-Update checks distinguish DNS, TLS verification, timeouts, HTTP errors and GitHub rate limiting. Successful checks show the installed version and channel and explain when a preview requires Pilot. Network access alone does not prove that an update request succeeded.
 
-Profiles and settings are retained. Existing frequency filters and history remain in kHz. Automatic output remains disabled on startup and recovery.
+Windows update connections now use the operating system certificate verifier, including retrieval of missing intermediate certificates. HTTPS certificate and hostname verification remain required.
+
+Setup detects existing desktop shortcuts pointing to the installed app, including renamed shortcuts and shortcuts on the shared desktop. It preserves them and omits the duplicate desktop shortcut option. Existing duplicate shortcuts are not deleted automatically.
