@@ -24,14 +24,14 @@ The source becomes ready when valid spots arrive. The initial example is w4mr.dd
 
 ## Set up radio output
 
-Choose the radio audio device and PTT method in Audio and PTT. In Identification, configure the required ID text and schedule. In Announcements, set filters and acknowledge supervised operation on a clear or coordinated channel.
+Choose the radio audio device and PTT method in Audio and PTT. In Identification, configure the required ID text and schedule. In Announcements, set the frequency filters and timing. Supervise operation on a clear or coordinated channel; no acknowledgement checkbox is required.
 
-Save and apply settings. When a source is ready, Enable RF starts with identification. New live spots are then eligible for announcement. Previously displayed spots are not replayed. Send ID now requests the configured ID immediately.
+Save and apply settings. Enable RF uses those saved settings and starts with identification, even without a connected source. The button reads RF enabled while active, and Disable RF on hover or keyboard focus. Click again to stop RF without disconnecting the cluster. New live spots are then eligible for announcement. Previously displayed spots are not replayed. Send ID now requests the configured ID immediately.
 
 ## Stop and recover
 
 STOP ALL OUTPUT cancels current and queued output and requests PTT release. Wait for Idle before applying changes or previewing. Source loss or an output fault disables RF. Reconnect does not automatically enable it again.
 
-Settings are saved locally. RF and local listening enable state are never saved. The supervised channel acknowledgement is remembered when settings are saved. Passwords and tokens remain session only unless you explicitly remember one in a Windows protected cluster profile.
+Settings are saved locally. RF and local listening enable state are never saved. Passwords and tokens remain session only unless you explicitly remember one in a Windows protected cluster profile.
 
 For speech, keyboard and local listening tools, see Listening and accessibility. History and updates covers retention, log folders and the application update process.

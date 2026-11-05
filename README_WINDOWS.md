@@ -1,6 +1,6 @@
 # DX Talker Windows pilot
 
-Version 0.2.0a4. Installer targets: Windows 10 22H2 and Windows 11, x64.
+Version 0.2.0a5. Installer targets: Windows 10 22H2 and Windows 11, x64.
 
 ## Install DX Talker
 
@@ -46,15 +46,15 @@ For a compatible HTTPS feed, choose HTTPS JSON and enter a URL that follows the 
 
 Choose the radio's exact audio device. Select VOX only for an interface or radio configured to key from audio. Otherwise choose serial RTS, DTR or RTS+DTR and the correct COM port and polarity. These methods require compatible wiring. CM108 HID interfaces such as RIM devices need a future HID adapter and are not controlled by the current serial PTT implementation.
 
-Set lead time, tail time and the maximum transmit duration. Save and apply. Configure CW and voice text and the ID policy. In Announcements, acknowledge supervised operation on a clear or coordinated channel. Busy channel detection is not implemented.
+Set lead time, tail time and the maximum transmit duration. Save and apply. Configure CW and voice text and the ID policy. Supervise operation on a clear or coordinated channel. Busy channel detection is not implemented.
 
-Once a source is ready, Enable RF starts with an ID. New live spots are then eligible for announcement. Spots received before enabling are not replayed. Send ID now requests the configured ID policy immediately. STOP ALL OUTPUT cancels pending work and requests PTT release.
+Enable RF toggles radio output using saved settings and starts with an ID, including without a source. A second click disables RF without disconnecting the cluster. New live spots are then eligible for announcement. Spots received before enabling are not replayed. Send ID now requests the configured ID policy immediately. STOP ALL OUTPUT cancels pending work and requests PTT release.
 
 Use a local preview device separate from the radio path. With VOX, a preview routed to the radio can itself cause transmission even though the app never asserts PTT for preview.
 
 ## Settings and recovery
 
-Settings live at %LOCALAPPDATA%\DXTalker\settings.json. Passwords, tokens, the channel acknowledgement and RF enable state are not saved. Restarting starts with RF disabled.
+Settings live at %LOCALAPPDATA%\DXTalker\settings.json. Passwords and tokens are session only unless remembered in a protected cluster profile. RF enable state is not saved. Restarting starts with RF disabled.
 
 Changing a setting while RF is enabled disarms output. Save and apply the change before enabling again. If output is busy, stop it and wait for Idle before applying settings. Source loss, output faults and device refresh also disable RF. Reconnection does not reenable it.
 
@@ -81,4 +81,4 @@ The remaining operator checks are a live W4MR sign in, speech pronunciation and 
 
 ## Updates and operator controls
 
-The 0.2.0a4 pilot adds named sources, adjustable speech pacing, optional local neural voices, independent levels, local listening, history and application update notifications. See the bundled help topics and [release process](docs/release_process.md). Install an updater enabled build manually once; later compatible releases can be downloaded and installed from the app.
+The 0.2.0a5 pilot adds named sources, adjustable speech pacing, optional local neural voices, independent levels, local listening, history and application update notifications. See the bundled help topics and [release process](docs/release_process.md). Install an updater enabled build manually once; later compatible releases can be downloaded and installed from the app.

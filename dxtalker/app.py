@@ -46,6 +46,7 @@ class Application:
         self.connection_phase = "disconnected"
         self.connection_controls = []
         self.listening_controls = []
+        self.rf_controls = []
         self.source_generation = 0
         self.source_ready = False
         self.spots = {}
@@ -73,7 +74,7 @@ class Application:
             self.profile_store = None
             settings_error += " Cluster profiles could not be loaded. The existing file has been retained."
         self.engine = Engine(self.settings, self.emit)
-        self.engine.rf_allowed = lambda: self.source is not None and self.source.ready.is_set()
+        self.engine.source_available = lambda: self.source is not None and self.source.ready.is_set()
         self.variables = {}
         self.combos = {}
         self.field_widgets = {}
@@ -296,7 +297,7 @@ class Application:
             widget = ttk.Combobox(parent, textvariable=var, values=choices, state="readonly", width=45)
             self.combos[name] = widget
         elif type(value) is int:
-            limits = {"speech_rate": (-10, 10), "character_pause_ms": (0, 1000), "group_pause_ms": (0, 3000),
+            limits = {"cw_wpm": (5, 50), "cw_hz": (300, 1500), "id_minutes": (1, 30), "speech_rate": (-10, 10), "character_pause_ms": (0, 1000), "group_pause_ms": (0, 3000),
                       "volume_percent": (0, 100), "cw_volume_percent": (0, 100), "voice_id_volume_percent": (0, 100),
                       "local_volume_percent": (0, 100), "text_size": (10, 18)}
             low, high = limits.get(name, (0, 10000000))
@@ -341,7 +342,9 @@ class Application:
         for index, (text, action) in enumerate((("Load sample spots", self._samples), ("Preview selected", self._preview_spot),
                              ("Listen locally (F8)", self._listen), ("Clear view", self._clear_spots),
                              ("Enable RF", self._enable), ("Send ID now", self.engine.identify)), start=1):
-            control = self._listening_control(toolbar) if action == self._listen else ttk.Button(toolbar, text=text, command=self.guard(action))
+            control = (self._listening_control(toolbar) if action == self._listen else
+                       self._state_control(toolbar, "rf") if action == self._enable else
+                       ttk.Button(toolbar, text=text, command=self.guard(action)))
             control.grid(row=index // 4, column=index % 4, sticky="ew", padx=(0, 6), pady=(0, 6))
         self.live_hint = ttk.Label(frame, text="Spots appear here before RF is enabled. Select one to preview it locally.")
         self.live_hint.grid(row=2, column=0, sticky="w", pady=(0, 8))
@@ -437,21 +440,44 @@ class Application:
 
     def _id_tab(self):
         frame = self.tabs["Identification"]
-        self._field(frame, 0, "CW ID text", "cw_text", note="Letters, digits, spaces and / . - ? =")
-        self._field(frame, 1, "CW speed in words per minute", "cw_wpm")
-        self._field(frame, 2, "CW tone in Hz", "cw_hz")
-        self._field(frame, 3, "Voice ID text", "voice_text")
-        self._field(frame, 4, "Voice ID source", "voice_mode", ["Speech", "WAV"])
-        self._field(frame, 5, "Voice ID WAV file", "voice_wav", browse=True)
-        ttk.Label(frame, text="Voice, rate and pronunciation controls are in Speech.").grid(row=6, column=0, columnspan=3, sticky="w", pady=8)
-        self._field(frame, 8, "ID policy", "id_mode", ["CW", "Voice", "Alternate", "Both"])
-        self._field(frame, 9, "ID interval in minutes", "id_minutes")
-        controls = ttk.Frame(frame)
-        controls.grid(row=10, column=1, sticky="w", pady=12)
-        ttk.Button(controls, text="Preview CW locally", command=self.guard(lambda: self._preview("cw"))).pack(side="left", padx=(0, 8))
-        ttk.Button(controls, text="Preview voice locally", command=self.guard(lambda: self._preview("voice"))).pack(side="left")
-        ttk.Label(frame, text="Blank voice uses the Windows default. IDs take priority over spots. RF starts with an ID.\nBoth sends CW then voice together. WAV files used with Both must be mono 22050 Hz PCM16.",
-                  wraplength=900).grid(row=11, column=0, columnspan=3, sticky="w")
+        cw = ttk.LabelFrame(frame, text="CW identification", padding=12)
+        cw.grid(row=0, column=0, sticky="w", pady=(0, 12))
+        cw.columnconfigure(0, minsize=120)
+        self._field(cw, 0, "ID text", "cw_text", compact=True)
+        self.field_widgets["cw_text"].configure(width=38)
+        self._field(cw, 1, "Speed (WPM)", "cw_wpm", note="5 to 50 WPM", compact=True)
+        self._field(cw, 2, "Tone (Hz)", "cw_hz", note="300 to 1500 Hz", compact=True)
+        ttk.Button(cw, text="Preview CW locally", command=self.guard(lambda: self._preview("cw"))).grid(row=0, column=2, sticky="w", padx=12)
+        voice = ttk.LabelFrame(frame, text="Voice identification", padding=12)
+        voice.grid(row=1, column=0, sticky="w", pady=(0, 12))
+        voice.columnconfigure(0, minsize=120)
+        self._field(voice, 0, "Source", "voice_mode", ["Speech", "WAV"], compact=True)
+        self.voice_id_speech_fields = ttk.Frame(voice)
+        self.voice_id_speech_fields.grid(row=1, column=0, columnspan=3, sticky="w")
+        self.voice_id_speech_fields.columnconfigure(0, minsize=120)
+        self._field(self.voice_id_speech_fields, 0, "ID text", "voice_text", compact=True)
+        self.field_widgets["voice_text"].configure(width=38)
+        self.voice_id_wav_fields = ttk.Frame(voice)
+        self.voice_id_wav_fields.grid(row=2, column=0, columnspan=3, sticky="w")
+        self.voice_id_wav_fields.columnconfigure(0, minsize=120)
+        self._field(self.voice_id_wav_fields, 0, "WAV file", "voice_wav", browse=True, compact=True)
+        self.field_widgets["voice_wav"].configure(width=38)
+        ttk.Button(voice, text="Preview voice locally", command=self.guard(lambda: self._preview("voice"))).grid(row=0, column=2, sticky="w", padx=12)
+        ttk.Label(voice, text="Voice and delivery settings are in Speech. Local previews do not assert serial PTT.",
+                  wraplength=550).grid(row=4, column=0, columnspan=3, sticky="w", pady=(8, 0))
+        self.variables["voice_mode"].trace_add("write", lambda *args: self._voice_id_source_changed())
+        self._voice_id_source_changed()
+        schedule = ttk.LabelFrame(frame, text="ID schedule", padding=12)
+        schedule.grid(row=2, column=0, sticky="w", pady=(0, 12))
+        self._field(schedule, 0, "Policy", "id_mode", ["CW", "Voice", "Alternate", "Both"], compact=True)
+        self._field(schedule, 1, "Interval (minutes)", "id_minutes", note="1 to 30 minutes", compact=True)
+        ttk.Label(frame, text="RF starts with an ID. IDs take priority over spots. Both sends CW followed by voice.\nFor Both, a recorded voice ID must be mono 22050 Hz PCM16.",
+                  wraplength=650).grid(row=3, column=0, sticky="w")
+
+    def _voice_id_source_changed(self):
+        recorded = self.variables["voice_mode"].get() == "WAV"
+        self.voice_id_speech_fields.grid_remove() if recorded else self.voice_id_speech_fields.grid()
+        self.voice_id_wav_fields.grid() if recorded else self.voice_id_wav_fields.grid_remove()
 
     def _policy_tab(self):
         frame = self.tabs["Announcements"]
@@ -472,12 +498,9 @@ class Application:
         supervision.grid(row=2, column=0, sticky="w", pady=(0, 12))
         self.variables["supervised_ack"] = tk.BooleanVar(value=self.settings.supervised_ack)
         self.channel_ack = self.variables["supervised_ack"]
-        self.channel_ack.trace_add("write", lambda *args: self.engine.stop("Channel acknowledgement cleared. RF disabled.")
-                                   if not self.channel_ack.get() else None)
-        ttk.Checkbutton(supervision, text="I am supervising a clear or coordinated channel.",
-                        variable=self.channel_ack).grid(row=0, column=0, sticky="w")
-        ttk.Label(supervision, text="The app does not detect a busy channel. This acknowledgement is remembered when settings are saved.",
-                  wraplength=550).grid(row=1, column=0, sticky="w", pady=(8, 0))
+        # Retain the old saved value for settings compatibility; it no longer gates RF.
+        ttk.Label(supervision, text="The app does not detect a busy channel. Supervise operation on a clear or coordinated channel. RF Enable does not require an acknowledgement.",
+                  wraplength=550).grid(row=0, column=0, sticky="w")
         ttk.Label(frame, text="Only validated spots are spoken. Comments and cluster commands are excluded.\nQueue: up to 100 spots. Starting output does not replay displayed history.",
                   wraplength=650).grid(row=3, column=0, sticky="w")
 
@@ -488,13 +511,13 @@ class Application:
         return self._state_control(parent, "listening")
 
     def _state_control(self, parent, kind):
-        action = self._connection_action if kind == "connection" else self._listen
+        action = {"connection": self._connection_action, "listening": self._listen, "rf": self._enable}[kind]
         shell = tk.Frame(parent, padx=2, pady=2)
         button = tk.Button(shell, relief="flat", borderwidth=0, padx=10, pady=7, width=15,
                            takefocus=True, command=self.guard(action))
         button.pack(fill="both", expand=True)
         item = {"shell": shell, "button": button, "hover": False, "focus": False, "kind": kind}
-        (self.connection_controls if kind == "connection" else self.listening_controls).append(item)
+        {"connection": self.connection_controls, "listening": self.listening_controls, "rf": self.rf_controls}[kind].append(item)
         for event, key, value in (("<Enter>", "hover", True), ("<Leave>", "hover", False),
                                   ("<FocusIn>", "focus", True), ("<FocusOut>", "focus", False)):
             def changed(event, i=item, k=key, v=value):
@@ -515,10 +538,18 @@ class Application:
         p = PALETTES[self.theme.get()]
         active = self.source is not None
         connected = active and getattr(self.source, "connected", threading.Event()).is_set()
-        for item in self.connection_controls + self.listening_controls:
+        for item in self.connection_controls + self.listening_controls + self.rf_controls:
             attention = item["hover"] or item["focus"]
-            stopping = item["kind"] == "listening" and not self.engine.local_enabled and self.engine.busy and self.engine.cancel.is_set()
-            if item["kind"] == "listening":
+            stopping = item["kind"] in ("listening", "rf") and self.engine.busy and self.engine.cancel.is_set()
+            if item["kind"] == "rf":
+                if self.engine.enabled:
+                    text = "Disable RF" if attention else "RF enabled"
+                    edge, background = ("#d63852", "#542334") if attention else (p["accent"], p["selected"])
+                    ink = "#ffffff" if attention else p["ink"]
+                else:
+                    text = "Stopping..." if stopping else "Enable RF"
+                    edge, background, ink = (p["accent"] if attention else p["edge"]), p["field"], p["ink"]
+            elif item["kind"] == "listening":
                 if self.engine.local_enabled:
                     text = "Stop listening" if attention else "Listening"
                     edge, background = ("#d63852", "#542334") if attention else (p["accent"], p["selected"])
@@ -1013,15 +1044,12 @@ class Application:
         return True
 
     def _enable(self):
-        self._apply()
-        if not self.source_ready or not self.source or not self.source.ready.is_set():
-            raise ValueError("Connect to a source and receive a valid feed before enabling RF. Use local previews for offline testing.")
-        if not self.channel_ack.get():
-            raise ValueError("Read and acknowledge supervised channel operation in Announcements")
-        if self.settings.radio_device == self.settings.preview_device:
-            if not messagebox.askyesno("Shared audio device", "The radio and local preview use the same device. A preview could reach the radio, especially with VOX. Continue?"):
-                return
-        self.engine.enable()
+        # RF is an output toggle over applied settings, independent of source login.
+        if self.engine.enabled:
+            self.engine.stop("RF disabled. Source remains connected.")
+        else:
+            self.engine.enable()
+        self._render_connections()
 
     def _stop(self):
         self.engine.stop()

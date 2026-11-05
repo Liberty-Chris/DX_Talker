@@ -52,3 +52,6 @@ Keep radio support configurable while the first test hardware is unknown. The fi
 Target Windows 11 x64 for the initial pilot. Use a TCP/Telnet adapter and a generic HTTPS JSON contract. W4MR's live sign in remains to be tested. ID timing is configurable, with CW, Voice, Alternate and Both policies. The initial default is CW every ten minutes while RF is enabled, starting with an ID.
 
 Announce callsigns with phonetics and frequency digits in kHz. Keep comments out of speech. Provide age, repeat, frequency and spacing controls. Automatic busy channel detection is deferred, with an explicit supervised operation acknowledgement in the pilot.
+
+
+November 5, 2026: RF enable no longer requires a connected source or supervision acknowledgement. Supervised channel operation remains the operator's responsibility. Native busy channel detection remains future work. Configured IDs can operate offline; source loss still stops RF and reconnect never automatically enables it.

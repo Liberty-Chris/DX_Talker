@@ -68,4 +68,4 @@ The listening toggle uses already applied settings. It does not save pending edi
 
 ## Announcement policy controls
 
-Announcements groups Frequency range, Timing and repeats and RF supervision into compact sections. Frequency limits always use kHz. Timing fields are in seconds, with supported ranges beside them. The saved supervision acknowledgement is grouped with the busy channel limitation. Editing, validation and Save and apply behavior are unchanged.
+Announcements groups Frequency range, Timing and repeats and RF supervision into compact sections. Frequency limits always use kHz. Timing fields are in seconds, with supported ranges beside them. The busy channel limitation appears as guidance; an acknowledgement checkbox no longer gates RF. Editing, validation and Save and apply behavior are unchanged.

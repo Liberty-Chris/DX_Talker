@@ -1,13 +1,7 @@
-DX Talker 0.2.0a4 makes Announcements easier to scan, with compact sections for frequency limits, timing and repeats and RF supervision.
+DX Talker 0.2.0a5 compacts the IDs tab into CW identification, Voice identification and ID schedule. Text and numeric fields have appropriate widths, local previews sit beside their settings and only the selected voice source controls are shown.
 
-Numeric fields use appropriate widths. Units and supported timing ranges appear beside the settings. The page clarifies that frequency filters remain in kHz even when announcements and the live view use MHz.
+RF Enable now matches Connect and Listen locally: an accent border and RF enabled label show the active state. Hover or keyboard focus turns it red and offers Disable RF. Click again to stop radio output while keeping the cluster connection and live view.
 
-This update changes the layout and explanatory text. Saved values, validation, filtering, scheduling and output controls retain their existing behavior.
+RF uses saved settings without applying pending edits. A connected source, received spot, supervision checkbox and shared device confirmation are no longer required. Radio output and ID configuration must still be valid. Without a cluster, initial and scheduled IDs can operate. Stop All Output, source loss, device faults, cancellation and transmit limits remain active. Startup and reconnect leave RF disabled.
 
-
-Windows update connections now use the operating system certificate verifier, including retrieval of missing intermediate certificates. HTTPS certificate and hostname verification remain required.
-
-Setup detects existing desktop shortcuts pointing to the installed app, including renamed shortcuts and shortcuts on the shared desktop. It preserves them and omits the duplicate desktop shortcut option. Existing duplicate shortcuts are not deleted automatically.
-
-
-Future platform work: align certificate handling across macOS, Linux, iOS and Android using each platform's supported trust services. Keep certificate and hostname verification enabled and provide consistent update diagnostics. This release applies the native trust change to the Windows updater; it does not add or change certificate handling on the other platforms.
+Future platform work remains planned: align certificate handling across macOS, Linux, iOS and Android using supported platform trust services while keeping certificate and hostname verification enabled. Native trust is currently implemented for the Windows updater.

@@ -59,3 +59,6 @@ The 0.2.0a4 interface followup applies the compact Speech layout pattern to Anno
 
 
 Future platform certificate alignment: evaluate supported native trust services on macOS, Linux, iOS and Android for update and HTTPS connections. Preserve certificate and hostname validation, use consistent diagnostics and verify packaged behavior on each supported platform. The Windows updater uses native trust first; equivalent handling on the other platforms remains planned work.
+
+
+The 0.2.0a5 followup compacts IDs and makes RF a source independent output toggle over applied settings. Radio configuration, identification, serialization and fault handling remain required for transmission. Offline IDs can operate without a cluster.

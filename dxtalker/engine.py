@@ -16,7 +16,7 @@ class Engine:
     def __init__(self, settings, emit, audio=None, speech=None, ptt_factory=create_ptt,
                  clock=time.monotonic):
         self.settings, self.emit = settings, emit
-        self.rf_allowed = lambda: True
+        self.source_available = lambda: True
         self.audio, self.speech = audio or AudioOutput(), speech or SpeechService()
         self.ptt_factory, self.clock = ptt_factory, clock
         self.lock = threading.RLock()
@@ -43,8 +43,6 @@ class Engine:
                 raise ValueError("Wait for the current preview to finish")
             self.settings.validate_rf()
             self.local_enabled = False
-            if not self.rf_allowed():
-                raise ValueError("A working source connection is required before enabling RF")
             self.cancel.clear()
             self.items.clear()
             self.seen.clear()
@@ -127,7 +125,7 @@ class Engine:
                 raise ValueError("Stop output and wait for Idle before starting local listening")
             if not self.settings.preview_device:
                 raise ValueError("Choose a local preview audio device")
-            if not self.rf_allowed():
+            if not self.source_available():
                 raise ValueError("Connect to a working source first")
             self.cancel.clear()
             self.items.clear()
@@ -168,7 +166,7 @@ class Engine:
     def _transmit(self, clip, s, volume=None):
         if clip.duration + (s.lead_ms + s.tail_ms) / 1000 > s.max_tx_seconds:
             raise ValueError("Audio exceeds the configured maximum transmit duration. Shorten it or change the limit.")
-        if self.cancel.is_set() or not self.rf_allowed():
+        if self.cancel.is_set():
             raise Cancelled()
         # Resolve the exact audio device before keying, then resolve again at playback.
         self.audio.resolve(s.radio_device, clip.channels)
