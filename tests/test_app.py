@@ -445,3 +445,31 @@ class AppTests(unittest.TestCase):
         self.assertEqual(self.app.command.get(), '')
         self.assertEqual(self.app.secret.get(), '')
         self.assertFalse(self.app.remember_secret.get())
+
+
+    def test_failed_secret_unlock_still_allows_profile_editing_and_deletion(self):
+        self.app.profile_name.set('Working')
+        self.app._save_profile()
+        def protector(value, decrypt=False):
+            if decrypt:
+                raise ValueError('Synthetic credential unlock failure')
+            return 'encrypted-fixture'
+        self.app.profile_store.protector = protector
+        locked = self.app.profile_store.save('Locked', replace(self.app.settings, host='locked.example'), secret='synthetic', remember=True)
+        self.app._refresh_profiles()
+        self.app.profile_choice.set('Locked')
+        with patch('dxtalker.app.messagebox.showwarning') as warning:
+            self.app._select_profile()
+        warning.assert_called_once()
+        self.assertEqual(self.app.profile_choice.get(), 'Locked')
+        self.assertEqual(self.app.profile_name.get(), 'Locked')
+        self.assertEqual(self.app.selected_profile_id, locked['id'])
+        self.assertEqual(self.app.variables['host'].get(), 'locked.example')
+        self.assertEqual(self.app.secret.get(), '')
+        self.assertFalse(self.app.remember_secret.get())
+        # Loading alone must not erase the stored credential.
+        self.assertEqual(next(p for p in self.app.profile_store.profiles if p['id'] == locked['id'])['secret'], 'encrypted-fixture')
+        with patch('dxtalker.app.messagebox.askyesno', return_value=True) as ask:
+            self.app._delete_profile()
+        self.assertIn("'Locked'", ask.call_args.args[1])
+        self.assertEqual([p['name'] for p in self.app.profile_store.profiles], ['Working'])

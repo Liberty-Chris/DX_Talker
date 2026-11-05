@@ -845,7 +845,15 @@ class Application:
         if not self.profile_store:
             raise ValueError("Recover profiles.json before using saved profiles")
         item = next(p for p in self.profile_store.profiles if p["name"] == self.profile_choice.get())
-        updated, secret = self.profile_store.load(item["id"], self.settings)
+        credential_unavailable = False
+        try:
+            updated, secret = self.profile_store.load(item["id"], self.settings)
+        except ValueError:
+            # A credential tied to another Windows account must not make its
+            # connection details impossible to edit or its profile undeletable.
+            updated = replace(self.settings, **item["connection"])
+            secret = ""
+            credential_unavailable = True
         self._disconnect()
         self._clear_spots()
         self._clear_console()
@@ -853,11 +861,16 @@ class Application:
         self.selected_profile_id = item["id"]
         self.profile_name.set(item["name"])
         self.secret.set(secret)
-        self.remember_secret.set(bool(item["secret"]))
+        self.remember_secret.set(bool(item["secret"]) and not credential_unavailable)
         for key in SOURCE_FIELDS:
             self.variables[key].set(getattr(updated, key))
         self._source_type_changed()
         self._refresh_profiles()
+        if credential_unavailable:
+            messagebox.showwarning("Profile password or token unavailable",
+                                   "The connection details were loaded, but Windows could not unlock the saved password or token. "
+                                   "Enter it again and choose whether to remember it before saving. "
+                                   "Saving with Remember unchecked removes the stored credential. You can also delete this profile.")
 
     def _profile_settings(self):
         # Profile operations must not validate or apply unrelated pending radio edits.
@@ -880,9 +893,11 @@ class Application:
         self._refresh_profiles()
 
     def _delete_profile(self):
-        if self.selected_profile_id and messagebox.askyesno("Delete cluster profile", "Delete this saved profile and its remembered password or token?"):
-            self.profile_store.delete(self.selected_profile_id)
-            self._new_profile()
+        if self.selected_profile_id:
+            item = next(p for p in self.profile_store.profiles if p["id"] == self.selected_profile_id)
+            if messagebox.askyesno("Delete cluster profile", f"Delete '{item['name']}' and its remembered password or token?"):
+                self.profile_store.delete(self.selected_profile_id)
+                self._new_profile()
 
     def _speech_tab(self):
         frame = self.tabs["Speech and access"]

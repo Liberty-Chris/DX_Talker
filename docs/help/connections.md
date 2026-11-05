@@ -60,3 +60,6 @@ Some clusters limit simultaneous sessions under one callsign. Close another clie
 
 
 New profile and deleting the selected profile stop the previous connection, clear its live rows and console and remove its session credential from the editor. Other saved profiles and their remembered credentials are retained. Saving a profile saves connection details only; it does not apply pending radio settings or connect automatically. Connect still applies the current settings, including any pending edits elsewhere, before starting the source.
+
+
+If Windows cannot unlock a remembered password or token, the profile's connection details still load so it can be edited or deleted. A message asks you to enter the credential again. The stored credential is preserved until you save or delete the profile. Saving with Remember unchecked removes it; checking Remember and saving stores the newly entered value for this account.
