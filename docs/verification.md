@@ -54,3 +54,10 @@ All 84 tests pass with the virtual display, including ten desktop integration te
 A prompt plus banner in one network read failed before the connection patch and passes after it. ANSI and NUL padded login/password prompts are exercised at every single split point. Tests check socket release before retry and cancellation during connect. Update checks cover preview selection for an installed 0.2.0a1, Stable channel guidance, and redacted DNS, TLS, HTTP and rate limit explanations. The current GitHub API request returned HTTP 200 from this environment. That does not diagnose the separate Windows user's generic failure.
 
 UI review covers Speech at 1160 by 830 and Live spots at 900 by 600. Documentation links and version alignment pass. Windows workflow results must be recorded separately after publication of the branch.
+
+
+## 0.2.0a4 Announcements layout
+
+The Announcements page groups frequency limits, timing and repeats, and RF supervision. Numeric fields use compact widths with units and range hints. Filter values remain in kHz. Settings, validation and announcement behavior are unchanged.
+
+All 84 existing tests pass under the local virtual display without skips. Documentation links, version alignment and diff whitespace checks pass. Visual review covers 1160 by 830 and 900 by 600; the smaller window scrolls while the save action remains available. Windows workflow verification is pending for the PR.

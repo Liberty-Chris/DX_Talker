@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0a4. November 5, 2026
+
+Compact the Announcements page into Frequency range, Timing and repeats and RF supervision. Use short numeric fields, explicit units and nearby range guidance. Clarify that filter limits remain in kHz while speech and display can use MHz. Settings and output behavior are unchanged.
+
 ## 0.2.0a3. November 5, 2026
 
 Announce intro, frequency and callsign in that order. Add exact kHz/MHz selection shared by speech and live display. Keep source data, filters and logs in kHz.

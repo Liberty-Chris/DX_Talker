@@ -455,19 +455,31 @@ class Application:
 
     def _policy_tab(self):
         frame = self.tabs["Announcements"]
-        self._field(frame, 0, "Minimum frequency in kHz", "min_khz")
-        self._field(frame, 1, "Maximum frequency in kHz", "max_khz")
-        self._field(frame, 2, "Maximum spot age in seconds", "max_age_seconds")
-        self._field(frame, 3, "Repeat suppression in seconds", "repeat_seconds")
-        self._field(frame, 4, "Gap between spots in seconds", "spacing_seconds")
-        ttk.Label(frame, text="Announcements spell the DX callsign using phonetics and read the frequency digit by digit in kilohertz.\nComments, chat, banners and cluster commands are never announced. The queue holds at most 100 spots.\nSpots received while RF is disabled are displayed but are not queued for later transmission.",
-                  wraplength=900).grid(row=5, column=0, columnspan=3, sticky="w", pady=20)
+        frequency = ttk.LabelFrame(frame, text="Frequency range", padding=12)
+        frequency.grid(row=0, column=0, sticky="w", pady=(0, 12))
+        self._field(frequency, 0, "Minimum (kHz)", "min_khz", compact=True)
+        self._field(frequency, 1, "Maximum (kHz)", "max_khz", compact=True)
+        for name in ("min_khz", "max_khz"):
+            self.field_widgets[name].configure(width=14)
+        ttk.Label(frequency, text="Filter limits use kHz, including when speech and display use MHz.",
+                  wraplength=550).grid(row=2, column=0, columnspan=2, sticky="w", pady=(8, 0))
+        timing = ttk.LabelFrame(frame, text="Timing and repeats", padding=12)
+        timing.grid(row=1, column=0, sticky="w", pady=(0, 12))
+        self._field(timing, 0, "Maximum spot age (s)", "max_age_seconds", note="30 to 600 seconds", compact=True)
+        self._field(timing, 1, "Repeat suppression (s)", "repeat_seconds", note="30 to 3600 seconds", compact=True)
+        self._field(timing, 2, "Gap between spots (s)", "spacing_seconds", note="1 to 120 seconds", compact=True)
+        supervision = ttk.LabelFrame(frame, text="RF supervision", padding=12)
+        supervision.grid(row=2, column=0, sticky="w", pady=(0, 12))
         self.variables["supervised_ack"] = tk.BooleanVar(value=self.settings.supervised_ack)
         self.channel_ack = self.variables["supervised_ack"]
         self.channel_ack.trace_add("write", lambda *args: self.engine.stop("Channel acknowledgement cleared. RF disabled.")
                                    if not self.channel_ack.get() else None)
-        ttk.Checkbutton(frame, text="I am supervising operation on a clear or coordinated channel. This pilot does not detect a busy channel.",
-                        variable=self.channel_ack).grid(row=7, column=0, columnspan=3, sticky="w")
+        ttk.Checkbutton(supervision, text="I am supervising a clear or coordinated channel.",
+                        variable=self.channel_ack).grid(row=0, column=0, sticky="w")
+        ttk.Label(supervision, text="The app does not detect a busy channel. This acknowledgement is remembered when settings are saved.",
+                  wraplength=550).grid(row=1, column=0, sticky="w", pady=(8, 0))
+        ttk.Label(frame, text="Only validated spots are spoken. Comments and cluster commands are excluded.\nQueue: up to 100 spots. Starting output does not replay displayed history.",
+                  wraplength=650).grid(row=3, column=0, sticky="w")
 
     def _connection_control(self, parent):
         return self._state_control(parent, "connection")

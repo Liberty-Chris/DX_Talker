@@ -65,3 +65,7 @@ Existing live rows are reformatted when settings are applied. Received data, his
 The Speech page groups common delivery settings separately from the selected provider and interface options. Only the selected provider's controls are shown. Preview sample speech and Speech setup and shortcuts remain at the top of the page. Fields have bounded widths rather than expanding across the window.
 
 The listening toggle uses already applied settings. It does not save pending edits or reconnect the source. Save and apply audio or speech changes before starting. When stopping an in progress clip, the control briefly reads Stopping until playback cleanup finishes.
+
+## Announcement policy controls
+
+Announcements groups Frequency range, Timing and repeats and RF supervision into compact sections. Frequency limits always use kHz. Timing fields are in seconds, with supported ranges beside them. The saved supervision acknowledgement is grouped with the busy channel limitation. Editing, validation and Save and apply behavior are unchanged.

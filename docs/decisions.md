@@ -115,3 +115,7 @@ A deterministic regression test reproduced a missed login prompt when a banner f
 Update failures must describe DNS, TLS, HTTP, timeout and rate limit categories without showing remote exception text. Report installed version and channel after successful checks and explain preview availability to Stable users. Do not weaken HTTPS verification.
 
 Local listening is a true output toggle, using applied settings. Stopping it cancels audio and queued announcements while preserving the source generation, socket and incoming live view. This prevents a button intended to stop listening from implicitly applying source edits or restarting a session. Its visual state follows the engine, with a brief disabled Stopping state while playback cleanup finishes.
+
+## November 5, 2026: Compact announcement policy
+
+Apply the established compact field helper to Announcements. Group frequency range, timing and repeats and RF supervision in bounded width sections. Keep units and timing bounds adjacent to controls. Retain existing variables, validation, acknowledgement persistence and output stop behavior.
