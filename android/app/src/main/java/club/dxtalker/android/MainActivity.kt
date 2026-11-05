@@ -141,7 +141,7 @@ class MainActivity : Activity() {
         val call = edit(panel, "Login callsign", profile.optString("call", ""))
         val password = edit(panel, "Password (optional)", profile.optString("password", ""), true)
         panel.addView(button("Save profile") {
-            if (host.text.isBlank() || port.text.toString().toIntOrNull() !in 1..65535) {
+            if (host.text.isBlank() || (port.text.toString().toIntOrNull() ?: 0) !in 1..65535) {
                 Toast.makeText(this, "Enter a valid host and port", Toast.LENGTH_LONG).show()
             } else {
                 val updated = profiles()
