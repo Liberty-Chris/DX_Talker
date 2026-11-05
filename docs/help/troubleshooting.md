@@ -12,7 +12,7 @@ For HTTPS, confirm the feed uses the documented array format and has current tim
 
 ## Cannot enable RF
 
-Wait until the source has delivered a valid spot or a valid HTTPS response. Choose a radio audio device, configure serial PTT if used and fill the ID fields required by your policy. Read the supervised channel acknowledgement in Announcements. Save and apply before enabling.
+Choose a radio audio device, configure serial PTT if used and fill the ID fields required by your policy. Save and apply before enabling. A connected source and a supervision checkbox are not required. RF uses saved settings, so pending edits do not change the selected device until applied. Wait for Idle if output is stopping or a preview is still playing.
 
 A local preview must finish before enabling. Wait for Idle after stopping output. The sample spot loader only supports local preview and does not make a live source ready.
 

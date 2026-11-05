@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0a5. November 5, 2026
+
+Compact the IDs tab into CW, voice and schedule sections. Hide inactive voice source fields while preserving values. Give RF a stateful enable and disable control with accent and red stop states. Use saved settings without applying pending edits or changing the source. Remove source readiness, supervision acknowledgement and shared device confirmation gates from RF enable. Retain valid radio and ID configuration, output serialization, cancellation, fault shutdown and transmit limits.
+
 ## 0.2.0a4. November 5, 2026
 
 Compact the Announcements page into Frequency range, Timing and repeats and RF supervision. Use short numeric fields, explicit units and nearby range guidance. Clarify that filter limits remain in kHz while speech and display can use MHz. Settings and output behavior are unchanged.

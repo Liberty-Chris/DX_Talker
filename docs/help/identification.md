@@ -8,7 +8,7 @@ Set CW speed from 5 to 50 words per minute and tone from 300 to 1500 Hz. Preview
 
 ## Voice ID
 
-Enter Voice ID text and select Speech or WAV as the source. Speech uses Windows System.Speech. A blank voice selection uses the Windows default. Rate ranges from minus 10 to 10, with zero as normal.
+Enter Voice ID text and select Speech or WAV as the source. Speech uses the provider selected in Speech. Windows System.Speech is the built in default, with optional Piper support. Voice and delivery controls are in Speech.
 
 For WAV, browse to an uncompressed 16 bit PCM recording, mono or stereo, with a sample rate from 8 to 96 kHz and duration no longer than 120 seconds. It must also fit your maximum transmit time. Missing or invalid WAV audio stops output with an error; the app does not silently substitute another ID.
 
@@ -20,6 +20,11 @@ CW sends only the CW ID. Voice sends only the selected voice ID. Alternate start
 
 The interval can be set from 1 to 30 minutes. The default is CW every ten minutes while RF is enabled. Configure an interval and text appropriate to your station's operating policy.
 
-Enable RF begins with an ID. Due IDs take priority over queued spots. Send ID now requests an ID immediately. Timing for the next scheduled ID starts after the previous one completes. No automatic IDs transmit while RF is disabled.
+Enable RF begins with an ID, including when no cluster is connected. Due IDs take priority over queued spots. Send ID now requests an ID immediately. Timing for the next scheduled ID starts after the previous one completes. No automatic IDs transmit while RF is disabled.
 
 An ID failure disables automatic RF output. Correct the problem, preview the ID and enable RF deliberately when ready. The pilot does not add a separate final ID when output is stopped.
+
+
+## Compact controls
+
+IDs groups CW identification, Voice identification and ID schedule into compact sections. Text fields have room for a station ID, with short numeric inputs for speed, tone and interval. Each voice source shows only its relevant text or WAV path; switching sources preserves the entered values. The WAV path scrolls horizontally and has a Browse button. Each ID section includes its local preview action.

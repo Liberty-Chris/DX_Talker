@@ -169,12 +169,22 @@ class EngineTests(unittest.TestCase):
             self.engine._transmit(Clip(b"\0\0" * 22050 * 121), self.settings)
         self.assertEqual(self.ptts, [])
 
-    def test_source_gate_prevents_enable_and_transmit(self):
-        self.engine.rf_allowed = lambda: False
-        with self.assertRaises(ValueError):
-            self.engine.enable()
+    def test_rf_can_identify_without_a_source_but_cancellation_still_blocks_ptt(self):
+        self.engine.source_available = lambda: False
+        self.enable_and_id()
+        self.assertTrue(self.engine.enabled)
+        self.assertEqual(len(self.ptts), 1)
+        self.engine.stop()
+        count = len(self.ptts)
         with self.assertRaises(Cancelled):
             self.engine._transmit(Clip(b"\0\0" * 100), self.settings)
+        self.assertEqual(len(self.ptts), count)
+
+    def test_incomplete_radio_setup_never_enables_or_keys(self):
+        self.engine.configure(replace(self.settings, radio_device=""))
+        with self.assertRaisesRegex(ValueError, "radio audio device"):
+            self.engine.enable()
+        self.assertFalse(self.engine.enabled)
         self.assertEqual(self.ptts, [])
 
     def test_watchdog_releases_independently_of_a_stalled_audio_call(self):
@@ -223,10 +233,10 @@ class EngineTests(unittest.TestCase):
         self.assertFalse(self.engine.offer(self.spot("WB4IUY")))
 
     def test_local_listening_requires_source_and_device_and_stops_on_failure(self):
-        self.engine.rf_allowed = lambda: False
+        self.engine.source_available = lambda: False
         with self.assertRaises(ValueError):
             self.engine.listen_locally()
-        self.engine.rf_allowed = lambda: True
+        self.engine.source_available = lambda: True
         self.engine.configure(replace(self.settings, preview_device=""))
         with self.assertRaises(ValueError):
             self.engine.listen_locally()

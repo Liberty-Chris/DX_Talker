@@ -216,3 +216,105 @@ class AppTests(unittest.TestCase):
             self.assertEqual(len(self.app.spots), 1)
         self.assertEqual(self.app.variables['host'].get(), 'pending.example')
         self.app.source = None
+
+
+    def test_ids_hide_inactive_source_and_preserve_text_and_file(self):
+        self.assertEqual(self.app.voice_id_speech_fields.winfo_manager(), 'grid')
+        self.assertEqual(self.app.voice_id_wav_fields.winfo_manager(), '')
+        self.app.variables['voice_text'].set('Test station')
+        self.app.variables['voice_wav'].set('example.wav')
+        self.app.variables['voice_mode'].set('WAV')
+        self.assertEqual(self.app.voice_id_speech_fields.winfo_manager(), '')
+        self.assertEqual(self.app.voice_id_wav_fields.winfo_manager(), 'grid')
+        self.app.variables['voice_mode'].set('Speech')
+        self.assertEqual(self.app.variables['voice_text'].get(), 'Test station')
+        self.assertEqual(self.app.variables['voice_wav'].get(), 'example.wav')
+        self.assertLess(int(self.app.field_widgets['cw_wpm'].cget('width')), 15)
+        self.assertLess(int(self.app.field_widgets['cw_text'].cget('width')), 45)
+
+    def test_rf_toggle_without_source_or_ack_never_applies_or_reconnects(self):
+        from unittest.mock import Mock
+        from dxtalker.appearance import PALETTES
+        engine = self.app.engine
+        # Prevent the actual worker from rendering or opening hardware in this UI check.
+        with engine.lock:
+            engine.configure(replace(self.app.settings, radio_device='local', preview_device='local', cw_text='E'))
+            self.app.variables['host'].set('pending.example')
+            self.assertFalse(self.app.channel_ack.get())
+            with patch.object(self.app, '_apply', side_effect=AssertionError('Applied pending settings')), \
+                 patch.object(self.app, '_connect', side_effect=AssertionError('Reconnected')), \
+                 patch.object(self.app, '_disconnect', side_effect=AssertionError('Disconnected')), \
+                 patch('dxtalker.app.messagebox.askyesno', side_effect=AssertionError('Unexpected prerequisite')):
+                self.app._enable()
+                self.assertTrue(engine.enabled)
+                button = self.app.rf_controls[0]
+                self.assertEqual(button['button'].cget('text'), 'RF enabled')
+                # Legacy acknowledgement edits no longer control RF.
+                self.app.channel_ack.set(True)
+                self.app.channel_ack.set(False)
+                self.assertTrue(engine.enabled)
+                for theme in PALETTES:
+                    self.app.theme.set(theme)
+                    button['focus'] = False
+                    self.app._render_connections()
+                    self.assertEqual(button['shell'].cget('background'), PALETTES[theme]['accent'])
+                    button['focus'] = True
+                    self.app._render_connections()
+                    self.assertEqual(button['button'].cget('text'), 'Disable RF')
+                    self.assertEqual(button['shell'].cget('background'), '#d63852')
+                # Disabling RF leaves an existing cluster and live rows intact.
+                source = Mock()
+                self.app.source = source
+                generation = self.app.source_generation
+                self.app._add_spot(self.spot())
+                self.app._enable()
+                self.assertFalse(engine.enabled)
+                self.assertIs(self.app.source, source)
+                self.assertEqual(self.app.source_generation, generation)
+                self.assertEqual(len(self.app.spots), 1)
+                source.stop.assert_not_called()
+                self.assertEqual(button['button'].cget('text'), 'Enable RF')
+                self.app.source = None
+            self.assertEqual(self.app.variables['host'].get(), 'pending.example')
+
+    def test_rf_button_resets_after_stop_and_output_fault(self):
+        engine = self.app.engine
+        with engine.lock:
+            engine.configure(replace(self.app.settings, radio_device='radio', cw_text='E'))
+            self.app._enable()
+            self.app._stop()
+            self.assertEqual(self.app.rf_controls[0]['button'].cget('text'), 'Enable RF')
+            self.app._enable()
+            engine.stop('Output fault. RF disabled.')
+            self.app._poll()
+            self.assertEqual(self.app.rf_controls[0]['button'].cget('text'), 'Enable RF')
+
+
+    def test_rf_stopping_state_and_source_loss_never_auto_rearm(self):
+        class Source:
+            def __init__(self, settings, emit, secret):
+                self.emit = emit
+                self.ready = threading.Event()
+                self.connected = threading.Event()
+            def start(self): pass
+            def stop(self): pass
+        with patch('dxtalker.app.SourceClient', Source):
+            self.app._connect()
+        engine = self.app.engine
+        with engine.lock:
+            engine.configure(replace(self.app.settings, radio_device='radio', cw_text='E'))
+            self.app._enable()
+            engine.busy = True
+            self.app._enable()
+            self.assertEqual(self.app.rf_controls[0]['button'].cget('text'), 'Stopping...')
+            self.assertEqual(str(self.app.rf_controls[0]['button'].cget('state')), 'disabled')
+            engine.busy = False
+            self.app._enable()
+            self.app.source.emit('source_lost', 'Test connection lost')
+            self.assertFalse(engine.enabled)
+            self.app.source.ready.set()
+            self.app.source.connected.set()
+            self.app.source.emit('source_ready', 'Ready again')
+            self.app._poll()
+            self.assertFalse(engine.enabled)
+            self.assertEqual(self.app.rf_controls[0]['button'].cget('text'), 'Enable RF')

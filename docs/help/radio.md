@@ -28,4 +28,10 @@ STOP ALL OUTPUT cancels pending work and attempts release. Source loss, output e
 
 Some serial drivers can pulse control lines when a port opens. Test that behavior before connecting PTT for normal use. Software cannot guarantee release after forced process termination, USB failure or a hardware latch. Verify your station's physical stop method and any interface timeout.
 
-The pilot does not detect a busy channel. Enable RF only under the supervised channel policy acknowledged in Announcements.
+## RF toggle
+
+Enable RF uses saved radio and ID settings without applying pending edits or changing the cluster connection. A connected source, a valid received spot, a supervision acknowledgement and a shared device confirmation are not prerequisites. The radio output and the ID settings still must be valid, and any current output must finish before enabling. Save and apply configuration changes first.
+
+While enabled, the button has an accent border and reads RF enabled. Hover or keyboard focus turns it red and changes the text to Disable RF. Clicking stops current and queued RF output without disconnecting the source or clearing the live view. It shows Stopping while cancellation finishes. Stop All Output, faults, source loss and settings changes also return it to the disabled state. Startup and reconnect never enable RF automatically.
+
+Without a source, RF can still send initial, periodic and manually requested IDs. Only new validated live spots are eligible for RF announcements; sample rows and displayed history are not queued. The pilot does not detect a busy channel. Supervise operation on a clear or coordinated channel. Shared local and radio devices may send previews to a VOX radio; use separate outputs for listening tests.

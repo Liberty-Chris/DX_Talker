@@ -119,3 +119,10 @@ Local listening is a true output toggle, using applied settings. Stopping it can
 ## November 5, 2026: Compact announcement policy
 
 Apply the established compact field helper to Announcements. Group frequency range, timing and repeats and RF supervision in bounded width sections. Keep units and timing bounds adjacent to controls. Retain existing variables, validation, acknowledgement persistence and output stop behavior.
+
+
+## November 5, 2026. RF toggle and compact IDs
+
+Use the same state control for connection, local listening and RF. The RF action reads applied settings and never saves pending edits or reconnects a source. Remove source readiness, the supervision checkbox and shared device confirmation as RF prerequisites so a configured station can identify offline. This supersedes the earlier source and acknowledgement gates. Keep output and ID validation, one transmission coordinator, cancellation, source loss shutdown and bounded transmission. Retain the legacy supervised_ack setting only for compatible settings loading.
+
+Group IDs into bounded CW, voice and schedule sections. Show only text or a recorded file for the selected voice source without discarding the inactive value.
