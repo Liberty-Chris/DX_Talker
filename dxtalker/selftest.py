@@ -11,6 +11,11 @@ import subprocess
 def run(report_path):
     report = {"ok": False}
     try:
+        from . import updates
+        import ssl
+        context = updates.update_ssl_context()
+        assert context.verify_mode == ssl.CERT_REQUIRED and context.check_hostname
+        report["update_certificate_verification"] = True
         import tkinter as tk
         from dataclasses import fields
         from .app import Application

@@ -22,14 +22,51 @@ RestartApplications=no
 DisableProgramGroupPage=yes
 
 [Tasks]
-Name: "desktopicon"; Description: "Create a desktop shortcut"; Flags: checkedonce
+Name: "desktopicon"; Description: "Create a desktop shortcut"; Flags: checkedonce; Check: NeedsDesktopShortcut
 
 [Files]
 Source: "..\dist\DXTalker\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\DX Talker"; Filename: "{app}\DXTalker.exe"; WorkingDir: "{app}"
-Name: "{autodesktop}\DX Talker"; Filename: "{app}\DXTalker.exe"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{autodesktop}\DX Talker"; Filename: "{app}\DXTalker.exe"; WorkingDir: "{app}"; Tasks: desktopicon; Check: NeedsDesktopShortcut
 
 [Run]
 Filename: "{app}\DXTalker.exe"; Description: "Launch DX Talker"; Flags: nowait postinstall skipifsilent
+
+[Code]
+function DesktopHasAppShortcut(const Folder: String): Boolean;
+var
+  Entry: TFindRec;
+  Shell, Shortcut: Variant;
+  Target: String;
+begin
+  Result := False;
+  if FindFirst(AddBackslash(Folder) + '*.lnk', Entry) then
+  begin
+    try
+      Shell := CreateOleObject('WScript.Shell');
+      repeat
+        try
+          Shortcut := Shell.CreateShortcut(AddBackslash(Folder) + Entry.Name);
+          Target := Shortcut.TargetPath;
+          if CompareText(Target, ExpandConstant('{app}\DXTalker.exe')) = 0 then
+          begin
+            Result := True;
+            Break;
+          end;
+        except
+          Log('Could not inspect a desktop shortcut; leaving it unchanged.');
+        end;
+      until not FindNext(Entry);
+    finally
+      FindClose(Entry);
+    end;
+  end;
+end;
+
+function NeedsDesktopShortcut: Boolean;
+begin
+  Result := not (DesktopHasAppShortcut(ExpandConstant('{userdesktop}')) or
+    DesktopHasAppShortcut(ExpandConstant('{commondesktop}')));
+end;

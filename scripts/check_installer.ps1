@@ -33,8 +33,16 @@ try {
     $marker = Join-Path $settingsDir 'installer-check.txt'
     New-Item -ItemType Directory -Path $settingsDir -Force | Out-Null
     Set-Content $marker 'preserve'
+    # A user renamed shortcut must suppress creation even if the task is forced.
+    $renamedDesktop = Join-Path (Split-Path $desktop) 'My DX Talker.lnk'
+    Move-Item $desktop $renamedDesktop
     Run-Checked $setup @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', '/TASKS=desktopicon')
     if ((Get-Content $marker -Raw).Trim() -ne 'preserve') { throw 'Upgrade changed user data' }
+    if (Test-Path $desktop) { throw 'Upgrade created a duplicate desktop shortcut' }
+    if (-not (Test-Path $renamedDesktop)) { throw 'Upgrade removed the existing shortcut' }
+    if ($shell.CreateShortcut($renamedDesktop).TargetPath -ne "$installDir\DXTalker.exe") { throw 'Upgrade changed the shortcut target' }
+    Move-Item $renamedDesktop $desktop
+    $report.shortcut_preserved = $true
     $report.reinstall = $true
     Run-Checked "$installDir\unins000.exe" @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART')
     for ($attempt = 0; $attempt -lt 50 -and (Test-Path "$installDir\unins000.exe"); $attempt++) {
