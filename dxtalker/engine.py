@@ -6,8 +6,9 @@ from datetime import datetime
 import threading
 import time
 
-from .audio import AudioOutput, Cancelled, WindowsSpeech, join_clips, morse_clip, wav_clip
+from .audio import AudioOutput, Cancelled, scale_clip, join_clips, morse_clip, wav_clip
 from .models import UTC
+from .speech import SpeechService
 from .ptt import create_ptt
 
 
@@ -16,20 +17,21 @@ class Engine:
                  clock=time.monotonic):
         self.settings, self.emit = settings, emit
         self.rf_allowed = lambda: True
-        self.audio, self.speech = audio or AudioOutput(), speech or WindowsSpeech()
+        self.audio, self.speech = audio or AudioOutput(), speech or SpeechService()
         self.ptt_factory, self.clock = ptt_factory, clock
         self.lock = threading.RLock()
         self.wake, self.cancel, self.quit = threading.Event(), threading.Event(), threading.Event()
         self.items = deque(maxlen=100)
         self.seen = {}
         self.enabled = self.busy = False
+        self.local_enabled = False
         self.next_id, self.next_spot, self.alternate = 0, 0, 0
         self.worker = threading.Thread(target=self._run, daemon=True, name="DX transmission")
         self.worker.start()
 
     def configure(self, settings):
         with self.lock:
-            if self.enabled or self.busy:
+            if self.enabled or self.local_enabled or self.busy:
                 raise ValueError("Stop output and wait for Idle before applying settings")
             self.settings = settings
             self.items.clear()
@@ -40,6 +42,7 @@ class Engine:
             if self.busy:
                 raise ValueError("Wait for the current preview to finish")
             self.settings.validate_rf()
+            self.local_enabled = False
             if not self.rf_allowed():
                 raise ValueError("A working source connection is required before enabling RF")
             self.cancel.clear()
@@ -51,7 +54,7 @@ class Engine:
 
     def stop(self, message="RF disabled. Output stopped."):
         with self.lock:
-            self.enabled = False
+            self.enabled = self.local_enabled = False
             self.cancel.set()
             self.items.clear()
         self.wake.set()
@@ -66,7 +69,7 @@ class Engine:
         now = self.clock()
         with self.lock:
             s = self.settings
-            if not self.enabled:
+            if not (self.enabled or self.local_enabled):
                 return False
             if not s.min_khz <= spot.frequency_khz <= s.max_khz:
                 return False
@@ -86,7 +89,7 @@ class Engine:
         if kind not in ("voice", "cw", "spot"):
             raise ValueError("Unknown preview")
         with self.lock:
-            if self.enabled or self.busy or self.items:
+            if self.enabled or self.local_enabled or self.busy or self.items:
                 raise ValueError("Stop RF output and wait for Idle before previewing")
             if not self.settings.preview_device:
                 raise ValueError("Choose a local preview audio device")
@@ -109,8 +112,8 @@ class Engine:
                 return "id", None, self.settings
             if self.items:
                 kind, value = self.items[0]
-                if kind == "spot" and (not self.enabled or now < self.next_spot):
-                    if not self.enabled:
+                if kind == "spot" and (not (self.enabled or self.local_enabled) or now < self.next_spot):
+                    if not (self.enabled or self.local_enabled):
                         self.items.popleft()
                     return None
                 self.items.popleft()
@@ -118,24 +121,51 @@ class Engine:
                 return kind, value, self.settings
         return None
 
+    def listen_locally(self):
+        with self.lock:
+            if self.enabled or self.busy:
+                raise ValueError("Stop output and wait for Idle before starting local listening")
+            if not self.settings.preview_device:
+                raise ValueError("Choose a local preview audio device")
+            if not self.rf_allowed():
+                raise ValueError("Connect to a working source first")
+            self.cancel.clear()
+            self.items.clear()
+            self.seen.clear()
+            self.next_spot = 0
+            self.local_enabled = True
+        self.emit("output", "Listening locally. Serial PTT disabled.")
+        self.wake.set()
+
+    def _speak(self, text, s):
+        if hasattr(self.speech, "render_configured"):
+            return self.speech.render_configured(text, s, self.cancel)
+        return self.speech.render(text, s.voice, s.speech_rate, self.cancel)
+
+    def _spot_audio(self, spot, s):
+        if hasattr(self.speech, "render_spot"):
+            return self.speech.render_spot(spot, s, self.cancel)
+        return self._speak(spot.speech, s)
+
     def _voice(self, s):
-        return wav_clip(s.voice_wav) if s.voice_mode == "WAV" else self.speech.render(s.voice_text, s.voice, s.speech_rate, self.cancel)
+        clip = wav_clip(s.voice_wav) if s.voice_mode == "WAV" else self._speak(s.voice_text, s)
+        return scale_clip(clip, s.voice_id_volume_percent)
 
     def _id(self, s):
         mode = s.id_mode
         if mode == "Alternate":
             mode = "CW" if self.alternate % 2 == 0 else "Voice"
         if mode == "CW":
-            return morse_clip(s.cw_text, s.cw_wpm, s.cw_hz)
+            return scale_clip(morse_clip(s.cw_text, s.cw_wpm, s.cw_hz), s.cw_volume_percent)
         if mode == "Voice":
             return self._voice(s)
-        return join_clips([morse_clip(s.cw_text, s.cw_wpm, s.cw_hz), self._voice(s)])
+        return join_clips([scale_clip(morse_clip(s.cw_text, s.cw_wpm, s.cw_hz), s.cw_volume_percent), self._voice(s)])
 
     def _wait(self, seconds):
         if self.cancel.wait(seconds):
             raise Cancelled()
 
-    def _transmit(self, clip, s):
+    def _transmit(self, clip, s, volume=None):
         if clip.duration + (s.lead_ms + s.tail_ms) / 1000 > s.max_tx_seconds:
             raise ValueError("Audio exceeds the configured maximum transmit duration. Shorten it or change the limit.")
         if self.cancel.is_set() or not self.rf_allowed():
@@ -166,7 +196,7 @@ class Engine:
             ptt.set(True)
             self.emit("activity", "Transmitting")
             self._wait(s.lead_ms / 1000)
-            self.audio.play(clip, s.radio_device, s.volume_percent, self.cancel, deadline)
+            self.audio.play(clip, s.radio_device, s.volume_percent if volume is None else volume, self.cancel, deadline)
             self._wait(s.tail_ms / 1000)
         finally:
             try:
@@ -190,20 +220,28 @@ class Engine:
                 if kind == "spot":
                     if (datetime.now(UTC) - value.timestamp).total_seconds() > s.max_age_seconds:
                         continue
-                    clip = self.speech.render(value.speech, s.voice, s.speech_rate, self.cancel)
+                    clip = self._spot_audio(value, s)
                 elif kind == "preview_spot":
-                    clip = self.speech.render(value, s.voice, s.speech_rate, self.cancel)
+                    clip = self._spot_audio(value, s) if hasattr(value, "dx_call") else self._speak(value, s)
                 elif kind == "preview_voice":
                     clip = self._voice(s)
                 elif kind == "preview_cw":
-                    clip = morse_clip(s.cw_text, s.cw_wpm, s.cw_hz)
+                    clip = scale_clip(morse_clip(s.cw_text, s.cw_wpm, s.cw_hz), s.cw_volume_percent)
                 else:
                     clip = self._id(s)
                 if self.cancel.is_set():
                     raise Cancelled()
-                if kind.startswith("preview_"):
+                if kind == "spot" and self.local_enabled:
+                    if (datetime.now(UTC) - value.timestamp).total_seconds() > s.max_age_seconds:
+                        continue
+                    self.audio.play(clip, s.preview_device, s.local_volume_percent, self.cancel, self.clock() + 120)
+                    self.emit("announcement", {"dx_call": value.dx_call, "frequency_khz": str(value.frequency_khz), "route": "local"})
+                    with self.lock:
+                        self.seen[value.key] = self.clock()
+                        self.next_spot = self.clock() + s.spacing_seconds
+                elif kind.startswith("preview_"):
                     self.emit("activity", "Local preview. No PTT.")
-                    self.audio.play(clip, s.preview_device, s.volume_percent, self.cancel, self.clock() + 120)
+                    self.audio.play(clip, s.preview_device, s.local_volume_percent, self.cancel, self.clock() + 120)
                 else:
                     with self.lock:
                         if not self.enabled:
@@ -218,7 +256,9 @@ class Engine:
                                 self.items.appendleft((kind, value))
                                 self.next_id = self.clock()
                                 continue
-                    self._transmit(clip, s)
+                    self._transmit(clip, s, volume=100 if kind == "id" else s.volume_percent)
+                    if kind == "spot":
+                        self.emit("announcement", {"dx_call": value.dx_call, "frequency_khz": str(value.frequency_khz), "route": "radio"})
                     with self.lock:
                         if kind == "id":
                             self.next_id = self.clock() + s.id_minutes * 60

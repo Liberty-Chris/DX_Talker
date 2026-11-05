@@ -42,7 +42,7 @@ class Spot:
         call = " ".join(PHONETIC.get(c, DIGITS.get(c, {"/": "stroke", "-": "dash"}.get(c, c))) for c in self.dx_call)
         freq = format(self.frequency_khz, "f").rstrip("0").rstrip(".") if "." in str(self.frequency_khz) else str(self.frequency_khz)
         spoken = " ".join("point" if c == "." else DIGITS[c] for c in freq)
-        return f"DX. {call}. {spoken} kilohertz."
+        return f"New DX on. {call}. {spoken} kilohertz."
 
 
 def make_spot(dx: str, freq: str, spotter: str, stamp: datetime,
@@ -129,6 +129,24 @@ class Settings:
     min_khz: float = 1.0
     max_khz: float = 10000000.0
     volume_percent: int = 70
+    cw_volume_percent: int = 45
+    voice_id_volume_percent: int = 70
+    local_volume_percent: int = 70
+    character_pause_ms: int = 0
+    group_pause_ms: int = 450
+    voice_gender: str = "Any"
+    speech_provider: str = "Windows"
+    piper_executable: str = ""
+    piper_model: str = ""
+    supervised_ack: bool = False
+    display_limit: int = 500
+    logging_enabled: bool = True
+    log_directory: str = ""
+    log_max_mb: int = 5
+    log_backups: int = 4
+    check_updates: bool = True
+    update_channel: str = "Pilot"
+    text_size: int = 10
 
     def validate(self) -> Settings:
         for f in fields(self):
@@ -144,18 +162,27 @@ class Settings:
                   "tail_ms": (0, 5000), "max_tx_seconds": (5, 120), "speech_rate": (-10, 10),
                   "cw_wpm": (5, 50), "cw_hz": (300, 1500), "id_minutes": (1, 30),
                   "max_age_seconds": (30, 600), "repeat_seconds": (30, 3600),
-                  "spacing_seconds": (1, 120), "volume_percent": (1, 100)}
+                  "spacing_seconds": (1, 120), "volume_percent": (0, 100),
+                  "cw_volume_percent": (0, 100), "voice_id_volume_percent": (0, 100),
+                  "local_volume_percent": (0, 100), "character_pause_ms": (0, 1000),
+                  "group_pause_ms": (0, 3000), "display_limit": (50, 5000),
+                  "log_max_mb": (1, 100), "log_backups": (1, 30), "text_size": (10, 18)}
         for name, (low, high) in bounds.items():
             if not low <= getattr(self, name) <= high:
                 raise ValueError(f"{name.replace('_', ' ')} must be between {low} and {high}")
         for name, options in {"source_type": ("TCP/Telnet", "HTTPS JSON"),
                               "ptt_method": ("VOX", "RTS", "DTR", "RTS+DTR"),
                               "voice_mode": ("Speech", "WAV"),
+                              "speech_provider": ("Windows", "Piper"),
+                              "update_channel": ("Pilot", "Stable"),
+                              "voice_gender": ("Any", "Male", "Female"),
                               "id_mode": ("CW", "Voice", "Alternate", "Both")}.items():
             if getattr(self, name) not in options:
                 raise ValueError(f"Choose a valid {name.replace('_', ' ')}")
         if not all(math.isfinite(v) for v in (self.min_khz, self.max_khz)) or not 1 <= self.min_khz <= self.max_khz <= 10000000:
             raise ValueError("Frequency filter must be between 1 and 10000000 kHz")
+        if self.log_directory and not Path(self.log_directory).is_absolute():
+            raise ValueError("Choose an absolute history folder path")
         return self
 
     def validate_connection(self):

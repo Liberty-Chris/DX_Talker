@@ -36,7 +36,22 @@
       "id": "about",
       "title": "About DX Talker",
       "path": "about.md"
+    },
+    {
+      "id": "speech",
+      "title": "Listening and accessibility",
+      "path": "speech.md"
+    },
+    {
+      "id": "history_updates",
+      "title": "History and updates",
+      "path": "history_updates.md"
+    },
+    {
+      "id": "cluster_customization",
+      "title": "Cluster customization",
+      "path": "cluster_customization.md"
     }
   ],
-  "version": "0.1.0a1"
+  "version": "0.2.0a1"
 }

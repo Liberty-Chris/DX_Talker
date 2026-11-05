@@ -35,6 +35,8 @@ class SourceClient:
         self.connector = connector
         self.cancel = threading.Event()
         self.commands = queue.Queue(maxsize=8)
+        self.redaction_lock = threading.Lock()
+        self.redactions = [session_secret] if session_secret else []
         self.sock = None
         self.thread = threading.Thread(target=self._run, daemon=True, name="DX source")
 
@@ -55,10 +57,21 @@ class SourceClient:
             raise ValueError("Connect to a cluster before sending a login response or command")
         if not text or len(text) > 200 or any(ord(c) < 32 or ord(c) > 126 for c in text):
             raise ValueError("Use one line of at most 200 printable ASCII characters")
+        with self.redaction_lock:
+            self.redactions = list(dict.fromkeys(self.redactions + [text]))[-128:]
         try:
             self.commands.put_nowait(text)
         except queue.Full:
             raise ValueError("Wait for the previous cluster command") from None
+
+    def _raw(self, line):
+        # Console is session only. Scrub known credentials and all manual echoes.
+        with self.redaction_lock:
+            for value in sorted(self.redactions, key=len, reverse=True):
+                line = line.replace(value, "[redacted]")
+        line = re.sub(r"(?i)(password|token|secret)\s*[:=]\s*\S+", r"\1: [redacted]", line)
+        line = "".join(c for c in line if c.isprintable())[:1024]
+        self.emit("raw", line)
 
     def _run(self):
         delay = 2
@@ -127,8 +140,9 @@ class SourceClient:
                     prompt_tail = ""
                     self.emit("source_state", "Password sent. Waiting for sign in confirmation or a valid spot.")
                 else:
-                    self.emit("source_state", "Password requested. Use the masked manual response field.")
+                    self.emit("source_state", "Password requested. Use Send as password beside the manual response field.")
             for line in lines:
+                self._raw(line)
                 if re.search(r"(?:invalid password|login failed|access denied|authentication failed)", line, re.I):
                     raise PermissionError("Sign in rejected")
                 spot = parse_line(line, "cluster")

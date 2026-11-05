@@ -83,3 +83,15 @@ Store appearance in appearance.json beside settings.json. Switching themes is co
 Selected November 2, 2026.
 
 Use Inno Setup 6 around the existing portable package. One x64 setup targets Windows 10 22H2 and Windows 11. Keep the installer AppId stable for updates. Install for the current account without requiring administrator access. Include Start menu and desktop shortcuts with the DXt icon, with the desktop option selected initially. Keep user settings outside the installation directory and retain them on removal. Keep the portable download available. Verify installation lifecycle on the hosted runner and record actual Windows 10 and Windows 11 acceptance separately before claiming tested compatibility.
+
+## November 4, 2026: Operator controls and release updates
+
+Named source profiles retain connection details separately from radio settings. Optional secrets use Windows account DPAPI protection, with no plaintext password in ordinary settings, examples or diagnostics. Selecting a profile stops output and clears the current view. Connection generations discard stale callbacks. The user explicitly requested saved cluster data and remembered supervision acknowledgement. Startup and recovery still leave output disabled.
+
+Use Windows System.Speech SSML for explicit spot group and character pauses. The standard introduction becomes “New DX on”. An optional external Piper CLI adapter offers local neural voices without a service account or cloud text submission. Do not bundle a model or promise a voice license, performance or quality without selection and listening tests. Provider output stays behind the existing coordinator and is prepared before PTT.
+
+History uses bounded rotating JSONL with a selectable folder, file size and backup count. Keep received spots, completed announcement routes and source lifecycle events. The live window is bounded independently and clears on source changes. Raw incoming text is a redacted 15 line session console, not a disk log or speech input. Commands remain visible, with explicit masking for a password response.
+
+Use tested GitHub Release assets as the update channel. Offer Pilot and Stable discovery, background checks, release notes, SHA256 verified download and an operator initiated interactive installer. Publishing is gated on core, packaged Windows speech/UI and installer checks. The same AppId retains installation identity and account data. No automatic installation or restored RF state is permitted. Existing builds need one initial manual updater installation. The first two release upgrade test remains an acceptance gate.
+
+Accessibility additions include live local listening, independent audio levels, keyboard shortcuts, a high contrast theme and configurable text size. Full screen reader support requires operator acceptance; Tkinter portability alone is not evidence. Mobile and older desktop work begins with documented contracts and a capability matrix, not unverified package support claims. See platforms.md and release_process.md.

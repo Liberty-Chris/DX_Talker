@@ -1,6 +1,6 @@
 # Project status
 
-Updated November 2, 2026.
+Updated November 4, 2026.
 
 ## Where things stand
 
@@ -16,7 +16,7 @@ Audio output is selected explicitly for preview and radio use. Windows System.Sp
 
 PTT adapters support serial RTS, DTR, both lines and an explicit VOX mode. CM108 HID, CAT and vendor specific controls remain open. Compatibility with physical interfaces is not yet claimed.
 
-One coordinator prioritizes IDs, serializes audio, limits the queue, expires spots and attempts PTT release on completion, cancellation and errors. Source loss disables RF. Startup, settings changes and recovery require deliberate RF enable. Passwords and tokens are not saved or journaled.
+One coordinator prioritizes IDs, serializes audio, limits the queue, expires spots and attempts PTT release on completion, cancellation and errors. Source loss disables RF. Startup, settings changes and recovery require deliberate RF enable. Passwords and tokens are never journaled. A source profile can optionally remember its secret using Windows account DPAPI protection. Ordinary settings exclude credentials.
 
 The desktop now includes the DXt header, light and dark appearance, a matching Windows icon and EXE version information. Appearance is saved independently of radio settings.
 
@@ -37,3 +37,19 @@ Windows 11 listening tests, a live W4MR session and physical radio interface tes
 Download a successful workflow build and test sample spot and ID previews on Windows 11. Then connect a live cluster. Choose the first physical interface once Dad is ready and verify audio, PTT, stop, disconnect and exit behavior with that hardware.
 
 The standalone WiFi device and ASL3, Allmon and Asterisk integration follow the Windows work. Rights remain reserved under the existing project and archive notices.
+
+## 0.2.0a1 operator update batch
+
+Implemented in source: named connection profiles, visible command controls on both source and live pages, a redacted session console, automatic source change clearing, configurable display retention and rotating structured history. History includes validated received spots, completed announcement routes and connection lifecycle, excluding raw text and credentials.
+
+Speech has explicit character and group pauses, rate, installed voice selection and gender preference. Windows remains the default. An optional external Piper CLI produces neural speech before playback. Independent spot, CW ID, voice ID and local levels are applied by the shared coordinator. Live local listening never constructs serial PTT or schedules IDs. High contrast, larger text, shortcuts and saved supervision acknowledgement are implemented.
+
+The updater discovers compatible public GitHub Releases by channel, shows notes, verifies downloads and opens setup only after output stops. Tagged release publication is gated by the Windows workflow. Source and packaged Windows smoke checks include SSML generation and DPAPI roundtrip with synthetic data. The first full two release operator upgrade test remains open. An existing installation without an updater needs one manual setup installation.
+
+The cluster customization help topic is reserved for Dad’s guide. Mobile and older system work currently consists of portable core boundaries and documented platform contracts and acceptance gates. There are no new mobile, macOS, Linux or older Windows installers in this batch. Full screen reader acceptance, actual Piper model listening and physical radio checks remain open.
+
+### Local verification for this batch
+
+The portable suite passes 70 tests, including four desktop integration tests under a Linux virtual X display. Documentation links, ten help manifest topics and release version alignment pass. Visual review covered all eight pages at 1160 by 830 and Live spots at 900 by 600; the compact layout hides the in memory activity panel to preserve table space. The historical archive is unchanged.
+
+Windows System.Speech SSML, DPAPI and packaged installer checks are defined in the workflow but have not run for this branch. No new Windows executable has been produced locally. The feature branch is authorized for publication and Windows workflow verification is pending.

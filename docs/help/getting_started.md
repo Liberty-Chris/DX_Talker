@@ -18,7 +18,7 @@ In Identification, enter the CW and voice text you want to use. Try Preview CW l
 
 ## Receive spots
 
-In Source, enter the cluster hostname, port and login callsign. Enter a session password only if required and choose Connect using these settings. Common prompts are handled automatically. A masked manual field lets you send an unusual login response or cluster command.
+In Source, enter the cluster hostname, port and login callsign. Enter a session password only if required and choose Connect using these settings. Common prompts are handled automatically. A visible manual field lets you send cluster commands. Select Send as password when entering an unusual authentication response. Named profiles retain each source configuration.
 
 The source becomes ready when valid spots arrive. The initial example is w4mr.ddns.net, port 7373. Its live behavior still needs operator verification. You can also use an HTTPS JSON feed matching the supported contract described in Source connections.
 
@@ -32,4 +32,6 @@ Save and apply settings. When a source is ready, Enable RF starts with identific
 
 STOP ALL OUTPUT cancels current and queued output and requests PTT release. Wait for Idle before applying changes or previewing. Source loss or an output fault disables RF. Reconnect does not automatically enable it again.
 
-Settings are saved locally. Passwords, tokens, RF enable state and the supervised channel acknowledgement are not saved.
+Settings are saved locally. RF and local listening enable state are never saved. The supervised channel acknowledgement is remembered when settings are saved. Passwords and tokens remain session only unless you explicitly remember one in a Windows protected cluster profile.
+
+For speech, keyboard and local listening tools, see Listening and accessibility. History and updates covers retention, log folders and the application update process.

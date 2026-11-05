@@ -32,3 +32,9 @@ The original archive blob remains unchanged. Documentation is checked for local 
 Local checks cover both themes, all six tabs and visible stop, appearance and save controls at 1160 by 830 and 900 by 600 using Tk on a Linux virtual display. Device discovery and voice enumeration are stubbed for this visual check. Sample spots are synthetic. Appearance persistence is checked separately from the radio profile and theme switching is checked without calls to engine stop, configure or enable.
 
 The Windows source and packaged smoke checks now exercise both themes and publish an additional light theme screenshot. A successful run is still required for the updated commit; local checks do not establish Windows shell icon behavior or physical radio compatibility.
+
+## November 4, 2026 operator batch
+
+Local virtual display run: `python -m unittest discover -s tests -q` passed 70 tests without skips. New coverage includes profile persistence and renaming, legacy settings defaults, bounded JSONL rotation, exact SSML break placement, provider routing, a synthetic neural CLI fixture, live local listening without PTT, independent gains, console redaction, source generation isolation, view clearing and update channel ordering, checksum, truncation, cancellation and tampering.
+
+Visual QA inspected the eight desktop tabs at 1160 by 830 and the live page at 900 by 600. The compact view retains the spot table by hiding the activity panel. The docs checker and version alignment checker pass. Windows native speech, DPAPI and packaged install tests still await the branch workflow. A real two release update and actual neural voice listening remain acceptance checks.
