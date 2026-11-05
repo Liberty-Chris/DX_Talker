@@ -1,9 +1,9 @@
-DX Talker 0.2.0a2 makes connection controls clearer and prepares the first update test from 0.2.0a1.
+DX Talker 0.2.0a3 announces frequency before callsign: “New DX on. Frequency. Callsign.” A shared kHz/MHz selection converts both spoken frequency and live rows without changing the received data.
 
-Cluster commands are always visible. The command masking option has been removed from both pages. The dedicated password or token field now has an eye button with Show and Hide text for checking entries.
+Speech controls are grouped into compact sections. Only the selected voice provider's settings are shown, and preview controls are at the top. Connect and Disconnect become one control: neutral Connect, accented Connected and red Disconnect on hover or keyboard focus. Clicking an active connection stops it; a pending connection can be cancelled. Local listening has a matching Listening and Stop listening toggle. Stopping local audio preserves the cluster feed and live rows.
 
-Only fields relevant to the chosen source type are active. Switching between cluster and HTTPS sources clears the session secret. Profile changes conceal passwords again. Duplicate Source connection buttons have been removed.
+Cluster login handling now recognizes prompts followed by banners in the same network read, fragmented ANSI sequences and padded prompts. The connection status distinguishes an open socket, a recognized login and valid incoming spots. Failed sockets close before retrying.
 
-Piper launches with ONNX telemetry disabled. The bundled help now provides a concrete Windows setup example for the optional neural voice engine. Real model rendering is checked separately without playing sound or keying a radio.
+Update checks distinguish DNS, TLS verification, timeouts, HTTP errors and GitHub rate limiting. Successful checks show the installed version and channel and explain when a preview requires Pilot. Network access alone does not prove that an update request succeeded.
 
-After installing this update, confirm version 0.2.0a2 and verify that profiles, speech preferences and history settings remain intact. Output should remain disabled on launch.
+Profiles and settings are retained. Existing frequency filters and history remain in kHz. Automatic output remains disabled on startup and recovery.

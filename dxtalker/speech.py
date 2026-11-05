@@ -12,9 +12,9 @@ from .audio import Cancelled, Clip, WindowsSpeech, wav_clip
 
 
 def spot_plan(spot, settings):
-    intro, call, frequency = spot.speech.rstrip(".").split(". ", 2)
+    intro, frequency, call = spot.spoken_groups(settings.frequency_unit)
     plan = [(intro, settings.group_pause_ms)]
-    for group, final in ((call, settings.group_pause_ms), (frequency, 0)):
+    for group, final in ((frequency, settings.group_pause_ms), (call, 0)):
         if settings.character_pause_ms:
             words = group.split()
             # Keep the units naturally attached to the frequency.

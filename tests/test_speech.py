@@ -19,8 +19,8 @@ class SpeechTests(unittest.TestCase):
         plan = spot_plan(spot, settings)
         self.assertEqual(plan[0], ("New DX on", 650))
         self.assertIn(("four", 125), plan)
-        self.assertIn(("Papa", 650), plan)
-        self.assertEqual(plan[-1], ("five kilohertz", 0))
+        self.assertIn(("five kilohertz", 650), plan)
+        self.assertEqual(plan[-1], ("Papa", 0))
         root = ET.fromstring(plan_ssml(plan))
         breaks = root.findall("{http://www.w3.org/2001/10/synthesis}break")
         self.assertEqual([x.attrib["time"] for x in breaks].count("650ms"), 2)
@@ -85,3 +85,19 @@ class SpeechTests(unittest.TestCase):
             self.assertTrue(all(env["ORT_DISABLE_TELEMETRY"] == "1" for env in environments))
             self.assertEqual(commands[0][commands[0].index('--model') + 1], str(model))
             self.assertAlmostEqual(clip.duration, .3 + .9, places=3)
+
+
+    def test_frequency_precedes_callsign_and_unit_conversion_keeps_precision(self):
+        from decimal import Decimal
+        now = datetime.now(UTC)
+        spot = parse_line(f"DX de N0CALL: 14025.5 WB4IUY/P {now:%H%M}Z", "cluster", now)
+        self.assertEqual(spot.frequency_text("kHz"), "14025.5")
+        self.assertEqual(spot.frequency_text("MHz"), "14.0255")
+        self.assertEqual(spot.frequency_khz, Decimal("14025.5"))
+        plan = spot_plan(spot, Settings(frequency_unit="MHz"))
+        self.assertEqual(plan[1][0], "one four point zero two five five megahertz")
+        self.assertEqual(plan[2][0], "Whiskey Bravo four India Uniform Yankee stroke Papa")
+        self.assertTrue(spot.speech.startswith("New DX on. one four zero two five"))
+        for freq, expected in (("7074", "7.074"), ("50125", "50.125"), ("1807", "1.807"), ("1000", "1"), ("1.0001", "0.0010001")):
+            value = parse_line(f"DX de N0CALL: {freq} WB4IUY {now:%H%M}Z", "cluster", now)
+            self.assertEqual(value.frequency_text("MHz"), expected)

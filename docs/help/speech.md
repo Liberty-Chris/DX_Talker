@@ -2,7 +2,7 @@
 
 Choose Speech to adjust delivery. Windows speech remains the default provider. Select an installed voice or leave it blank and choose Any, Male or Female as a voice preference. A named voice overrides the preference. Availability depends on installed System.Speech voices; a preference cannot install a missing voice.
 
-Speech speed runs from minus 10 to 10. Zero is normal. Use the spin controls or type a value. Pause between letters and digits accepts 0 to 1000 milliseconds. Zero retains natural word spacing. Pause between announcement groups accepts 0 to 3000 milliseconds. The groups are “New DX on”, the phonetic callsign and the frequency including kilohertz. These pauses affect spot announcements, not freeform voice ID text or recorded WAV audio.
+Speech speed runs from minus 10 to 10. Zero is normal. Use the spin controls or type a value. Pause between letters and digits accepts 0 to 1000 milliseconds. Zero retains natural word spacing. Pause between announcement groups accepts 0 to 3000 milliseconds. The groups are “New DX on”, the frequency with its units and the phonetic callsign. These pauses affect spot announcements, not freeform voice ID text or recorded WAV audio.
 
 Choose Preview sample speech to hear a portable callsign and decimal frequency with the current settings. Save and apply changes before listening. Speech is generated before radio keying; excessive duration is rejected by the configured transmission limit.
 
@@ -18,13 +18,13 @@ Piper output must be mono PCM16 WAV. DX Talker normalizes its sample rate to 220
 
 ## Live local listening
 
-Choose your speakers or headphones as Local preview output in Audio / PTT. Connect a source, receive valid spots and choose Listen locally or press F8. Future eligible spots are announced locally using the same age, frequency, duplicate and spacing policies as radio announcements. Existing rows are not replayed. Local listening never constructs a serial PTT adapter or schedules station identification.
+Choose your speakers or headphones as Local preview output in Audio / PTT. Connect a source, receive valid spots and choose Listen locally or press F8. The control changes to Listening with the appearance accent. Hovering or keyboard focusing it offers Stop listening in red. Click it again or press F8 again to stop local audio while the cluster remains connected and the live view continues receiving spots. Future eligible spots are announced locally using the same age, frequency, duplicate and spacing policies as radio announcements. Existing rows are not replayed. Local listening never constructs a serial PTT adapter or schedules station identification.
 
 Local listening and RF transmission are mutually exclusive. Disconnect, source failure, settings edits and Escape stop output. Neither mode resumes automatically after restart or reconnect. An output device shared with a VOX radio can still reach and key that radio; the app asks before using a shared device.
 
 ## Navigation and visibility
 
-F6 previews the selected spot while output is stopped. F8 starts local listening. Escape stops all output. Alt+C focuses the Live spots command input. Ctrl+Tab and Ctrl+Shift+Tab move between pages. Tab and Shift+Tab move through controls. Enter sends a command from its input field.
+F6 previews the selected spot while output is stopped. F8 toggles local listening. Escape stops all output. Alt+C focuses the Live spots command input. Ctrl+Tab and Ctrl+Shift+Tab move between pages. Tab and Shift+Tab move through controls. Enter sends a command from its input field.
 
 Choose High contrast in Appearance for white text on a dark background. Speech also contains Interface text size, from 10 to 18 points. Save to apply. Settings pages scroll vertically. At small window heights the Live spots activity panel is hidden to preserve table space. Enlarge the window to see it. Larger text can require a wider window.
 
@@ -52,3 +52,16 @@ Version 0.2.0a2 sets the telemetry environment switch for every Piper launch. Wh
 ```
 
 Downloading a different voice and selecting its ONNX file changes voice character. The [Piper voice samples](https://rhasspy.github.io/piper-samples/) help compare options. Runtime and voice downloads need internet access; rendering uses the installed local files. No cloud speech account is required.
+
+
+## Frequency first announcements
+
+A spot is spoken as “New DX on”, then frequency and units, then the phonetic callsign. For example, 14025.5 kHz becomes “New DX on. One four zero two five point five kilohertz. Whiskey Bravo four India Uniform Yankee.”
+
+Frequency units can be kHz or MHz. The selection is shared by Speech and the unit toggle in Live spots. Save and apply it like other settings. In MHz, that same spot is 14.0255 MHz and is spoken as “one four point zero two five five megahertz.” Decimal conversion preserves the received value, including leading fractional zeros. Trailing fractional zeros are omitted.
+
+Existing live rows are reformatted when settings are applied. Received data, history files, duplicate matching and frequency filter limits remain in kHz. Selecting MHz does not retune a radio or change those limits.
+
+The Speech page groups common delivery settings separately from the selected provider and interface options. Only the selected provider's controls are shown. Preview sample speech and Speech setup and shortcuts remain at the top of the page. Fields have bounded widths rather than expanding across the window.
+
+The listening toggle uses already applied settings. It does not save pending edits or reconnect the source. Save and apply audio or speech changes before starting. When stopping an in progress clip, the control briefly reads Stopping until playback cleanup finishes.

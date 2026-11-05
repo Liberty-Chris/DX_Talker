@@ -45,3 +45,12 @@ Visual QA inspected the eight desktop tabs at 1160 by 830 and the live page at 9
 All 72 tests pass under the virtual display, including permanent command visibility, temporary password reveal and remasking on profile load, source relevant control states and session secret clearing on source type changes. Documentation and version alignment checks pass. Visual review covers the source page and compact live page.
 
 A real Piper 1.8.0 render using en_US-lessac-medium on Linux produced 8.12 seconds of PCM in 5.01 seconds, with no audio endpoint or PTT opened. ORT_DISABLE_TELEMETRY=1 was applied before the subprocess started. Windows real model rendering is added to the workflow and remains pending for this commit.
+
+
+## November 5, 2026 speech order and state controls
+
+All 84 tests pass with the virtual display, including ten desktop integration tests. Coverage includes exact kHz/MHz conversion with fractional zeros, intro/frequency/callsign ordering, shared unit display, inactive provider sections, actual connection state and red disconnect hover, and a local listening toggle that never applies pending settings or replaces its source. The same source continues delivering rows after local audio stops.
+
+A prompt plus banner in one network read failed before the connection patch and passes after it. ANSI and NUL padded login/password prompts are exercised at every single split point. Tests check socket release before retry and cancellation during connect. Update checks cover preview selection for an installed 0.2.0a1, Stable channel guidance, and redacted DNS, TLS, HTTP and rate limit explanations. The current GitHub API request returned HTTP 200 from this environment. That does not diagnose the separate Windows user's generic failure.
+
+UI review covers Speech at 1160 by 830 and Live spots at 900 by 600. Documentation links and version alignment pass. Windows workflow results must be recorded separately after publication of the branch.

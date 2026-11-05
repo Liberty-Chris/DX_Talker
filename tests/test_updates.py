@@ -9,7 +9,7 @@ import unittest
 from dxtalker import updates
 
 
-def release(version="v0.2.0a2", prerelease=True, content=b"test installer"):
+def release(version="v0.2.0a4", prerelease=True, content=b"test installer"):
     base = f"https://github.com/{updates.REPOSITORY}/releases/download/{version}/"
     return {"tag_name": version, "prerelease": prerelease, "draft": False, "body": "Changes",
             "assets": [{"name": updates.INSTALLER, "size": len(content), "browser_download_url": base + updates.INSTALLER},
@@ -76,3 +76,30 @@ class UpdateTests(unittest.TestCase):
             updates.check(opener=lambda url: BytesIO(b"x" * (1024 * 1024 + 1)))
         with self.assertRaises(ValueError):
             updates.checksum_for(b"bad checksum")
+
+    def test_published_preview_is_offered_to_a1_and_explained_on_stable_channel(self):
+        import json
+        data = json.dumps([release('v0.2.0a2')]).encode()
+        opener = lambda url: BytesIO(data)
+        result = updates.check_report('Pilot', current='0.2.0a1', opener=opener)
+        self.assertEqual(result.release.version, 'v0.2.0a2')
+        stable = updates.check_report('Stable', current='0.2.0a1', opener=opener)
+        self.assertIsNone(stable.release)
+        self.assertIn('Choose Pilot', stable.status)
+        self.assertIn('0.2.0a2', stable.status)
+        current = updates.check_report('Pilot', current='0.2.0a2', opener=opener)
+        self.assertIsNone(current.release)
+        self.assertIn('Installed 0.2.0a2', current.status)
+        self.assertIn('No newer', current.status)
+
+    def test_network_errors_are_distinct_and_do_not_expose_exception_text(self):
+        from urllib.error import HTTPError, URLError
+        import socket, ssl
+        limit = HTTPError('https://example.org/private', 403, 'private error', {'X-RateLimit-Remaining': '0'}, None)
+        self.assertIn('limit', updates.describe_error(limit))
+        certificate = URLError(ssl.SSLCertVerificationError('private certificate details'))
+        self.assertIn('verified', updates.describe_error(certificate))
+        self.assertNotIn('private', updates.describe_error(certificate))
+        dns = URLError(socket.gaierror('private hostname'))
+        self.assertIn('resolved', updates.describe_error(dns))
+        self.assertIn('timed out', updates.describe_error(TimeoutError('private timeout')))

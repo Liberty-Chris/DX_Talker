@@ -43,3 +43,12 @@ Stop output and wait for Idle, then save and apply. Passwords and tokens are ses
 ## Report a problem
 
 Include the version shown in Help and Info, Windows version, interface model, audio device name, PTT mode, source type and the application activity messages. Do not include passwords, tokens or private source URLs. Source and packaged smoke reports describe automated checks only, not physical radio compatibility.
+
+
+## Intermittent cluster sign in
+
+Read the source state and session console. Connected means the socket is open. Signed in with no spots may mean a quiet or filtered cluster; a valid received spot is still needed before enabling automatic output. The client handles prompts across read boundaries and processes prompts followed by banners in the same read. Network or login failures stop output and retain the bounded retry policy. A duplicate session can mean another program is using the same callsign on that node.
+
+## Update check reports a connection error
+
+An internet connection does not establish that the GitHub update request succeeded. The application now distinguishes public API rate limits, HTTP responses, DNS, TLS verification and timeouts. Check the reported category and try Release page for a manual download. The Pilot channel includes preview releases. Stable may have no applicable release during pilot testing.

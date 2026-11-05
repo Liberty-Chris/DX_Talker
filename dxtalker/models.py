@@ -37,12 +37,25 @@ class Spot:
     def key(self) -> tuple:
         return self.dx_call, self.frequency_khz
 
+    def frequency_text(self, unit="kHz") -> str:
+        if unit not in ("kHz", "MHz"):
+            raise ValueError("Choose kHz or MHz")
+        value = self.frequency_khz / Decimal("1000") if unit == "MHz" else self.frequency_khz
+        text = format(value, "f")
+        return text.rstrip("0").rstrip(".") if "." in text else text
+
+    def spoken_groups(self, unit="kHz") -> tuple[str, str, str]:
+        call = " ".join(PHONETIC.get(c, DIGITS.get(c, {"/": "stroke", "-": "dash"}.get(c, c))) for c in self.dx_call)
+        spoken = " ".join("point" if c == "." else DIGITS[c] for c in self.frequency_text(unit))
+        units = "megahertz" if unit == "MHz" else "kilohertz"
+        return "New DX on", f"{spoken} {units}", call
+
+    def speech_in(self, unit="kHz") -> str:
+        return ". ".join(self.spoken_groups(unit)) + "."
+
     @property
     def speech(self) -> str:
-        call = " ".join(PHONETIC.get(c, DIGITS.get(c, {"/": "stroke", "-": "dash"}.get(c, c))) for c in self.dx_call)
-        freq = format(self.frequency_khz, "f").rstrip("0").rstrip(".") if "." in str(self.frequency_khz) else str(self.frequency_khz)
-        spoken = " ".join("point" if c == "." else DIGITS[c] for c in freq)
-        return f"New DX on. {call}. {spoken} kilohertz."
+        return self.speech_in()
 
 
 def make_spot(dx: str, freq: str, spotter: str, stamp: datetime,
@@ -136,6 +149,7 @@ class Settings:
     group_pause_ms: int = 450
     voice_gender: str = "Any"
     speech_provider: str = "Windows"
+    frequency_unit: str = "kHz"
     piper_executable: str = ""
     piper_model: str = ""
     supervised_ack: bool = False
@@ -174,6 +188,7 @@ class Settings:
                               "ptt_method": ("VOX", "RTS", "DTR", "RTS+DTR"),
                               "voice_mode": ("Speech", "WAV"),
                               "speech_provider": ("Windows", "Piper"),
+                              "frequency_unit": ("kHz", "MHz"),
                               "update_channel": ("Pilot", "Stable"),
                               "voice_gender": ("Any", "Male", "Female"),
                               "id_mode": ("CW", "Voice", "Alternate", "Both")}.items():

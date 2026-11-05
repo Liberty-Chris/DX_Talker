@@ -50,3 +50,7 @@ The 0.2.0a1 batch implements saved sources, speech delivery controls, independen
 Mobile listening and broader desktop compatibility begin with the [platform contracts and test matrix](docs/platforms.md). Native app shells, secure vaults, store distribution and older OS builds remain planned.
 
 The 0.2.0a2 followup simplifies source controls and prepares the first live updater test. Publish a verified prerelease from the workflow, then confirm discovery and installation using the existing 0.2.0a1 installation.
+
+The 0.2.0a3 followup adds frequency first announcements, shared kHz/MHz units, compact speech settings and a stateful connection control. It also fixes a reproduced prompt framing edge case and makes update failures diagnosable. Dad’s reported cluster failure has not been attributed to the client.
+
+Local listening is also a stateful toggle in this followup. Its stop action preserves the connected feed, and the regression suite checks this with pending source edits present.

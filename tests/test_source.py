@@ -153,3 +153,92 @@ class SourceTests(unittest.TestCase):
         self.assertNotIn("unknownValue", str(observed))
         self.assertNotIn("\x07", str(observed))
         self.assertEqual(observed[0][0], "raw")
+
+    def test_login_prompt_not_lost_when_banner_shares_same_network_chunk(self):
+        class Socket:
+            def __init__(self):
+                self.packets = [b'login:\r\nWelcome to the test cluster\r\n']
+                self.sent = []
+            def settimeout(self, value): pass
+            def sendall(self, value): self.sent.append(value)
+            def recv(self, size):
+                if self.packets: return self.packets.pop(0)
+                client.cancel.set()
+                raise socket.timeout()
+        sock = Socket()
+        client = SourceClient(Settings(login='WB4IUY'), lambda *event: None,
+                              connector=lambda *a, **kw: sock)
+        client._cluster()
+        self.assertEqual(sock.sent, [b'WB4IUY\r\n'])
+
+    def test_ansi_and_nul_login_password_prompts_work_at_every_split(self):
+        packets = b'\x1b[32mlogin:\x1b[0m\x00\r\nWelcome\r\nPassword:\x00'
+        for split in range(len(packets) + 1):
+            class Socket:
+                def __init__(self):
+                    self.packets = [p for p in (packets[:split], packets[split:]) if p]
+                    self.sent = []
+                def settimeout(self, value): pass
+                def sendall(self, value): self.sent.append(value)
+                def recv(self, size):
+                    if self.packets: return self.packets.pop(0)
+                    client.cancel.set()
+                    raise socket.timeout()
+            sock = Socket()
+            client = SourceClient(Settings(login='WB4IUY'), lambda *event: None, 'fixtureSecret',
+                                  connector=lambda *a, **kw: sock)
+            client._cluster()
+            with self.subTest(split=split):
+                self.assertEqual(sock.sent, [b'WB4IUY\r\n', b'fixtureSecret\r\n'])
+
+    def test_quiet_cluster_session_prompt_is_visible_without_claiming_valid_spots(self):
+        observed = []
+        class Socket:
+            def __init__(self):
+                self.packets = [b'login:', b'WB4IUY de N0CALL 05-Nov-2026 1200Z dxspider >']
+            def settimeout(self, value): pass
+            def sendall(self, value): pass
+            def recv(self, size):
+                if self.packets: return self.packets.pop(0)
+                client.cancel.set()
+                raise socket.timeout()
+        client = SourceClient(Settings(login='WB4IUY'), lambda *event: observed.append(event),
+                              connector=lambda *a, **kw: Socket())
+        client._cluster()
+        self.assertTrue(any(k == 'raw' and v == 'login:' for k, v in observed))
+        self.assertTrue(any(k == 'source_state' and v.startswith('Signed in') for k, v in observed))
+        self.assertFalse(client.ready.is_set())
+        self.assertFalse(any(k == 'spot' for k, _ in observed))
+
+    def test_failed_socket_is_closed_before_retry_notification(self):
+        class Socket:
+            closed = False
+            def settimeout(self, value): pass
+            def recv(self, size): raise ConnectionError('private remote text')
+            def shutdown(self, how): pass
+            def close(self): self.closed = True
+        sock = Socket()
+        observed = []
+        def emit(kind, value):
+            observed.append((kind, value))
+            if kind == 'source_lost':
+                self.assertTrue(sock.closed)
+                self.assertIsNone(client.sock)
+                client.cancel.set()
+        client = SourceClient(Settings(), emit, connector=lambda *a, **kw: sock)
+        client._run()
+        self.assertNotIn('private remote text', str(observed))
+        self.assertFalse(client.ready.is_set())
+
+    def test_stop_during_connect_closes_new_socket_without_login(self):
+        class Socket:
+            closed = False
+            def close(self): self.closed = True
+        sock = Socket()
+        def connector(*args, **kwargs):
+            client.cancel.set()
+            return sock
+        client = SourceClient(Settings(login='WB4IUY'), lambda *event: None, connector=connector)
+        client._cluster()
+        self.assertTrue(sock.closed)
+        self.assertIsNone(client.sock)

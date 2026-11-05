@@ -139,3 +139,80 @@ class AppTests(unittest.TestCase):
         self.assertEqual(str(self.app.field_widgets["host"].cget("state")), "normal")
         for entry in self.app.command_entries:
             self.assertEqual(str(entry.cget("state")), "normal")
+
+
+    def test_units_change_live_rows_without_changing_the_source_record(self):
+        spot = self.spot()
+        self.app._add_spot(spot)
+        item = next(iter(self.app.spots))
+        self.app.variables['frequency_unit'].set('MHz')
+        self.app._apply()
+        self.assertEqual(self.app.tree.item(item, 'values')[2], '7.074')
+        self.assertEqual(self.app.tree.heading('frequency')['text'], 'Frequency MHz')
+        self.assertEqual(str(spot.frequency_khz), '7074')
+        self.app.variables['frequency_unit'].set('kHz')
+        self.app._apply()
+        self.assertEqual(self.app.tree.item(item, 'values')[2], '7074')
+
+    def test_connection_control_tracks_actual_socket_and_hover_action(self):
+        class Source:
+            def __init__(self): self.connected = threading.Event()
+            def stop(self): self.connected.clear()
+        self.app._render_connections()
+        self.assertTrue(all(i['button'].cget('text') == 'Connect' for i in self.app.connection_controls))
+        self.app.source = Source()
+        self.app._render_connections()
+        self.assertTrue(all(i['button'].cget('text') == 'Connecting...' for i in self.app.connection_controls))
+        self.app.source.connected.set()
+        self.app._render_connections()
+        self.assertTrue(all(i['button'].cget('text') == 'Connected' for i in self.app.connection_controls))
+        self.app.connection_controls[0]['hover'] = True
+        self.app._render_connections()
+        self.assertEqual(self.app.connection_controls[0]['button'].cget('text'), 'Disconnect')
+        self.assertEqual(self.app.connection_controls[0]['shell'].cget('background'), '#d63852')
+        self.app._connection_action()
+        self.assertIsNone(self.app.source)
+        self.assertTrue(all(i['button'].cget('text') == 'Connect' for i in self.app.connection_controls))
+
+    def test_speech_settings_hide_the_inactive_provider_controls(self):
+        self.assertEqual(self.app.piper_speech_fields.winfo_manager(), '')
+        self.assertEqual(self.app.windows_speech_fields.winfo_manager(), 'grid')
+        self.app.variables['speech_provider'].set('Piper')
+        self.app._speech_provider_changed()
+        self.assertEqual(self.app.windows_speech_fields.winfo_manager(), '')
+        self.assertEqual(self.app.piper_speech_fields.winfo_manager(), 'grid')
+
+
+    def test_listening_toggle_never_applies_settings_or_reconnects_source(self):
+        from unittest.mock import Mock
+        self.app.engine.configure(replace(self.app.settings, preview_device='local'))
+        source = Mock()
+        source.ready = threading.Event()
+        source.ready.set()
+        source.connected = threading.Event()
+        source.connected.set()
+        self.app.source = source
+        generation = self.app.source_generation
+        # Pending source edits must not be applied by either direction of the toggle.
+        self.app.variables['host'].set('pending.example')
+        with patch.object(self.app, '_apply', side_effect=AssertionError('Settings applied')), \
+             patch.object(self.app, '_connect', side_effect=AssertionError('Source reconnected')), \
+             patch.object(self.app, '_disconnect', side_effect=AssertionError('Source disconnected')):
+            self.app._listen()
+            self.assertTrue(self.app.engine.local_enabled)
+            self.assertEqual(self.app.listening_controls[0]['button'].cget('text'), 'Listening')
+            self.app.listening_controls[0]['hover'] = True
+            self.app._render_connections()
+            self.assertEqual(self.app.listening_controls[0]['button'].cget('text'), 'Stop listening')
+            self.app._listen()
+            self.assertFalse(self.app.engine.local_enabled)
+            self.assertIs(self.app.source, source)
+            self.assertTrue(source.ready.is_set())
+            self.assertEqual(self.app.source_generation, generation)
+            source.stop.assert_not_called()
+            # Incoming source data still reaches the live view while listening is off.
+            self.app.emit('source_event', (generation, 'spot', self.spot()))
+            self.app._poll()
+            self.assertEqual(len(self.app.spots), 1)
+        self.assertEqual(self.app.variables['host'].get(), 'pending.example')
+        self.app.source = None

@@ -70,3 +70,31 @@ class LineFramer:
     @property
     def partial(self):
         return self.buffer.decode("ascii", errors="replace")
+
+
+class TerminalText:
+    """Remove fragmented ANSI presentation sequences before interpreting prompts."""
+    def __init__(self):
+        self.state = 'text'
+
+    def feed(self, data):
+        output = bytearray()
+        for byte in data:
+            if self.state == 'text':
+                if byte == 27:
+                    self.state = 'escape'
+                elif byte in (9, 10, 13) or 32 <= byte <= 126:
+                    output.append(byte)
+            elif self.state == 'escape':
+                self.state = 'csi' if byte == 91 else 'osc' if byte == 93 else 'text'
+            elif self.state == 'csi':
+                if 64 <= byte <= 126:
+                    self.state = 'text'
+            elif self.state == 'osc':
+                if byte == 7:
+                    self.state = 'text'
+                elif byte == 27:
+                    self.state = 'osc_escape'
+            elif self.state == 'osc_escape':
+                self.state = 'text' if byte == 92 else 'osc'
+        return bytes(output)
