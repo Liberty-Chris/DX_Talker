@@ -298,7 +298,7 @@ class Application:
             widget = ttk.Combobox(parent, textvariable=var, values=choices, state="readonly", width=45)
             self.combos[name] = widget
         elif type(value) is int:
-            limits = {"cw_wpm": (5, 50), "cw_hz": (300, 1500), "id_minutes": (1, 30), "speech_rate": (-10, 10), "character_pause_ms": (0, 1000), "group_pause_ms": (0, 3000),
+            limits = {"port": (1, 65535), "poll_seconds": (15, 3600), "lead_ms": (0, 5000), "tail_ms": (0, 5000), "max_tx_seconds": (5, 120), "cw_wpm": (5, 50), "cw_hz": (300, 1500), "id_minutes": (1, 30), "speech_rate": (-10, 10), "character_pause_ms": (0, 1000), "group_pause_ms": (0, 3000),
                       "volume_percent": (0, 100), "cw_volume_percent": (0, 100), "voice_id_volume_percent": (0, 100),
                       "local_volume_percent": (0, 100), "text_size": (10, 18)}
             low, high = limits.get(name, (0, 10000000))
@@ -369,75 +369,118 @@ class Application:
 
     def _source_tab(self):
         frame = self.tabs["Source"]
-        self._field(frame, 0, "Source type", "source_type", ["TCP/Telnet", "HTTPS JSON"])
-        self._field(frame, 1, "Cluster hostname", "host", note="Example: w4mr.ddns.net")
-        self._field(frame, 2, "Cluster port", "port", note="Example: 7373")
-        self._field(frame, 3, "Cluster login callsign", "login")
-        self.secret_label = ttk.Label(frame, text="Cluster password (optional)")
-        self.secret_label.grid(row=4, column=0, sticky="w", pady=6)
-        self.secret = tk.StringVar()
-        self.secret_visible = False
-        secret_field = ttk.Frame(frame)
-        secret_field.grid(row=4, column=1, sticky="ew")
-        secret_field.columnconfigure(0, weight=1)
-        self.secret_entry = ttk.Entry(secret_field, textvariable=self.secret, show="*", width=40)
-        self.secret_entry.grid(row=0, column=0, sticky="ew")
-        self.secret_toggle = ttk.Button(secret_field, text="Show", command=self._toggle_secret, width=8)
-        self.secret_toggle.grid(row=0, column=1, padx=(8, 0))
-        ttk.Label(frame, text="Session only unless remembered in a profile.", wraplength=260).grid(row=4, column=2, padx=12)
-        self._field(frame, 5, "HTTPS JSON feed URL", "feed_url")
-        self._field(frame, 6, "HTTPS polling interval in seconds", "poll_seconds", note="Minimum 15 seconds")
-        ttk.Label(frame, text="Cluster prompts are detected for callsign and password. For an unusual prompt, send a response below.\nFor HTTPS, see the documented JSON feed format in Help. Ordinary website URLs are not feeds.",
-                  wraplength=900).grid(row=7, column=0, columnspan=3, sticky="w", pady=14)
-        self._command_bar(frame, 8)
-        ttk.Label(frame, text="Cluster console. Latest 15 lines, session only. Never spoken or logged.").grid(row=10, column=0, columnspan=3, sticky="w")
-        self.raw_console = tk.Text(frame, height=8, wrap="word", state="disabled", font=("Consolas", 10))
-        self.raw_console.grid(row=11, column=0, columnspan=3, sticky="ew", pady=8)
-        self.raw_lines = []
-        profiles = ttk.LabelFrame(frame, text="Saved cluster profiles", padding=12)
-        profiles.grid(row=12, column=0, columnspan=3, sticky="ew", pady=12)
-        profiles.columnconfigure(1, weight=1)
+        profiles = ttk.LabelFrame(frame, text="Cluster profiles", padding=12)
+        profiles.grid(row=0, column=0, sticky="w", pady=(0, 12))
         self.profile_name = tk.StringVar()
         self.remember_secret = tk.BooleanVar(value=False)
-        ttk.Label(profiles, text="Saved profile").grid(row=0, column=0, sticky="w")
-        self.profile_picker = ttk.Combobox(profiles, textvariable=self.profile_choice, state="readonly")
-        self.profile_picker.grid(row=0, column=1, sticky="ew", padx=8)
+        ttk.Label(profiles, text="Saved profile").grid(row=0, column=0, sticky="w", padx=(0, 18))
+        self.profile_picker = ttk.Combobox(profiles, textvariable=self.profile_choice, state="readonly", width=36, height=12)
+        self.profile_picker.grid(row=0, column=1, sticky="w", pady=3)
         self.profile_picker.bind("<<ComboboxSelected>>", lambda event: self.guard(self._select_profile)())
-        ttk.Label(profiles, text="Profile name").grid(row=1, column=0, sticky="w", pady=8)
-        ttk.Entry(profiles, textvariable=self.profile_name).grid(row=1, column=1, sticky="ew", padx=8)
-        ttk.Checkbutton(profiles, text="Remember secret for this Windows account", variable=self.remember_secret).grid(row=2, column=0, columnspan=2, sticky="w")
+        ttk.Label(profiles, text="Profile name").grid(row=1, column=0, sticky="w")
+        self.profile_name_entry = ttk.Entry(profiles, textvariable=self.profile_name, width=38)
+        self.profile_name_entry.grid(row=1, column=1, sticky="w", pady=3)
         buttons = ttk.Frame(profiles)
-        buttons.grid(row=3, column=0, columnspan=2, sticky="w", pady=8)
-        for label, action in (("New", self._new_profile), ("Save profile", self._save_profile), ("Delete", self._delete_profile)):
-            ttk.Button(buttons, text=label, command=self.guard(action)).pack(side="left", padx=(0, 8))
-        self._connection_control(buttons).pack(side="left", padx=(0, 8))
-        ttk.Label(profiles, text="Selecting a profile loads its connection details and stops output. Connect when ready.", wraplength=800).grid(row=4, column=0, columnspan=2, sticky="w")
-        # Profile selection belongs at the top of Source, before editable details.
-        for child in frame.winfo_children():
-            if child is not profiles:
-                child.grid_configure(row=int(child.grid_info()["row"]) + 1)
-        profiles.grid_configure(row=0)
+        buttons.grid(row=2, column=0, columnspan=2, sticky="w", pady=8)
+        ttk.Button(buttons, text="New profile", command=self.guard(self._new_profile)).pack(side="left", padx=(0, 8))
+        self.save_profile_button = ttk.Button(buttons, text="Save new profile", command=self.guard(self._save_profile))
+        self.save_profile_button.pack(side="left", padx=(0, 8))
+        self.delete_profile_button = ttk.Button(buttons, text="Delete profile", command=self.guard(self._delete_profile))
+        self.delete_profile_button.pack(side="left", padx=(0, 8))
+        self._connection_control(buttons).pack(side="left")
+        self.profile_status = tk.StringVar()
+        ttk.Label(profiles, textvariable=self.profile_status, wraplength=610).grid(row=3, column=0, columnspan=2, sticky="w")
+        details = ttk.LabelFrame(frame, text="Connection details", padding=12)
+        details.grid(row=1, column=0, sticky="w", pady=(0, 12))
+        details.columnconfigure(0, minsize=190)
+        details.columnconfigure(2, weight=1)
+        self._field(details, 0, "Source type", "source_type", ["TCP/Telnet", "HTTPS JSON"], compact=True)
+        self.tcp_source_fields = ttk.Frame(details)
+        self.tcp_source_fields.grid(row=1, column=0, columnspan=3, sticky="w")
+        self.tcp_source_fields.columnconfigure(0, minsize=190)
+        self._field(self.tcp_source_fields, 0, "Hostname", "host", compact=True)
+        self.field_widgets["host"].configure(width=34)
+        self._field(self.tcp_source_fields, 1, "Port", "port", compact=True)
+        self.tcp_source_fields.grid_slaves(row=1, column=0)[0].grid_configure(row=0, column=2, padx=(12, 8))
+        self.field_widgets["port"].configure(width=7)
+        self.field_widgets["port"].grid_configure(row=0, column=3)
+        self._field(self.tcp_source_fields, 1, "Login callsign", "login", compact=True)
+        self.field_widgets["login"].configure(width=18)
+        self.https_source_fields = ttk.Frame(details)
+        self.https_source_fields.grid(row=2, column=0, columnspan=3, sticky="w")
+        self.https_source_fields.columnconfigure(0, minsize=190)
+        self._field(self.https_source_fields, 0, "JSON feed URL", "feed_url", compact=True)
+        self.field_widgets["feed_url"].configure(width=48)
+        self._field(self.https_source_fields, 1, "Poll interval (s)", "poll_seconds", note="15 to 3600 seconds", compact=True)
+        self.secret_label = ttk.Label(details, text="Cluster password (optional)")
+        self.secret_label.grid(row=3, column=0, sticky="w", pady=3, padx=(0, 18))
+        self.secret = tk.StringVar()
+        self.secret_visible = False
+        secret_field = ttk.Frame(details)
+        secret_field.grid(row=3, column=1, columnspan=2, sticky="w")
+        self.secret_entry = ttk.Entry(secret_field, textvariable=self.secret, show="*", width=30)
+        self.secret_entry.grid(row=0, column=0, sticky="w")
+        self.secret_toggle = ttk.Button(secret_field, text="Show", command=self._toggle_secret, width=7)
+        self.secret_toggle.grid(row=0, column=1, padx=(8, 0))
+        ttk.Checkbutton(details, text="Remember password or token on this PC", variable=self.remember_secret).grid(row=4, column=0, columnspan=3, sticky="w", pady=(8, 0))
+        ttk.Label(details, text="Optional. Save the profile to keep its password or token encrypted for this Windows account. Unchecked means session only.",
+                  wraplength=610).grid(row=5, column=0, columnspan=3, sticky="w", pady=(4, 8))
+        self.source_hint = tk.StringVar()
+        ttk.Label(details, textvariable=self.source_hint, wraplength=610).grid(row=6, column=0, columnspan=3, sticky="w")
+        self._command_bar(frame, 2)
+        console = ttk.LabelFrame(frame, text="Cluster console", padding=8)
+        console.grid(row=3, column=0, sticky="w", pady=8)
+        ttk.Label(console, text="Latest 15 lines. Session only, never spoken or logged.").grid(row=0, column=0, sticky="w")
+        self.raw_console = tk.Text(console, height=5, width=76, wrap="word", state="disabled", font=("Consolas", 10))
+        self.raw_console.grid(row=1, column=0, pady=(6, 0))
+        self.raw_lines = []
         self._refresh_profiles()
         self.combos["source_type"].bind("<<ComboboxSelected>>", lambda event: self._source_type_changed(clear_secret=True))
         self._source_type_changed()
 
     def _audio_tab(self):
         frame = self.tabs["Audio and PTT"]
-        self._field(frame, 0, "Local preview output", "preview_device", [])
-        self._field(frame, 1, "Radio audio output", "radio_device", [])
-        self._field(frame, 2, "PTT method", "ptt_method", ["VOX", "RTS", "DTR", "RTS+DTR"])
-        self._field(frame, 3, "Serial PTT port", "serial_port", [])
-        self._field(frame, 4, "PTT active high", "active_high", note="Unchecked means active low")
-        self._field(frame, 5, "PTT lead time in milliseconds", "lead_ms")
-        self._field(frame, 6, "PTT tail time in milliseconds", "tail_ms")
-        self._field(frame, 7, "Maximum transmit seconds", "max_tx_seconds", note="Includes lead time, audio and tail time")
-        self._field(frame, 8, "Spot radio level percent", "volume_percent")
-        self._field(frame, 9, "CW ID level percent", "cw_volume_percent")
-        self._field(frame, 10, "Voice ID level percent", "voice_id_volume_percent")
-        self._field(frame, 11, "Local listening level percent", "local_volume_percent", note="Also scales local previews")
-        ttk.Button(frame, text="Refresh audio and serial devices", command=self._refresh_devices).grid(row=12, column=1, sticky="w", pady=12)
-        ttk.Label(frame, text="Choose the exact output for each role. Prefer Windows WASAPI when your device offers it.\nVOX requires a radio or interface already configured for VOX. It cannot key a radio on its own.\nRTS and DTR need compatible serial PTT wiring. CM108 HID and CAT are not included in this pilot.",
-                  wraplength=950).grid(row=13, column=0, columnspan=3, sticky="w", pady=12)
+        outputs = ttk.LabelFrame(frame, text="Audio outputs", padding=12)
+        outputs.grid(row=0, column=0, sticky="w", pady=(0, 12))
+        self._field(outputs, 0, "Local listening", "preview_device", [], compact=True)
+        self._field(outputs, 1, "Radio output", "radio_device", [], compact=True)
+        for name in ("preview_device", "radio_device"):
+            self.field_widgets[name].configure(width=48)
+        ttk.Button(outputs, text="Refresh devices", command=self._refresh_devices).grid(row=2, column=1, sticky="w", pady=(8, 0))
+        ttk.Label(outputs, text="Choose exact output names. Prefer Windows WASAPI when available. Keep local and radio outputs separate for listening tests.",
+                  wraplength=610).grid(row=3, column=0, columnspan=3, sticky="w", pady=(8, 0))
+        ptt = ttk.LabelFrame(frame, text="Push to talk", padding=12)
+        ptt.grid(row=1, column=0, sticky="w", pady=(0, 12))
+        ptt.columnconfigure(0, minsize=120)
+        ptt.columnconfigure(2, weight=1)
+        self._field(ptt, 0, "Method", "ptt_method", ["VOX", "RTS", "DTR", "RTS+DTR"], compact=True)
+        self.serial_ptt_fields = ttk.Frame(ptt)
+        self.serial_ptt_fields.grid(row=1, column=0, columnspan=3, sticky="w")
+        self.serial_ptt_fields.columnconfigure(0, minsize=120)
+        self._field(self.serial_ptt_fields, 0, "Serial port", "serial_port", [], compact=True)
+        self._field(self.serial_ptt_fields, 1, "Active high", "active_high", note="Unchecked means active low", compact=True)
+        self.ptt_hint = tk.StringVar()
+        ttk.Label(ptt, textvariable=self.ptt_hint, wraplength=610).grid(row=2, column=0, columnspan=3, sticky="w", pady=(8, 0))
+        timing = ttk.LabelFrame(frame, text="Transmit timing", padding=12)
+        timing.grid(row=2, column=0, sticky="w", pady=(0, 12))
+        self._field(timing, 0, "Lead time (ms)", "lead_ms", note="0 to 5000 ms", compact=True)
+        self._field(timing, 1, "Tail time (ms)", "tail_ms", note="0 to 5000 ms", compact=True)
+        self._field(timing, 2, "Maximum transmit (s)", "max_tx_seconds", note="5 to 120 seconds, including lead and tail", compact=True)
+        levels = ttk.LabelFrame(frame, text="Audio levels", padding=12)
+        levels.grid(row=3, column=0, sticky="w", pady=(0, 12))
+        for row, (label, name) in enumerate((("Spot radio (%)", "volume_percent"), ("CW ID (%)", "cw_volume_percent"),
+                                            ("Voice ID (%)", "voice_id_volume_percent"), ("Local listening (%)", "local_volume_percent"))):
+            self._field(levels, row, label, name, note="0 to 100" if row == 0 else None, compact=True)
+        ttk.Label(levels, text="Local listening also scales previews. Zero mutes the selected category.",
+                  wraplength=610).grid(row=4, column=0, columnspan=3, sticky="w", pady=(8, 0))
+        self.variables["ptt_method"].trace_add("write", lambda *args: self._ptt_method_changed())
+        self._ptt_method_changed()
+
+    def _ptt_method_changed(self):
+        vox = self.variables["ptt_method"].get() == "VOX"
+        self.serial_ptt_fields.grid_remove() if vox else self.serial_ptt_fields.grid()
+        self.ptt_hint.set("VOX needs a radio or interface already set up for VOX; the app sends audio without controlling a PTT line." if vox else
+                          "Select a compatible serial interface and its polarity. CM108 HID and CAT are not supported in this pilot.")
 
     def _id_tab(self):
         frame = self.tabs["Identification"]
@@ -721,11 +764,19 @@ class Application:
 
     def _source_type_changed(self, clear_secret=False):
         tcp = self.variables["source_type"].get() == "TCP/Telnet"
+        self.tcp_source_fields.grid() if tcp else self.tcp_source_fields.grid_remove()
+        self.https_source_fields.grid_remove() if tcp else self.https_source_fields.grid()
         for name in ("host", "port", "login"):
             self.field_widgets[name].configure(state="normal" if tcp else "disabled")
         for name in ("feed_url", "poll_seconds"):
             self.field_widgets[name].configure(state="disabled" if tcp else "normal")
         self.secret_label.configure(text="Cluster password (optional)" if tcp else "HTTPS bearer token (optional)")
+        label_width = max(190, self.secret_label.winfo_reqwidth() + 18)
+        self.secret_label.master.columnconfigure(0, minsize=label_width)
+        self.tcp_source_fields.columnconfigure(0, minsize=label_width)
+        self.https_source_fields.columnconfigure(0, minsize=label_width)
+        self.source_hint.set("Common login prompts are detected automatically. Use the visible command field below for other responses." if tcp else
+                             "Enter an HTTPS JSON feed matching the Help contract. Ordinary website URLs are not feeds.")
         for widget in self.command_entries + self.command_buttons:
             widget.configure(state="normal" if tcp else "disabled")
         self._set_secret_visible(False)
@@ -758,24 +809,43 @@ class Application:
             self.spots.pop(row, None)
 
     def _refresh_profiles(self):
-        names = sorted(p["name"] for p in self.profile_store.profiles) if self.profile_store else []
+        names = sorted((p["name"] for p in self.profile_store.profiles), key=str.casefold) if self.profile_store else []
         self.profile_picker.configure(values=names)
         self.live_profile_picker.configure(values=names)
+        selected = self.selected_profile_id is not None
+        self.save_profile_button.configure(text="Save changes" if selected else "Save new profile",
+                                           state="normal" if self.profile_store else "disabled")
+        self.delete_profile_button.configure(state="normal" if selected and self.profile_store else "disabled")
+        if self.profile_store is None:
+            self.profile_status.set("Saved profiles unavailable. Recover profiles.json before saving.")
+        else:
+            mode = "Editing selected profile. Save changes updates its name and connection details." if selected else "New profile. Enter a name and connection details, then save."
+            self.profile_status.set(f"{len(names)} saved profile" + (". " if len(names) == 1 else "s. ") + mode)
 
     def _new_profile(self):
+        login = self.variables["login"].get()
         self._disconnect()
+        self._clear_spots()
+        self._clear_console()
+        self.command.set("")
         self.selected_profile_id = None
         self.profile_choice.set("")
         self.profile_name.set("")
+        defaults = replace(Settings(), login=login)
+        for key in SOURCE_FIELDS:
+            self.variables[key].set(getattr(defaults, key))
         self.secret.set("")
         self._set_secret_visible(False)
         self.remember_secret.set(False)
+        self._source_type_changed()
+        self._refresh_profiles()
+        self.profile_name_entry.focus_set()
 
     def _select_profile(self):
         if not self.profile_store:
             raise ValueError("Recover profiles.json before using saved profiles")
         item = next(p for p in self.profile_store.profiles if p["name"] == self.profile_choice.get())
-        updated, secret = self.profile_store.load(item["id"], self._read_settings())
+        updated, secret = self.profile_store.load(item["id"], self.settings)
         self._disconnect()
         self._clear_spots()
         self._clear_console()
@@ -787,21 +857,32 @@ class Application:
         for key in SOURCE_FIELDS:
             self.variables[key].set(getattr(updated, key))
         self._source_type_changed()
+        self._refresh_profiles()
+
+    def _profile_settings(self):
+        # Profile operations must not validate or apply unrelated pending radio edits.
+        values = {}
+        for key in SOURCE_FIELDS:
+            value = self.variables[key].get()
+            try:
+                values[key] = int(value) if type(getattr(Settings(), key)) is int else value.strip()
+            except (ValueError, tk.TclError):
+                raise ValueError(f"Enter a valid number for {key.replace('_', ' ')}") from None
+        return replace(self.settings, **values)
 
     def _save_profile(self):
         if not self.profile_store:
             raise ValueError("Recover profiles.json before saving profiles")
-        item = self.profile_store.save(self.profile_name.get(), self._read_settings(), self.secret.get(),
+        item = self.profile_store.save(self.profile_name.get(), self._profile_settings(), self.secret.get(),
                                        self.remember_secret.get(), self.selected_profile_id)
         self.selected_profile_id = item["id"]
         self.profile_choice.set(item["name"])
         self._refresh_profiles()
 
     def _delete_profile(self):
-        if self.selected_profile_id and messagebox.askyesno("Delete cluster profile", "Delete this saved profile and its remembered secret?"):
+        if self.selected_profile_id and messagebox.askyesno("Delete cluster profile", "Delete this saved profile and its remembered password or token?"):
             self.profile_store.delete(self.selected_profile_id)
             self._new_profile()
-            self._refresh_profiles()
 
     def _speech_tab(self):
         frame = self.tabs["Speech and access"]

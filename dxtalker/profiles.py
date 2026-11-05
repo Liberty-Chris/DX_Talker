@@ -15,7 +15,7 @@ SOURCE_FIELDS = ("source_type", "host", "port", "login", "feed_url", "poll_secon
 
 def protect_secret(value, decrypt=False):
     if sys.platform != "win32":
-        raise ValueError("Remembering passwords requires Windows account protection. Leave Remember secret unchecked.")
+        raise ValueError("Remembering passwords requires Windows account protection. Leave Remember password or token unchecked.")
 
     class Blob(ctypes.Structure):
         _fields_ = [("size", wintypes.DWORD), ("data", ctypes.POINTER(ctypes.c_ubyte))]
@@ -48,7 +48,7 @@ class ProfileStore:
         self.profiles = []
         if self.path.exists():
             data = json.loads(self.path.read_text(encoding="utf-8"))
-            if data.get("schema_version") != 1 or not isinstance(data.get("profiles"), list) or len(data["profiles"]) > 100:
+            if data.get("schema_version") != 1 or not isinstance(data.get("profiles"), list):
                 raise ValueError("Unsupported cluster profiles file")
             for item in data["profiles"]:
                 self._validate_name(item["name"])
@@ -79,8 +79,8 @@ class ProfileStore:
         settings.validate_connection()
         if any(p["name"].casefold() == name.casefold() and p["id"] != profile_id for p in self.profiles):
             raise ValueError("A cluster profile already uses that name")
-        if profile_id is None and len(self.profiles) >= 100:
-            raise ValueError("Keep at most 100 cluster profiles")
+        if profile_id is not None and not any(p["id"] == profile_id for p in self.profiles):
+            raise ValueError("The selected cluster profile no longer exists")
         item = {"id": profile_id or uuid.uuid4().hex, "name": name,
                 "connection": {k: asdict(settings)[k] for k in SOURCE_FIELDS},
                 "secret": self.protector(secret) if remember and secret else ""}

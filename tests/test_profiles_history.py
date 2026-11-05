@@ -33,6 +33,26 @@ class ProfileTests(unittest.TestCase):
             store.delete(first["id"])
             self.assertEqual(len(store.profiles), 1)
 
+    def test_more_than_one_hundred_profiles_can_be_saved_edited_and_removed(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "profiles.json"
+            store = ProfileStore(path)
+            for index in range(205):
+                store.save(f"Cluster {index:03}", replace(Settings(), host=f"cluster{index}.example"))
+            store = ProfileStore(path)
+            self.assertEqual(len(store.profiles), 205)
+            selected = store.profiles[150]
+            store.save("Renamed", replace(Settings(), host="edited.example"), profile_id=selected["id"])
+            self.assertEqual(len(store.profiles), 205)
+            settings, secret = store.load(selected["id"], Settings())
+            self.assertEqual(settings.host, "edited.example")
+            store.delete(selected["id"])
+            self.assertEqual(len(ProfileStore(path).profiles), 204)
+            original = path.read_bytes()
+            with self.assertRaises(ValueError):
+                store.save("Missing", Settings(), profile_id=selected["id"])
+            self.assertEqual(path.read_bytes(), original)
+
     def test_duplicate_names_and_bad_profile_do_not_overwrite(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "profiles.json"

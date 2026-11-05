@@ -35,3 +35,8 @@ Enable RF uses saved radio and ID settings without applying pending edits or cha
 While enabled, the button has an accent border and reads RF enabled. Hover or keyboard focus turns it red and changes the text to Disable RF. Clicking stops current and queued RF output without disconnecting the source or clearing the live view. It shows Stopping while cancellation finishes. Stop All Output, faults, source loss and settings changes also return it to the disabled state. Startup and reconnect never enable RF automatically.
 
 Without a source, RF can still send initial, periodic and manually requested IDs. Only new validated live spots are eligible for RF announcements; sample rows and displayed history are not queued. The pilot does not detect a busy channel. Supervise operation on a clear or coordinated channel. Shared local and radio devices may send previews to a VOX radio; use separate outputs for listening tests.
+
+
+## Compact Audio / PTT controls
+
+Audio outputs, Push to talk, Transmit timing and Audio levels are separate compact groups. Device selectors have bounded widths and numeric fields show their units and ranges. Refresh devices updates both audio and serial choices and stops output as before. VOX hides serial port and polarity fields; choosing a serial PTT method shows them again with their saved values. Changing the visible method does not change the configured hardware until settings are saved and applied. CM108 HID and CAT remain outside this pilot.

@@ -65,3 +65,6 @@ The 0.2.0a5 followup compacts IDs and makes RF a source independent output toggl
 
 
 The 0.2.0a6 format editor adds presets, optional sections and spoken units, custom intro text and keyboard accessible reorder controls. Format previews use a temporary settings snapshot through the shared coordinator.
+
+
+The 0.2.0a7 followup removes the profile count cap, clarifies edit/save/delete flows and compacts Source and Audio / PTT. Profile management uses connection fields only, while Connect and Save and apply retain their existing application behavior.

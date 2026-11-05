@@ -373,3 +373,75 @@ class AppTests(unittest.TestCase):
         self.assertTrue(self.app.engine.cancel.is_set())
         source.stop.assert_not_called()
         self.app.source = None
+
+
+    def test_profile_edit_rename_delete_and_create_do_not_overwrite_other_profiles(self):
+        self.app.profile_name.set('First')
+        self.app.variables['host'].set('first.example')
+        self.app._save_profile()
+        first_id = self.app.selected_profile_id
+        self.assertEqual(self.app.save_profile_button.cget('text'), 'Save changes')
+        self.app._new_profile()
+        self.assertEqual(self.app.save_profile_button.cget('text'), 'Save new profile')
+        self.assertEqual(str(self.app.delete_profile_button.cget('state')), 'disabled')
+        self.app.profile_name.set('Second')
+        self.app.variables['host'].set('second.example')
+        self.app._save_profile()
+        self.app.profile_choice.set('First')
+        # An incomplete radio edit must not block source profile management.
+        self.app.variables['lead_ms'].set('unfinished')
+        self.app._select_profile()
+        self.app.profile_name.set('First renamed')
+        self.app.variables['host'].set('edited.example')
+        self.app._save_profile()
+        self.assertEqual(self.app.selected_profile_id, first_id)
+        self.assertEqual(len(self.app.profile_store.profiles), 2)
+        self.assertEqual(set(self.app.live_profile_picker.cget('values')), {'First renamed', 'Second'})
+        self.assertEqual(self.app.variables['lead_ms'].get(), 'unfinished')
+        with patch('dxtalker.app.messagebox.askyesno', return_value=False):
+            self.app._delete_profile()
+        self.assertEqual(len(self.app.profile_store.profiles), 2)
+        with patch('dxtalker.app.messagebox.askyesno', return_value=True):
+            self.app._delete_profile()
+        self.assertEqual([p['name'] for p in self.app.profile_store.profiles], ['Second'])
+        self.assertEqual(tuple(self.app.live_profile_picker.cget('values')), ('Second',))
+        self.assertIsNone(self.app.selected_profile_id)
+        self.assertEqual(self.app.profile_choice.get(), '')
+        self.assertEqual(self.app.secret.get(), '')
+        self.assertFalse(self.app.engine.enabled)
+
+    def test_source_and_ptt_show_only_relevant_groups_without_losing_values(self):
+        self.assertEqual(self.app.tcp_source_fields.winfo_manager(), 'grid')
+        self.assertEqual(self.app.https_source_fields.winfo_manager(), '')
+        self.app.variables['host'].set('keep.example')
+        self.app.variables['source_type'].set('HTTPS JSON')
+        self.app._source_type_changed(clear_secret=True)
+        self.assertEqual(self.app.tcp_source_fields.winfo_manager(), '')
+        self.assertEqual(self.app.https_source_fields.winfo_manager(), 'grid')
+        self.assertEqual(self.app.variables['host'].get(), 'keep.example')
+        self.assertEqual(self.app.serial_ptt_fields.winfo_manager(), '')
+        self.app.variables['serial_port'].set('COM9')
+        self.app.variables['ptt_method'].set('RTS')
+        self.assertEqual(self.app.serial_ptt_fields.winfo_manager(), 'grid')
+        self.app.variables['ptt_method'].set('VOX')
+        self.assertEqual(self.app.serial_ptt_fields.winfo_manager(), '')
+        self.assertEqual(self.app.variables['serial_port'].get(), 'COM9')
+        self.assertLess(int(self.app.field_widgets['lead_ms'].cget('width')), 15)
+        self.assertLess(int(self.app.field_widgets['host'].cget('width')), 45)
+
+    def test_new_profile_stops_feed_and_clears_previous_display_and_credentials(self):
+        from unittest.mock import Mock
+        source = Mock()
+        self.app.source = source
+        self.app._add_spot(self.spot())
+        self.app._append_raw('previous session')
+        self.app.secret.set('synthetic secret')
+        self.app.command.set('show/dx')
+        self.app._new_profile()
+        source.stop.assert_called_once()
+        self.assertIsNone(self.app.source)
+        self.assertFalse(self.app.spots)
+        self.assertFalse(self.app.raw_lines)
+        self.assertEqual(self.app.command.get(), '')
+        self.assertEqual(self.app.secret.get(), '')
+        self.assertFalse(self.app.remember_secret.get())
