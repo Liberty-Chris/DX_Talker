@@ -15,7 +15,10 @@ def run(report_path):
         from dataclasses import fields
         from .app import Application
         from .audio import AudioOutput, WindowsSpeech
-        from .models import Settings
+        from .models import Settings, save_settings, parse_line, UTC
+        from .speech import SpeechService
+        from .profiles import protect_secret
+        from datetime import datetime
         from .appearance import load_appearance
         from .ptt import serial_ports
 
@@ -23,12 +26,22 @@ def run(report_path):
         voices = speech.voices(threading.Event())
         clip = speech.render("DX Talker. Kilo Foxtrot four Delta Bravo Xray.", "", 0, threading.Event())
         assert clip.duration > 0
+        secret = protect_secret("synthetic-test-secret")
+        assert "synthetic-test-secret" not in secret
+        assert protect_secret(secret, decrypt=True) == "synthetic-test-secret"
+        now = datetime.now(UTC)
+        spot = parse_line(f"DX de N0CALL: 14025.5 WB4IUY/P {now:%H%M}Z", "test", now)
+        paced = SpeechService().render_spot(spot, Settings(character_pause_ms=50, group_pause_ms=450), threading.Event())
+        assert paced.duration > 0
+        report["ssml_speech_seconds"] = paced.duration
+        report["protected_secret_roundtrip"] = True
         report.update(voices=voices, speech_seconds=clip.duration,
                       audio_outputs=AudioOutput.devices(), serial_ports=serial_ports())
         with tempfile.TemporaryDirectory() as folder:
             old_local = os.environ.get("LOCALAPPDATA")
             os.environ["LOCALAPPDATA"] = folder
             try:
+                save_settings(Settings(check_updates=False))
                 root = tk.Tk()
                 app = Application(root)
                 root.update()
@@ -37,21 +50,21 @@ def run(report_path):
                 assert not app.engine.enabled
                 app._samples()
                 assert len(app.spots) == 3
-                assert app._read_settings() == Settings()
+                assert app._read_settings() == Settings(check_updates=False)
                 app._apply()
                 assert app.icon.width() == 256
-                for theme in ("Light", "Dark"):
+                for theme in ("Light", "Dark", "High contrast"):
                     app.theme.set(theme)
                     app._change_theme()
                     root.update()
                     assert load_appearance() == theme
                     assert not app.engine.enabled
                     assert app.brand_label.cget("image")
-                report["appearance"] = ["Light", "Dark"]
+                report["appearance"] = ["Light", "Dark", "High contrast"]
                 normal_geometry = root.geometry()
                 root.geometry("900x600")
                 root.update()
-                for index in range(6):
+                for index in range(len(app.notebook.tabs())):
                     app.notebook.select(index)
                     root.update()
                     for control in (app.save_button, app.stop_button, app.theme_picker):

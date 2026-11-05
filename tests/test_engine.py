@@ -20,6 +20,7 @@ def wait_for(predicate, timeout=3):
 class FakeAudio:
     def __init__(self):
         self.played = []
+        self.volumes = []
         self.entered = threading.Event()
         self.block = False
         self.fail = False
@@ -29,6 +30,7 @@ class FakeAudio:
 
     def play(self, clip, device, volume, cancel, deadline):
         self.played.append((clip, device))
+        self.volumes.append(volume)
         self.entered.set()
         if self.fail:
             raise RuntimeError("Device lost")
@@ -205,3 +207,47 @@ class EngineTests(unittest.TestCase):
         self.engine.offer(self.spot())
         self.enable_and_id()
         self.assertEqual(self.speech.texts, [])
+
+
+    def test_live_local_listening_uses_preview_only_and_never_identifies_or_keys(self):
+        self.engine.listen_locally()
+        self.assertTrue(self.engine.local_enabled)
+        self.assertFalse(self.engine.enabled)
+        self.assertTrue(self.engine.offer(self.spot()))
+        wait_for(lambda: len(self.audio.played) == 1 and not self.engine.busy)
+        self.assertEqual(self.audio.played[0][1], "local")
+        self.assertEqual(self.ptts, [])
+        self.assertFalse(self.engine.offer(self.spot()))
+        self.engine.stop()
+        self.assertFalse(self.engine.local_enabled)
+        self.assertFalse(self.engine.offer(self.spot("WB4IUY")))
+
+    def test_local_listening_requires_source_and_device_and_stops_on_failure(self):
+        self.engine.rf_allowed = lambda: False
+        with self.assertRaises(ValueError):
+            self.engine.listen_locally()
+        self.engine.rf_allowed = lambda: True
+        self.engine.configure(replace(self.settings, preview_device=""))
+        with self.assertRaises(ValueError):
+            self.engine.listen_locally()
+        self.engine.configure(self.settings)
+        self.audio.fail = True
+        self.engine.listen_locally()
+        self.engine.offer(self.spot())
+        wait_for(lambda: not self.engine.local_enabled)
+        self.assertEqual(self.ptts, [])
+
+    def test_cw_and_voice_id_levels_do_not_use_spot_gain(self):
+        self.engine.configure(replace(self.settings, volume_percent=7, cw_volume_percent=20))
+        self.enable_and_id()
+        self.assertEqual(self.audio.volumes[0], 100)
+        self.engine.offer(self.spot())
+        wait_for(lambda: len(self.audio.played) == 2 and not self.engine.busy)
+        self.assertEqual(self.audio.volumes[1], 7)
+
+    def test_local_volume_is_independent(self):
+        self.engine.configure(replace(self.settings, volume_percent=12, local_volume_percent=34))
+        self.engine.listen_locally()
+        self.engine.offer(self.spot())
+        wait_for(lambda: len(self.audio.played) == 1 and not self.engine.busy)
+        self.assertEqual(self.audio.volumes, [34])

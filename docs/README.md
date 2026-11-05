@@ -19,3 +19,5 @@ These pages describe planned features for now. They'll be updated with tested in
 Update the relevant help page when a feature changes. Keep the topic IDs in the [help manifest](help/manifest.json) stable so the app can open the right page from a setting or error message.
 
 The manual will be included with the application for offline use. Before a release, check that the links work and the instructions match that version. See the [development instructions](../AGENTS.md) for the full workflow.
+
+See [Release process](release_process.md) for update publication and testing and [Platform groundwork](platforms.md) for mobile and compatibility gates.

@@ -34,7 +34,7 @@ For direct repeater integration, choose the target ASL3, Allmon and Asterisk ver
 
 ## Before release
 
-Choose the version numbering, distribution channel, update method and supported hardware list. Review permissions before using original recordings or bundled components in a new release.
+Version numbering, public GitHub release channels and the verified interactive update method are selected in the November 4, 2026 decision. The first two release upgrade test and supported hardware list remain open. Review permissions before using original recordings or bundled components in a new release.
 
 Rights are reserved for now under the [modern project notice](../LICENSE) and [original files notice](../Original_Files/LICENSE). Any later license change needs to be clear about which material it covers and have the necessary permissions.
 

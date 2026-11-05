@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0a1. November 4, 2026
+
+Saved cluster profiles with optional Windows protected secrets, shared visible command entry, a bounded redacted source console and automatic live view clearing on source changes.
+
+Configurable speech rate, voice gender preference, character pauses and group pauses with the “New DX on” introduction. Optional external Piper neural voice adapter. Independent spot, CW, voice ID and local listening levels.
+
+Live local listening, keyboard shortcuts, larger interface text, high contrast appearance and saved supervised operation acknowledgement. Configurable rotating history and display retention. A reserved cluster customization help topic.
+
+GitHub release notifications, Pilot and Stable channels, verified downloads and interactive update installation. Tested tag builds publish setup, portable files and checksums. Initial installation is required to enable future notifications. Mobile and older system contracts and acceptance gates are documented.
+
+
 ## November 2, 2026. Windows installer
 
 Added an Inno Setup installer targeting Windows 10 22H2 and Windows 11 x64. Setup creates DXt desktop and Start menu shortcuts, installs the bundled runtime and provides removal through Windows Settings. Updates and removal retain local preferences. Added workflow checks for installation, shortcuts, the installed application self test, reinstallation and removal. Actual Windows 10 and Windows 11 acceptance remains open.

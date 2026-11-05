@@ -140,3 +140,16 @@ class SourceTests(unittest.TestCase):
         client._run()
         self.assertTrue(any(k == "source_lost" for k, _ in observed))
         self.assertNotIn("password", str(observed))
+
+
+    def test_raw_console_redacts_secrets_commands_and_controls(self):
+        observed = []
+        client = SourceClient(Settings(), lambda *event: observed.append(event), "privateSecret")
+        client.sock = object()
+        client.send("manualSecret")
+        client._raw("echo privateSecret manualSecret token=unknownValue\x07")
+        self.assertNotIn("privateSecret", str(observed))
+        self.assertNotIn("manualSecret", str(observed))
+        self.assertNotIn("unknownValue", str(observed))
+        self.assertNotIn("\x07", str(observed))
+        self.assertEqual(observed[0][0], "raw")

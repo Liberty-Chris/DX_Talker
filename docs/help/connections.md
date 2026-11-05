@@ -6,7 +6,7 @@ Choose TCP/Telnet and enter a hostname and port separately. The supplied example
 
 The adapter recognizes common login, callsign, username and password prompts, including prompts received in several fragments or without a newline. It also handles basic Telnet option negotiation. After the first valid spot, the status changes to Receiving DX spots.
 
-If the cluster needs a different response, use Manual response or cluster command. This field is masked, sends one line and clears after sending. Responses are not journaled. Raw source traffic is not shown in this pilot.
+If the cluster needs a different response, use Manual response or cluster command. Commands are visible by default, send one line and clear after sending. Enter sends the command too. Select Send as password to mask a manual authentication response. The field is also available on Live spots. Commands and authentication responses are not written to history. The Source console shows the latest 15 incoming lines with known secrets and command echoes redacted. It remains session only and is never announced.
 
 A network connection alone does not prove sign in succeeded. Waiting for a valid spot can also mean the cluster is quiet. W4MR's current prompts and access requirements have not been tested live in this project.
 
@@ -29,3 +29,14 @@ The timestamp must represent the actual spot time. The example above illustrates
 Connection failures disable RF and clear queued output. The source retries with increasing delays up to 60 seconds. Reconnect does not enable RF. Verify the connection and deliberately enable output when ready.
 
 Changing source settings requires a new connection. Passwords and tokens remain in memory for the session and are not written to saved settings or the activity journal.
+
+
+## Saved cluster profiles
+
+Save profile stores a named connection with source type, hostname, port, callsign or SSID, feed URL and polling interval. The saved profile selector is available on Source and Live spots. Selecting a profile disconnects the previous source, stops output and clears the live view and console. Connect explicitly when ready. New starts a fresh profile entry; edit its name and details before saving. Saving a selected profile updates it, including renaming. Delete removes the selected profile after confirmation.
+
+Remember secret is optional. It protects a profile password or token with Windows DPAPI for the current user account. It is stored encrypted in profiles.json, separately from ordinary settings. Copying this file to another account or computer may prevent decryption; enter the secret again there. Clear Remember secret and save the profile to remove its saved secret. Without this option, the secret is session only.
+
+A session secret remains available when reconnecting the same connection. Selecting a different saved profile loads only that profile's secret. Manual commands do not carry into the next profile. Keep credentials out of profile names and feed URLs.
+
+Use Source Connect and Disconnect to change connections without restarting the application. RF and local listening must be explicitly enabled again after connecting. The Help topic Cluster customization has a reserved place for the forthcoming geographic filter guide.

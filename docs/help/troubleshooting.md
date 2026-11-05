@@ -6,7 +6,7 @@ Connect the interface and choose Refresh audio and serial devices. If running fr
 
 ## Connected but no spots
 
-Check the cluster hostname, port and callsign. The supplied example is a TCP/Telnet connection, not a web URL. The cluster may be awaiting a different login response or may be quiet. Use the masked manual response field if its login procedure requires another command. Raw prompts are not displayed in this pilot.
+Check the cluster hostname, port and callsign. The supplied example is a TCP/Telnet connection, not a web URL. The cluster may be awaiting a different login response or may be quiet. Read the Source console and use the visible command input if the login procedure requires another command. Select Send as password for a secret response. Known secrets and command echoes are redacted from the console.
 
 For HTTPS, confirm the feed uses the documented array format and has current timezone aware timestamps. HTML pages and other JSON schemas are not accepted. Redirected URLs must be replaced with the final direct feed URL.
 
@@ -18,7 +18,7 @@ A local preview must finish before enabling. Wait for Idle after stopping output
 
 ## Voice synthesis fails
 
-Check that Windows speech support and the selected voice are installed. Choose a blank voice to use the default. Speech is rendered before keying. A synthesis failure disables RF and leaves PTT unasserted.
+For Windows, check that speech support and the selected voice are installed. For Piper, check the executable, model and matching configuration paths and see Listening and accessibility. Choose a blank voice to use the default. Speech is rendered before keying. A synthesis failure disables RF and leaves PTT unasserted.
 
 ## WAV fails
 

@@ -103,9 +103,13 @@ try {
     $config = Get-Content -LiteralPath $env:DX_CONFIG -Raw -Encoding UTF8 | ConvertFrom-Json
     $synth.Rate = [int]$config.rate
     if ($config.voice) { $synth.SelectVoice([string]$config.voice) }
+    elseif ($config.gender -and $config.gender -ne 'Any') {
+      $synth.SelectVoiceByHints([System.Speech.Synthesis.VoiceGender]([string]$config.gender))
+    }
     $format = New-Object System.Speech.AudioFormat.SpeechAudioFormatInfo -ArgumentList 22050, ([System.Speech.AudioFormat.AudioBitsPerSample]::Sixteen), ([System.Speech.AudioFormat.AudioChannel]::Mono)
     $synth.SetOutputToWaveFile($env:DX_WAV, $format)
-    $synth.Speak([string]$config.text)
+    if ($config.ssml) { $synth.SpeakSsml([string]$config.text) }
+    else { $synth.Speak([string]$config.text) }
   }
 } finally { $synth.Dispose() }
 '''
@@ -141,12 +145,12 @@ class WindowsSpeech:
         result = json.loads(self._run({"DX_MODE": "voices"}, cancel))
         return result if isinstance(result, list) else [result]
 
-    def render(self, text, voice, rate, cancel):
-        if not text.strip() or len(text) > 1000:
+    def render(self, text, voice, rate, cancel, gender="Any", ssml=False):
+        if not text.strip() or len(text) > (12000 if ssml else 1000):
             raise ValueError("Speech text must contain 1 to 1000 characters")
         with tempfile.TemporaryDirectory(prefix="DXTalker_") as folder:
             config, output = Path(folder) / "speech.json", Path(folder) / "speech.wav"
-            config.write_text(json.dumps({"text": text, "voice": voice, "rate": rate}), encoding="utf-8")
+            config.write_text(json.dumps({"text": text, "voice": voice, "rate": rate, "gender": gender, "ssml": ssml}), encoding="utf-8")
             self._run({"DX_MODE": "speech", "DX_CONFIG": str(config), "DX_WAV": str(output)}, cancel)
             return wav_clip(output)
 
@@ -217,3 +221,15 @@ class AudioOutput:
             raise RuntimeError("Audio stream reported a playback fault")
         if offset < total:
             raise RuntimeError("Audio output did not complete")
+
+
+def scale_clip(clip, percent):
+    """Scale a PCM segment before combining IDs with independent levels."""
+    data = array("h")
+    data.frombytes(clip.pcm)
+    if sys.byteorder != "little":
+        data.byteswap()
+    data = array("h", (round(n * percent / 100) for n in data))
+    if sys.byteorder != "little":
+        data.byteswap()
+    return Clip(data.tobytes(), clip.rate, clip.channels)

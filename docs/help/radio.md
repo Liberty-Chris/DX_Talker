@@ -20,7 +20,7 @@ A USB audio device does not necessarily supply PTT. CM108 HID interfaces, includ
 
 PTT lead time delays playback after keying. Tail time delays release after audio ends. Maximum transmit seconds includes lead, playback and tail. Audio that cannot fit within this limit is rejected before keying. A watchdog makes a separate release attempt if output stalls.
 
-Audio level percent scales generated audio and WAV playback. Set the radio's input gain using the interface and radio instructions. This app does not measure deviation.
+Spot radio level, CW ID level and Voice ID level have independent percentage controls from zero to 100. Zero mutes that category. CW and voice levels are applied independently even in a combined ID. Local listening level additionally scales local previews and live local announcements. Set the radio's input gain using the interface and radio instructions. This app does not measure deviation.
 
 ## Stop and faults
 
