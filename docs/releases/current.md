@@ -8,3 +8,6 @@ This update changes the layout and explanatory text. Saved values, validation, f
 Windows update connections now use the operating system certificate verifier, including retrieval of missing intermediate certificates. HTTPS certificate and hostname verification remain required.
 
 Setup detects existing desktop shortcuts pointing to the installed app, including renamed shortcuts and shortcuts on the shared desktop. It preserves them and omits the duplicate desktop shortcut option. Existing duplicate shortcuts are not deleted automatically.
+
+
+Future platform work: align certificate handling across macOS, Linux, iOS and Android using each platform's supported trust services. Keep certificate and hostname verification enabled and provide consistent update diagnostics. This release applies the native trust change to the Windows updater; it does not add or change certificate handling on the other platforms.
