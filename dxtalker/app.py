@@ -327,7 +327,7 @@ class Application:
         elif type(value) is int:
             limits = {"port": (1, 65535), "poll_seconds": (15, 3600), "lead_ms": (0, 5000), "tail_ms": (0, 5000), "max_tx_seconds": (5, 120), "cw_wpm": (5, 50), "cw_hz": (300, 1500), "id_minutes": (1, 30), "speech_rate": (-10, 10), "character_pause_ms": (0, 1000), "group_pause_ms": (0, 3000),
                       "volume_percent": (0, 100), "cw_volume_percent": (0, 100), "voice_id_volume_percent": (0, 100),
-                      "local_volume_percent": (0, 100), "text_size": (10, 18)}
+                      "local_volume_percent": (0, 100), "text_size": (10, 18), "receive_threshold_db": (-60, -5), "receive_quiet_seconds": (5, 10)}
             low, high = limits.get(name, (0, 10000000))
             widget = ttk.Spinbox(parent, textvariable=var, from_=low, to=high, width=12)
         else:
@@ -395,24 +395,8 @@ class Application:
         self.log.grid(row=6, column=0, sticky="ew")
 
     def _profile_qr(self):
-        if not self.selected_profile_id:
-            raise ValueError("Select and save a profile before generating its QR")
-        profile = next(p for p in self.profile_store.profiles if p['id'] == self.selected_profile_id)
-        payload = transfer.encode(transfer.document([profile], self._read_settings()), qr=True)
-        import io, base64, qrcode
-        from qrcode.image.pure import PyPNGImage
-        output = io.BytesIO()
-        qrcode.make(payload, image_factory=PyPNGImage, error_correction=qrcode.constants.ERROR_CORRECT_M,
-                    box_size=4, border=4).save(output)
-        window = tk.Toplevel(self.root)
-        window.title('Import this cluster on Android')
-        window.transient(self.root)
-        window.lift()
-        photo = tk.PhotoImage(data=base64.b64encode(output.getvalue()))
-        label = ttk.Label(window, image=photo)
-        label.image = photo
-        label.pack(padx=16,pady=16)
-        ttk.Label(window, text='Scan with DX Talker Android. Includes saved connection and current filters.\nNo password or token. Review the destination details before connecting.', wraplength=520).pack(padx=16,pady=(0,16))
+        from .sharing_ui import show_profile_qr
+        show_profile_qr(self)
 
     def _export_profiles(self):
         if not self.profile_store or not self.profile_store.profiles:
@@ -563,8 +547,40 @@ class Application:
             self._field(levels, row, label, name, note="0 to 100" if row == 0 else None, compact=True)
         ttk.Label(levels, text="Local listening also scales previews. Zero mutes the selected category.",
                   wraplength=610).grid(row=4, column=0, columnspan=3, sticky="w", pady=(8, 0))
+        receive = ttk.LabelFrame(frame, text="Receive audio transmit hold", padding=12)
+        receive.grid(row=4, column=0, sticky="w", pady=(0, 12))
+        self._field(receive, 0, "Monitor radio receive audio", "receive_guard", compact=True)
+        self._field(receive, 1, "Receive input", "receive_device", [], compact=True)
+        self.field_widgets['receive_device'].configure(width=48)
+        self._field(receive, 2, "Audio threshold (dBFS)", "receive_threshold_db", note="Minus 60 to minus 5. Lower detects quieter audio.", compact=True)
+        self._field(receive, 3, "Quiet delay (s)", "receive_quiet_seconds", note="5 to 10 seconds after received audio ends", compact=True)
+        self.receive_status = tk.StringVar(value='Receive monitor off')
+        ttk.Label(receive, textvariable=self.receive_status, wraplength=610).grid(row=4, column=0, columnspan=3, sticky='w', pady=8)
+        self.receive_test_button = ttk.Button(receive, text='Test receive input', command=self.guard(self._test_receive))
+        self.receive_test_button.grid(row=5, column=1, sticky='w')
+        ttk.Label(receive, text='Test with receiver audio before enabling RF. Use squelched receive audio, never a microphone or a mix containing DX Talker output. Input failure stops RF. Audio is measured locally and never recorded.', wraplength=610).grid(row=6, column=0, columnspan=3, sticky='w', pady=(8,0))
         self.variables["ptt_method"].trace_add("write", lambda *args: self._ptt_method_changed())
         self._ptt_method_changed()
+
+    def _test_receive(self):
+        if self.engine.enabled or self.engine.local_enabled or self.engine.busy:
+            raise ValueError('Stop output before testing the receive input')
+        if self.engine.monitor.stream is not None:
+            self.engine.monitor.close()
+        else:
+            settings = self._read_settings()
+            if not settings.receive_device:
+                raise ValueError('Choose a receive input first')
+            self.engine.monitor.start(settings)
+
+    def _receive_meter(self):
+        state, level, remaining = self.engine.monitor.snapshot()
+        descriptions = {'off': 'Receive monitor off', 'fault': 'Receive input fault. RF cannot transmit.',
+                        'starting': 'Waiting for receive input', 'busy': 'Receiving audio. RF waiting.',
+                        'waiting': f'Quiet delay. {remaining:.1f} seconds remaining.', 'clear': 'Receive input quiet. RF permitted.'}
+        self.receive_status.set(descriptions[state] + (f' Level {level:.0f} dBFS' if state != 'off' else ''))
+        self.receive_test_button.configure(state='disabled' if self.engine.enabled or self.engine.local_enabled or self.engine.busy else 'normal',
+                                           text='Stop receive test' if state != 'off' else 'Test receive input')
 
     def _ptt_method_changed(self):
         vox = self.variables["ptt_method"].get() == "VOX"
@@ -634,7 +650,7 @@ class Application:
         self.variables["supervised_ack"] = tk.BooleanVar(value=self.settings.supervised_ack)
         self.channel_ack = self.variables["supervised_ack"]
         # Retain the old saved value for settings compatibility; it no longer gates RF.
-        ttk.Label(supervision, text="The app does not detect a busy channel. Supervise operation on a clear or coordinated channel. RF Enable does not require an acknowledgement.",
+        ttk.Label(supervision, text="Optional receive audio monitoring in Audio / PTT can hold transmissions while audio is detected. Supervise operation on a clear or coordinated channel. RF Enable does not require an acknowledgement.",
                   wraplength=550).grid(row=0, column=0, sticky="w")
         ttk.Label(frame, text="Only validated spots are spoken. Comments and cluster commands are excluded.\nQueue: up to 100 spots. Starting output does not replay displayed history.",
                   wraplength=650).grid(row=4, column=0, sticky="w")
@@ -1027,8 +1043,9 @@ class Application:
         self.combos['voice_pack'].bind('<<ComboboxSelected>>', lambda event: self.variables['voice_pack'].set(self.pack_ids[self.pack_display.get()]))
         ttk.Label(self.recorded_speech_fields,text='Local pre-generated WAVs. No inference at playback. Custom intro words must exist in the chosen pack.',wraplength=600).grid(row=2,column=0,columnspan=3,pady=8)
         self._refresh_voice_packs()
+        ttk.Button(frame, text='Generate ElevenLabs recorded voice', command=self._elevenlabs_dialog).grid(row=5,column=0,sticky='w',pady=(0,12))
         access = ttk.LabelFrame(frame, text="Interface", padding=12)
-        access.grid(row=5, column=0, sticky="w", pady=(0, 12))
+        access.grid(row=6, column=0, sticky="w", pady=(0, 12))
         self._field(access, 0, "Text size", "text_size", note="10 to 18 points. High contrast is in Appearance.", compact=True)
         controls = ttk.Frame(frame)
         controls.grid(row=0, column=0, sticky="e", pady=(0, 10))
@@ -1036,6 +1053,10 @@ class Application:
         ttk.Button(controls, text="Speech setup and shortcuts", command=self._speech_help).pack(side="left")
         self.combos["speech_provider"].bind("<<ComboboxSelected>>", lambda event: self._speech_provider_changed())
         self._speech_provider_changed()
+
+    def _elevenlabs_dialog(self):
+        from .elevenlabs_ui import ElevenLabsDialog
+        ElevenLabsDialog(self)
 
     def _speech_provider_changed(self):
         windows = self.variables["speech_provider"].get() == "Windows"
@@ -1391,10 +1412,13 @@ class Application:
     def _refresh_devices(self):
         if self.engine.enabled or self.engine.local_enabled:
             self.engine.stop("Device refresh. RF disabled.")
+        self.engine.monitor.close()
         try:
             devices = AudioOutput.devices()
             for name in ("preview_device", "radio_device"):
                 self.combos[name].configure(values=devices)
+            from .receiver import ReceiveMonitor
+            self.combos["receive_device"].configure(values=ReceiveMonitor.devices())
             self.combos["serial_port"].configure(values=serial_ports())
             self.emit("journal", f"Found {len(devices)} audio output names")
         except Exception as exc:
@@ -1498,6 +1522,7 @@ class Application:
                     messagebox.showerror("Output stopped", value)
                 self._journal(str(value))
         self._render_connections()
+        self._receive_meter()
         self.root.after(75, self._poll)
 
     def _journal(self, text):

@@ -494,3 +494,34 @@ class AppTests(unittest.TestCase):
         offer.assert_called_once_with(app_test_spot)
         self.assertTrue(app.engine.local_enabled)
         self.assertFalse(app.engine.enabled)
+
+
+    def test_collection_qr_starts_with_all_profiles_and_paginates(self):
+        from tkinter import ttk
+        import tkinter as tk
+        self.app.profile_store.save('Home',Settings(),'secret',False)
+        self.app.profile_store.save('Travel',Settings(),'secret',False)
+        self.app._profile_qr()
+        dialog=next(w for w in self.root.winfo_children() if isinstance(w,tk.Toplevel))
+        def descendants(widget):
+            for child in widget.winfo_children():
+                yield child
+                yield from descendants(child)
+        picker=next(w for w in descendants(dialog) if isinstance(w,tk.Listbox))
+        self.assertEqual(picker.curselection(),(0,1))
+        generate=next(w for w in descendants(dialog) if isinstance(w,ttk.Button) and w.cget('text')=='Generate QR codes')
+        with patch("dxtalker.app.messagebox.showerror", side_effect=AssertionError("QR generation failed")):
+            generate.invoke()
+        self.root.update()
+        self.assertTrue(any(isinstance(w,ttk.Label) and str(w.cget('textvariable')) for w in descendants(dialog)))
+        dialog.destroy()
+
+    def test_elevenlabs_window_is_session_only_and_does_not_generate_on_open(self):
+        from dxtalker.elevenlabs_ui import ElevenLabsDialog
+        with patch('dxtalker.elevenlabs_ui.ElevenLabs') as client:
+            dialog=ElevenLabsDialog(self.app);self.root.update()
+            client.assert_not_called()
+            self.assertNotIn('API key',self.app.variables)
+            dialog.values['API key'].set('private_key')
+            dialog.close()
+            self.assertEqual(dialog.values['API key'].get(),'')

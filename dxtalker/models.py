@@ -137,6 +137,10 @@ class Settings:
     poll_seconds: int = 30
     radio_device: str = ""
     preview_device: str = ""
+    receive_guard: bool = False
+    receive_device: str = ""
+    receive_threshold_db: int = -40
+    receive_quiet_seconds: int = 7
     ptt_method: str = "VOX"
     serial_port: str = ""
     active_high: bool = True
@@ -206,7 +210,7 @@ class Settings:
                   "cw_volume_percent": (0, 100), "voice_id_volume_percent": (0, 100),
                   "local_volume_percent": (0, 100), "character_pause_ms": (0, 1000),
                   "group_pause_ms": (0, 3000), "display_limit": (50, 5000),
-                  "log_max_mb": (1, 100), "log_backups": (1, 30), "text_size": (10, 18)}
+                  "log_max_mb": (1, 100), "log_backups": (1, 30), "text_size": (10, 18), "receive_threshold_db": (-60, -5), "receive_quiet_seconds": (5, 10)}
         for name, (low, high) in bounds.items():
             if not low <= getattr(self, name) <= high:
                 raise ValueError(f"{name.replace('_', ' ')} must be between {low} and {high}")
@@ -257,6 +261,8 @@ class Settings:
 
     def validate_rf(self):
         self.validate()
+        if self.receive_guard and not self.receive_device:
+            raise ValueError("Choose a receive audio input or turn off receive monitoring")
         if not self.radio_device:
             raise ValueError("Choose a radio audio device")
         if self.ptt_method != "VOX" and not re.fullmatch(r"COM[1-9]\d{0,2}", self.serial_port, re.I):

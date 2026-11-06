@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0a9. November 6, 2026
+
+Choose all or selected cluster profiles for QR transfer. Large selections use numbered pages collected and validated on Android before reviewed import. Add optional receive audio transmit hold with a level display, adjustable threshold, 5 to 10 second quiet delay, input fault shutdown and interrupted transmission retry. Add explicit ElevenLabs generation of reusable Recorded voice packs with session only credentials and verified clip resume. Windows speech and Piper remain available.
+
 ## 0.2.0a8. November 6, 2026
 
 Correct the publish job’s x64 portable artifact name so release assembly can complete after both Windows builds pass.

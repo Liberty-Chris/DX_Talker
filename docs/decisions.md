@@ -151,3 +151,12 @@ Use a versioned credential-free QR/file schema rather than accounts. Keep canoni
 Separate x86 packaging and installer identity from x64; choose updater assets by runtime bitness. XP is incompatible with the modern runtime. Keep a separately labelled Python 3.4/SAPI source test kit while a full XP port and actual XP acceptance remain open.
 
 Recorded voices are deterministic local PCM assets with checksummed manifests and bounds, generated from separately reviewed Piper models. The reference LJ Speech card identifies a public domain training dataset. Do not bulk redistribute every voice under one assumed license. Multi-model/speaker generation is opt-in local work with a matching card per model.
+
+
+## November 6, 2026. Collection QR, receiver hold and ElevenLabs
+
+Keep the existing transfer document and single QR format compatible. Add DXT2 as a transport for bounded numbered compressed chunks with a whole collection digest. Default desktop selection to all saved profiles and commit nothing on Android until the entire collection validates and is reviewed. Preserve partial scans through activity recreation, allow explicit reset and reject mixed collections.
+
+Measure optional local input RMS rather than claiming hardware carrier detection. Hold initial/due IDs and spots until a full operator selected 5 to 10 second quiet interval, cancel an interrupted transmission and retry eligible work. A stalled or failed input disables RF. Keep startup disabled and do not let local previews or listening depend on the receiver gate. Receiver audio is never recorded or uploaded.
+
+Use ElevenLabs to generate the existing offline Recorded format rather than adding a cloud dependency to every announcement. Generation is explicit and uses the operator’s own session only key and account credits. Retain verified completed clips for resuming but do not automatically retry billed requests. Preserve voice/model provenance without asserting redistribution rights. Piper remains an optional provider and generator.

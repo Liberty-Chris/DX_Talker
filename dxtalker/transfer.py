@@ -1,5 +1,6 @@
 """Versioned, credential-free desktop/mobile transfer and curated directory records."""
 import base64
+import hashlib
 import json
 import zlib
 from dataclasses import replace
@@ -44,6 +45,18 @@ def encode(data, qr=False):
     text = 'DXT1:' + base64.urlsafe_b64encode(zlib.compress(raw)).decode().rstrip('=')
     if len(text.encode()) > 1800: raise ValueError('Too much data for one readable QR. Select one profile or use a file.')
     return text
+
+def qr_sequence(data):
+    """One legacy QR when possible, otherwise bounded, independently numbered parts."""
+    raw = encode(data)
+    compressed = zlib.compress(raw)
+    text = 'DXT1:' + base64.urlsafe_b64encode(compressed).decode().rstrip('=')
+    if len(text) <= 1800:
+        return [text]
+    identity = hashlib.sha256(compressed).hexdigest()
+    chunks = [compressed[i:i+1024] for i in range(0, len(compressed), 1024)]
+    return [f'DXT2:{identity}:{i+1}:{len(chunks)}:' + base64.urlsafe_b64encode(chunk).decode().rstrip('=')
+            for i, chunk in enumerate(chunks)]
 
 def decode(value):
     raw = value.encode() if isinstance(value,str) else value

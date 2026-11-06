@@ -68,7 +68,7 @@ The listening toggle uses already applied settings. It does not save pending edi
 
 ## Announcement policy controls
 
-Announcements groups Frequency range, Timing and repeats and RF supervision into compact sections. Frequency limits always use kHz. Timing fields are in seconds, with supported ranges beside them. The busy channel limitation appears as guidance; an acknowledgement checkbox no longer gates RF. Editing, validation and Save and apply behavior are unchanged.
+Announcements groups Frequency range, Timing and repeats and RF supervision into compact sections. Frequency limits always use kHz. Timing fields are in seconds, with supported ranges beside them. Optional receive audio transmit hold is configured in Audio / PTT; an acknowledgement checkbox no longer gates RF. Editing, validation and Save and apply behavior are unchanged.
 
 
 ## Announcement format
@@ -90,3 +90,14 @@ Listen locally can be armed before connecting or before a cluster emits its firs
 ## Recorded voices
 
 Recorded uses pre-generated local WAV assets instead of system speech or live model inference. Select a parent voice pack folder and a named voice. Existing providers remain available. Recorded rate is fixed at generation time; character and group pauses remain configurable. Unknown custom intro/ID words produce an error asking for added assets or another provider. See the repository's recorded voice pack guide for generation, installation and per-model licensing.
+
+
+## Generate an ElevenLabs recorded voice
+
+Choose Generate ElevenLabs recorded voice in Speech. Enter your ElevenLabs API key, then Load my voices or paste a voice ID from your account. The list shows up to 100 account voices. The default model is eleven_multilingual_v2; an alternate supported model ID can be entered. Choose a readable label, parent voice pack folder and a new pack name. The current custom announcement intro is included as a complete phrase.
+
+Generate voice pack sends the displayed vocabulary to ElevenLabs and consumes your API credits. The screen shows the clip count and approximate text character count before generation. The standard vocabulary contains 77 clips. A custom intro may add one more. No API call is made merely by opening the screen. The key is session only, masked with Show / hide, and is never written to settings, transfer data, diagnostic logs or the generated pack. Generation requires internet access and account permission to the chosen voice and PCM output. ElevenLabs processes the generation text under your account’s service settings; this integration does not promise zero retention.
+
+Progress shows completed or verified clips. Cancel keeps completed clips in a partial folder. Retry with the same folder, name, voice, model, label and intro to reuse verified clips. A failed request is not automatically retried because it may already have consumed credits. An in flight request can still consume credits after cancellation. Completed packs are never overwritten.
+
+When finished, choose Use this voice. Save and apply in the main window, select your local speakers and Preview sample speech. The provider is Recorded. Playback uses the local WAV files, requires no ElevenLabs connection and consumes no further API credits. Windows speech and experimental Piper remain available. Generated packs retain voice/model provenance; use and redistribution depend on your account plan and voice permissions. Arbitrary ID text may need its own WAV recording or additional assets.

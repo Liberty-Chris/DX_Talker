@@ -12,6 +12,7 @@ from .audio import AudioOutput, Cancelled, scale_clip, join_clips, morse_clip, w
 from .models import UTC
 from .speech import SpeechService
 from .ptt import create_ptt
+from .receiver import ReceiveMonitor, ReceiveCancel, ChannelBusy
 
 
 @dataclass(frozen=True)
@@ -22,11 +23,13 @@ class PreviewRequest:
 
 class Engine:
     def __init__(self, settings, emit, audio=None, speech=None, ptt_factory=create_ptt,
-                 clock=time.monotonic):
+                 clock=time.monotonic, monitor=None):
         self.settings, self.emit = settings, emit
         self.source_available = lambda: True
         self.audio, self.speech = audio or AudioOutput(), speech or SpeechService()
         self.ptt_factory, self.clock = ptt_factory, clock
+        self.monitor = monitor or ReceiveMonitor(clock)
+        self.gate_state = None
         self.lock = threading.RLock()
         self.wake, self.cancel, self.quit = threading.Event(), threading.Event(), threading.Event()
         self.items = deque(maxlen=100)
@@ -50,6 +53,10 @@ class Engine:
             if self.busy:
                 raise ValueError("Wait for the current preview to finish")
             self.settings.validate_rf()
+            self.monitor.close()
+            if self.settings.receive_guard:
+                self.monitor.start(self.settings)
+            self.gate_state = None
             self.local_enabled = False
             self.cancel.clear()
             self.items.clear()
@@ -63,6 +70,8 @@ class Engine:
             self.enabled = self.local_enabled = False
             self.cancel.set()
             self.items.clear()
+        if not self.busy:
+            self.monitor.close()
         self.wake.set()
         self.emit("output", message)
 
@@ -115,6 +124,13 @@ class Engine:
     def _select(self):
         with self.lock:
             now = self.clock()
+            if self.enabled and self.settings.receive_guard:
+                ready = self.monitor.ready()
+                if ready != self.gate_state:
+                    self.gate_state = ready
+                    self.emit('activity', 'Idle' if ready else 'RF waiting for receive audio to clear')
+                if not ready:
+                    return None
             if self.enabled and now >= self.next_id:
                 self.busy = True
                 return "id", None, self.settings
@@ -137,6 +153,7 @@ class Engine:
                 raise ValueError("Stop output and wait for Idle before starting local listening")
             if not self.settings.preview_device:
                 raise ValueError("Choose a local preview audio device")
+            self.monitor.close()
             self.cancel.clear()
             self.items.clear()
             self.seen.clear()
@@ -180,12 +197,18 @@ class Engine:
             raise Cancelled()
         # Resolve the exact audio device before keying, then resolve again at playback.
         self.audio.resolve(s.radio_device, clip.channels)
+        receive_cancel = ReceiveCancel(self.cancel, self.monitor) if s.receive_guard else None
+        playback_cancel = receive_cancel or self.cancel
+        if playback_cancel.is_set():
+            if self.cancel.is_set(): raise Cancelled()
+            if receive_cancel.fault: raise receive_cancel.fault
+            raise ChannelBusy()
         ptt = self.ptt_factory(s)
         timeout = threading.Event()
         watchdog = None
         try:
             ptt.open()
-            if self.cancel.is_set():
+            if playback_cancel.is_set():
                 raise Cancelled()
             deadline = self.clock() + s.max_tx_seconds
 
@@ -203,9 +226,14 @@ class Engine:
             watchdog.start()
             ptt.set(True)
             self.emit("activity", "Transmitting")
-            self._wait(s.lead_ms / 1000)
-            self.audio.play(clip, s.radio_device, s.volume_percent if volume is None else volume, self.cancel, deadline)
-            self._wait(s.tail_ms / 1000)
+            if playback_cancel.wait(s.lead_ms / 1000): raise Cancelled()
+            self.audio.play(clip, s.radio_device, s.volume_percent if volume is None else volume, playback_cancel, deadline)
+            if playback_cancel.wait(s.tail_ms / 1000): raise Cancelled()
+        except Cancelled:
+            if receive_cancel and not self.cancel.is_set():
+                if receive_cancel.fault: raise receive_cancel.fault
+                if receive_cancel.interrupted: raise ChannelBusy()
+            raise
         finally:
             try:
                 ptt.close()
@@ -219,11 +247,12 @@ class Engine:
         while not self.quit.is_set():
             self.wake.wait(0.1)
             self.wake.clear()
-            task = self._select()
-            if task is None:
-                continue
-            kind, value, s = task
+            kind, value = None, None
             try:
+                task = self._select()
+                if task is None:
+                    continue
+                kind, value, s = task
                 self.emit("activity", "Preparing audio")
                 if kind == "spot":
                     if (datetime.now(UTC) - value.timestamp).total_seconds() > s.max_age_seconds:
@@ -274,6 +303,11 @@ class Engine:
                         else:
                             self.seen[value.key] = self.clock()
                             self.next_spot = self.clock() + s.spacing_seconds
+            except ChannelBusy:
+                with self.lock:
+                    if self.enabled and kind == 'spot':
+                        self.items.appendleft((kind, value))
+                self.emit('activity', 'RF waiting for receive audio to clear')
             except Cancelled:
                 self.stop("Output cancelled. RF disabled.")
             except Exception as exc:
@@ -286,4 +320,7 @@ class Engine:
             finally:
                 with self.lock:
                     self.busy = False
-                self.emit("activity", "Idle")
+                    if kind is not None and not self.enabled:
+                        self.monitor.close()
+                if kind is not None:
+                    self.emit("activity", "Idle")
