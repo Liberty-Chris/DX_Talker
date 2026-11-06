@@ -105,3 +105,89 @@ class AudioTests(unittest.TestCase):
                     decoded = array("h")
                     decoded.frombytes(captured[0])
                     self.assertEqual(list(decoded), [500, -500, 0, 0])
+
+    def test_normal_finish_between_wait_and_stream_state_check_is_not_a_fault(self):
+        class Stop(Exception):pass
+        class Abort(Exception):pass
+        class Stream:
+            def __init__(self,**kwargs):self.kwargs=kwargs
+            def __enter__(self):
+                try:self.kwargs['callback'](bytearray(4),2,None,False)
+                except Stop:pass
+                return self
+            @property
+            def active(self):
+                # The 20 ms wait has timed out; native completion is observed
+                # just before the main thread reads the inactive stream state.
+                self.kwargs['finished_callback']()
+                return False
+            def __exit__(self,*args):pass
+        fake=SimpleNamespace(RawOutputStream=Stream,CallbackStop=Stop,CallbackAbort=Abort)
+        audio=AudioOutput()
+        with patch.dict('sys.modules',{'sounddevice':fake}),patch.object(audio,'resolve',return_value=0):
+            audio.play(Clip(b'\0\0'*2),'chosen',100,threading.Event(),time.monotonic()+1)
+
+    def test_finish_notification_can_arrive_after_inactive_is_first_observed(self):
+        class Stop(Exception):pass
+        class Abort(Exception):pass
+        class Stream:
+            def __init__(self,**kwargs):self.kwargs=kwargs;self.queries=0
+            def __enter__(self):
+                try:self.kwargs['callback'](bytearray(4),2,None,False)
+                except Stop:pass
+                return self
+            @property
+            def active(self):
+                self.queries+=1
+                if self.queries==2:self.kwargs['finished_callback']()
+                return False
+            def __exit__(self,*args):pass
+        fake=SimpleNamespace(RawOutputStream=Stream,CallbackStop=Stop,CallbackAbort=Abort)
+        audio=AudioOutput()
+        with patch.dict('sys.modules',{'sounddevice':fake}),patch.object(audio,'resolve',return_value=0):
+            audio.play(Clip(b'\0\0'*2),'chosen',100,threading.Event(),time.monotonic()+2)
+
+    def test_genuine_early_stream_stop_has_numeric_evidence_and_stays_a_fault(self):
+        from dxtalker.audio import AudioPlaybackError
+        closed=[]
+        class Stream:
+            active=False
+            def __init__(self,**kwargs):self.kwargs=kwargs
+            def __enter__(self):self.kwargs['callback'](bytearray(2),1,None,False);return self
+            def __exit__(self,*args):closed.append(True)
+        fake=SimpleNamespace(RawOutputStream=Stream)
+        audio=AudioOutput()
+        with patch.dict('sys.modules',{'sounddevice':fake}),patch.object(audio,'resolve',return_value=0):
+            with self.assertRaises(AudioPlaybackError) as error:
+                audio.play(Clip(b'\0\0'*4),'chosen',100,threading.Event(),time.monotonic()+1)
+        self.assertEqual(error.exception.code,'audio_stream_stopped')
+        self.assertEqual(error.exception.context,dict(frames_queued=1,frames_expected=4,sample_rate=22050,channels=1))
+        self.assertEqual(closed,[True])
+
+    def test_missing_finish_signal_is_bounded_and_cancellation_during_grace_still_stops(self):
+        from dxtalker.audio import AudioPlaybackError,Cancelled
+        class Stop(Exception):pass
+        class Abort(Exception):pass
+        for cancelled in (False,True):
+            cancel=threading.Event();aborted=[]
+            class Stream:
+                def __init__(self,**kwargs):self.kwargs=kwargs
+                def __enter__(self):
+                    try:self.kwargs['callback'](bytearray(4),2,None,False)
+                    except Stop:pass
+                    return self
+                @property
+                def active(self):
+                    if cancelled:cancel.set()
+                    return False
+                def abort(self):aborted.append(True)
+                def __exit__(self,*args):pass
+            fake=SimpleNamespace(RawOutputStream=Stream,CallbackStop=Stop,CallbackAbort=Abort)
+            tick=[0]
+            def clock():tick[0]+=.05;return tick[0]
+            audio=AudioOutput()
+            with patch.dict('sys.modules',{'sounddevice':fake}),patch.object(audio,'resolve',return_value=0),patch('dxtalker.audio.time.monotonic',side_effect=clock):
+                with self.assertRaises(Cancelled if cancelled else AudioPlaybackError) as error:
+                    audio.play(Clip(b'\0\0'*2),'chosen',100,cancel,100)
+            if cancelled:self.assertEqual(aborted,[True])
+            else:self.assertEqual(error.exception.code,'audio_finish_unconfirmed')

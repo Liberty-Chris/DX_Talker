@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0a10. November 6, 2026
+
+Fix a playback completion race that could report a normal final buffer as an unexpected audio stream stop. Allow a bounded completion notification interval after all samples are queued while preserving cancellation, deadlines and device fault handling. Show fixed readable playback messages and export cause codes, numeric sample progress and local/radio routes for diagnosis.
+
 ## 0.2.0a9. November 6, 2026
 
 Identify shared speech requests as DXTalker to pass website client filtering. Distinguish website HTTP 403 responses from explicit service voice/model denials.

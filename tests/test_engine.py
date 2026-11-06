@@ -275,3 +275,31 @@ class EngineTests(unittest.TestCase):
         self.assertIs(self.engine.settings, self.settings)
         self.assertEqual(self.ptts, [])
         self.assertFalse(self.engine.enabled)
+
+    def test_known_playback_fault_logs_fixed_code_and_frames_and_shows_readable_message(self):
+        from dxtalker.audio import AudioPlaybackError
+        class FaultAudio(FakeAudio):
+            def play(self,*args):
+                raise AudioPlaybackError('audio_stream_stopped',frames_queued=1024,frames_expected=2048,sample_rate=22050,channels=1)
+        self.engine.audio=FaultAudio()
+        self.engine.preview('voice')
+        wait_for(lambda:any(kind=='diagnostic' for kind,value in self.events) and not self.engine.busy)
+        evidence=next(value for kind,value in self.events if kind=='diagnostic')
+        self.assertEqual(evidence['code'],'audio_stream_stopped')
+        self.assertEqual(evidence['route'],'local')
+        self.assertEqual(evidence['playback']['frames_queued'],1024)
+        self.assertTrue(any(kind=='error' and 'Audio output stopped' in value for kind,value in self.events))
+        self.assertEqual(self.ptts,[])
+
+    def test_known_radio_playback_fault_still_disarms_and_releases_ptt(self):
+        from dxtalker.audio import AudioPlaybackError
+        class FaultAudio(FakeAudio):
+            def play(self,*args):
+                raise AudioPlaybackError('audio_stream_fault',frames_queued=0,frames_expected=1000,sample_rate=22050,channels=1)
+        self.engine.audio=FaultAudio()
+        self.engine.enable()
+        wait_for(lambda:bool(self.ptts) and not self.engine.enabled and not self.engine.busy)
+        self.assertEqual(self.ptts[0].calls[-2:],[False,'close'])
+        evidence=next(value for kind,value in self.events if kind=='diagnostic')
+        self.assertEqual(evidence['route'],'radio')
+        self.assertEqual(evidence['code'],'audio_stream_fault')

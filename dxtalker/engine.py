@@ -8,7 +8,7 @@ import threading
 import time
 
 from .diagnostics import Diagnostics
-from .audio import AudioOutput, Cancelled, scale_clip, join_clips, morse_clip, wav_clip
+from .audio import AudioOutput, AudioPlaybackError, Cancelled, scale_clip, join_clips, morse_clip, wav_clip
 from .models import UTC
 from .speech import SpeechService
 from .ptt import create_ptt
@@ -315,10 +315,14 @@ class Engine:
             except Cancelled:
                 self.stop("Output cancelled. RF disabled.")
             except Exception as exc:
-                self.emit('diagnostic', dict(error_type=type(exc).__name__, frames=Diagnostics.frames(exc.__traceback__)))
+                evidence = dict(error_type=type(exc).__name__, frames=Diagnostics.frames(exc.__traceback__))
+                if isinstance(exc, AudioPlaybackError):
+                    evidence.update(code=exc.code, playback=exc.context, operation=kind,
+                                    route='local' if kind.startswith('preview_') or self.local_enabled else 'radio')
+                self.emit('diagnostic', evidence)
                 # Transport errors can contain identifiers; only expected local
                 # validation messages are shown verbatim.
-                detail = str(exc) if isinstance(exc, (ValueError, TimeoutError)) else type(exc).__name__
+                detail = str(exc) if isinstance(exc, (ValueError, TimeoutError, AudioPlaybackError)) else type(exc).__name__
                 self.stop("Output fault. RF disabled.")
                 self.emit("error", detail)
             finally:

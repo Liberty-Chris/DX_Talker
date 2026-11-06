@@ -169,3 +169,10 @@ Replace individual tester key entry with a private PHP gateway on existing Dream
 The admission value is distributed in the app and is therefore not a durable app secret. Bound the pilot with atomic daily text/request limits, per observed IP hourly requests, two concurrent upstream jobs, fixed provider URL, disabled redirects, certificate checks and configured voice/model choices. Cache PCM privately with an age and size bound. Prepare the full clip before PTT. Do not automatically retry billed requests or silently switch speech providers.
 
 Only trusted Windows builds inject the client configuration from DXTALKER_SPEECH_CONFIG. Reject accidentally supplied owner configuration. Builds without deployment configuration remain explicit about service availability. The service and app are implemented and tested with synthetic providers; hosting installation and actual account usage require owner setup.
+
+
+## November 6, 2026. Bounded playback completion confirmation
+
+Use the completion notification as the output API completion signal and recheck it when observing an inactive stream. A final buffer may complete between the polling wait and stream state read. Allow a bounded 250 ms interval only when all frames have already been queued, with cancellation and deadline checks continuing every polling interval. Never treat queued PCM alone as successful playback or suppress real faults.
+
+Use an owned AudioPlaybackError type for fixed operator messages and numeric evidence. Export only allowlisted cause codes and frame/rate/channel counts plus local/radio route. Do not log arbitrary backend exception messages, device names or audio. A generic historical RuntimeError alone cannot prove the failure mechanism.
