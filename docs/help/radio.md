@@ -16,6 +16,38 @@ RTS, DTR and RTS+DTR control compatible serial PTT wiring. Select the COM port a
 
 A USB audio device does not necessarily supply PTT. CM108 HID interfaces, including RIM devices, are not controlled by these serial modes. CAT and vendor specific interfaces are also not included yet. Exact hardware compatibility needs a bench test.
 
+## Traditional PC serial ports and DB9 wiring
+
+DX Talker can use a built in PC COM port or a compatible USB serial adapter for PTT. USB is not required for the control connection. Select its COM number in Audio / PTT and use an adapter that actually exposes the required control lines.
+
+For a standard PC RS232 DB9 serial connector, choosing RTS in the app uses pin 7 for transmit control. Choosing DTR uses pin 4. Pin 5 is the PC serial signal ground and is the reference on the computer side of a suitable interface. RTS+DTR operates both control outputs independently; do not join pins 4 and 7 together.
+
+Pin 3, marked TXD, carries outgoing serial data. It is not transmit audio. There is no analog audio output on a standard PC RS232 DB9 connector. DX Talker uses the selected control lines for serial PTT rather than sending CAT commands on TXD.
+
+These assignments are for the computer's standard serial connector, not a radio's accessory connector. A radio or interface can use a DB9 shell for a completely different arrangement, including audio and PTT. Use the manufacturer's pinout for that device. Check the connector's moulded pin numbers: looking at the mating face and looking at the solder side reverses the apparent layout. A null modem cable can also reroute signals; verify end to end continuity rather than assuming a cable is wired straight through.
+
+## Converting serial control into radio PTT
+
+RTS and DTR are RS232 electrical signals, not ordinary radio PTT contacts or a guaranteed 3.3 V or 5 V logic output. Many radio PTT inputs expect a switch closure to their designated PTT return. Use a compatible interface that translates the control signal into the electrical action required by the radio. Do not connect raw RTS/DTR directly to an ordinary ground to transmit PTT input unless the radio or interface manual explicitly permits that connection.
+
+An optocoupler interface can provide an isolated switching output; a correctly designed transistor interface can also switch a suitable radio PTT input. The driver, reverse voltage protection, current rating and radio PTT voltage must be matched to the actual hardware. This guide does not establish one universal component circuit for every radio. On an isolated interface, PC pin 5 belongs to its computer side; do not bypass the isolation by automatically joining it to radio ground.
+
+The app's Active high option selects the logical asserted state of RTS/DTR. It does not convert RS232 to TTL voltage or make an unsafe wiring arrangement compatible. Verify the interface's idle and transmit behavior, polarity and release with the radio disconnected before normal operation. Some ports can pulse control lines when opening or during startup.
+
+## The separate audio connection
+
+Choose the sound device carrying the radio audio in Audio / PTT. It can be the computer's built in sound output, a USB sound adapter or the radio's own USB audio device. This audio path is separate from the serial PTT path.
+
+Connect that output through the attenuation and audio isolation appropriate to the radio's microphone, data or accessory transmit audio input. A sound output is not automatically at the correct level for a microphone input. Start low and verify the transmitted audio using the exact radio/interface instructions. If using a stereo output for a mono radio input, use an appropriate channel or mixing network rather than directly shorting the left and right outputs together.
+
+The complete arrangement therefore has two paths: the PC's RTS or DTR control through a PTT interface to the radio's PTT input, and the selected sound output through the audio interface to the radio's transmit audio input. A combined commercial interface may package both paths in one box or cable, but they remain separate functions.
+
+## Choosing a radio specific cable
+
+Record the exact radio model, interface model, radio connector, intended mode and the manufacturer's pin numbering view. Then identify transmit audio input, its return, PTT input, PTT return, required levels and keying polarity from that model's documentation. A connector that fits physically is not enough to establish compatibility. Only add a model specific wiring recipe after those details and the stop/release behavior are verified.
+
+The [NI RS232 connector reference](https://www.ni.com/en/support/documentation/supplemental/18/converting-an-rj50-serial-connector-to-db9-or-db25.html) documents the PC DB9 signal assignments. The [Sound Card Packet serial PTT guide](https://www.soundcardpacket.org/7cableptt.aspx) illustrates the separate serial control and isolated radio PTT switching approach. Its example circuit is a reference, not a substitute for checking a particular radio's electrical requirements.
+
 ## Timing and level
 
 PTT lead time delays playback after keying. Tail time delays release after audio ends. Maximum transmit seconds includes lead, playback and tail. Audio that cannot fit within this limit is rejected before keying. A watchdog makes a separate release attempt if output stalls.
