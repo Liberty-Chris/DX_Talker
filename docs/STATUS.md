@@ -133,3 +133,8 @@ Windows CI is expanded to x64/x86 installers and portable artifacts with matchin
 The recorded voice provider uses checksummed mono PCM assets with no model inference during playback. A local real LJ Speech high model generated 77 assets, about 1.77 MB before silence trimming. A sample announcement assembled in about 2 ms. This measures preparation, not audio endpoint latency or subjective voice quality. Batch generation supports local models/speakers with corresponding model cards. The generated artifact is included in CI rather than committing binaries.
 
 Local verification so far: 112 tests pass under a Linux dummy X display with no skips. Tests cover first-packet listening, safe diagnostics and stalled-UI evidence, profile transfer round trips/field rejection/zip-bomb limits and recorded clip checksums. XP kit parser and Python 3.4 syntax checks pass on modern Python, which does not establish XP execution. Native Android tests/build and Windows x86/x64 smoke/install checks are pending the branch workflow. Physical phone camera/background behavior, actual 32 bit Windows, XP machines and radio acceptance remain open.
+
+
+## November 6, 2026. General DB9 radio interface guide
+
+Expanded the radio help page with standard PC DB9 RTS/DTR/ground assignments, the absence of analog serial port audio, separate sound output routing, electrical conversion and isolation, connector orientation and radio-specific accessory pinout checks. Checked the explanation against the implemented SerialPTT methods and the cited NI and Sound Card Packet references. This is documentation guidance, not physical radio or interface acceptance. Local documentation/help checks and whitespace validation pass; no application behavior changed.
