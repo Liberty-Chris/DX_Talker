@@ -52,3 +52,14 @@ Read the source state and session console. Connected means the socket is open. S
 ## Update check reports a connection error
 
 An internet connection does not establish that the GitHub update request succeeded. The application now distinguishes public API rate limits, HTTP responses, DNS, TLS verification and timeouts. Check the reported category and try Release page for a manual download. The Pilot channel includes preview releases. Stable may have no applicable release during pilot testing.
+
+
+## Audio playback stopped or RuntimeError
+
+Older builds can show only RuntimeError for several unrelated output failures. Export a diagnostic report from History / Updates and include the approximate time and whether the failure occurred during local listening, a preview or RF output. The short warning alone does not establish a device or speech provider cause.
+
+Version 0.2.0a10 fixes a confirmed completion race: the stream could finish after the app’s completion wait timed out but before it queried native stream state. The app now accepts that normal completion notification. After all samples have been queued, a missing notification receives at most 250 ms of grace, with cancellation and maximum duration still enforced. An early stop remains a failure, and the app never assumes that queued samples were played merely because they were submitted.
+
+Known playback failures show readable messages. Their exported cause codes are audio_stream_stopped for an inactive stream before all frames were queued, audio_finish_unconfirmed for missing completion confirmation, audio_stream_fault for a reported audio stream fault and audio_incomplete for completion with missing frames. Reports include numeric frame counts, sample rate, channels and local/radio route. Queued frames measure submission to the audio API, not confirmed physical sound output. Reports do not include audio samples or device names.
+
+For a genuine device failure, check the selected output, USB connection and Windows sound settings. Refresh devices, select the intended local or radio output again and save and apply while output is stopped. Try a local preview before resuming. No automatic retry, default device switch or RF reenable occurs. Actual device faults still stop output and attempt PTT release.

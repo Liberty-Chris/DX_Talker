@@ -43,3 +43,6 @@ Export diagnostic report creates a local ZIP of bounded diagnostic logs only. Re
 
 
 Selecting the optional ElevenLabs provider sends announcement or speech ID text through the shared pilot speech service to ElevenLabs. This is independent of diagnostic logging or report export. Offline Windows, Piper and Recorded choices remain available. The service may retain bounded generated audio in its private cache; its setup guide documents retention and limits.
+
+
+Version 0.2.0a10 adds fixed playback failure codes and numeric queued/expected frame counts, sample rate, channel count and local/radio route. These distinguish known local playback failures without logging exception values, audio content, device names or credentials. Earlier reports contain only an exception type and code locations for these failures.

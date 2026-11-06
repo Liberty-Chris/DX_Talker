@@ -20,6 +20,22 @@ class Cancelled(Exception):
     pass
 
 
+class AudioPlaybackError(RuntimeError):
+    """Fixed local messages and numeric evidence, safe for diagnostics and the UI."""
+    MESSAGES = {
+        'audio_stream_stopped': 'Audio output stopped before playback completed. Check the selected audio device, its connection and Windows sound settings.',
+        'audio_finish_unconfirmed': 'Audio output stopped without confirming completion. Check the selected audio device and try a local preview again.',
+        'audio_stream_fault': 'The audio device reported a playback fault. Check its connection and Windows sound settings before restarting output.',
+        'audio_incomplete': 'Audio output ended before all samples were delivered. Check the selected audio device before restarting output.',
+    }
+
+    def __init__(self, code, *, frames_queued, frames_expected, sample_rate, channels):
+        super().__init__(self.MESSAGES[code])
+        self.code = code
+        self.context = dict(frames_queued=frames_queued, frames_expected=frames_expected,
+                            sample_rate=sample_rate, channels=channels)
+
+
 @dataclass(frozen=True)
 class Clip:
     pcm: bytes
@@ -187,6 +203,12 @@ class AudioOutput:
         pcm, offset, total = data.tobytes(), 0, len(data) * 2
         finished = __import__("threading").Event()
         audio_fault = []
+        inactive_since = None
+
+        def failure(code):
+            return AudioPlaybackError(code, frames_queued=offset//(clip.channels*2),
+                                      frames_expected=total//(clip.channels*2),
+                                      sample_rate=clip.rate, channels=clip.channels)
 
         def callback(out, frames, timing, status):
             nonlocal offset
@@ -212,15 +234,30 @@ class AudioOutput:
                     stream.abort()
                     break
                 if not stream.active:
-                    raise RuntimeError("Audio output stopped unexpectedly")
+                    # Native completion may occur between Event.wait() and this
+                    # state query. Wait for its Python notification rather than
+                    # misreporting a normal final buffer as a device failure.
+                    if finished.is_set():
+                        continue
+                    if audio_fault:
+                        raise failure('audio_stream_fault')
+                    if offset < total:
+                        raise failure('audio_stream_stopped')
+                    now = time.monotonic()
+                    if inactive_since is None:
+                        inactive_since = now
+                    if now-inactive_since >= .25:
+                        raise failure('audio_finish_unconfirmed')
+                else:
+                    inactive_since = None
         if cancel.is_set():
             raise Cancelled()
         if time.monotonic() > deadline:
             raise TimeoutError("Maximum playback duration reached")
         if audio_fault:
-            raise RuntimeError("Audio stream reported a playback fault")
+            raise failure('audio_stream_fault')
         if offset < total:
-            raise RuntimeError("Audio output did not complete")
+            raise failure('audio_incomplete')
 
 
 def scale_clip(clip, percent):
