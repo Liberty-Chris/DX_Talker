@@ -6,7 +6,7 @@ import threading
 import unittest
 from urllib.error import HTTPError, URLError
 from dxtalker.audio import Clip, Cancelled
-from dxtalker.elevenlabs import ElevenLabs, build_pack, NoRedirect
+from dxtalker.elevenlabs import ElevenLabs, build_pack, NoRedirect, CancelEither
 from dxtalker.voicepacks import VoicePack, vocabulary
 
 
@@ -68,6 +68,17 @@ class ElevenLabsTests(unittest.TestCase):
             self.assertGreater(pack.render([('New DX on',0)],None,cancel).duration,0)
             self.assertNotIn('api_key',(path/'voice.json').read_text())
             with self.assertRaisesRegex(ValueError,'never overwritten'):build_pack(Client(),path,'Fixture','voice','model')
+
+    def test_application_shutdown_prevents_further_paid_requests_without_tk_callbacks(self):
+        local,shutdown=threading.Event(),threading.Event();calls=[]
+        class Client:
+            def render(self,text,*args):
+                calls.append(text);shutdown.set();return Clip(b'\x00\x10'*500)
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaises(Cancelled):
+                build_pack(Client(),Path(folder)/'voice','Fixture','voice','model',cancel=CancelEither(local,shutdown))
+            self.assertEqual(len(calls),1)
+            self.assertFalse((Path(folder)/'voice').exists())
 
     def test_corrupt_partial_clip_is_regenerated_and_response_size_is_bounded(self):
         calls=[];cancel=threading.Event()

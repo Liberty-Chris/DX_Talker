@@ -5,7 +5,7 @@ import threading
 import tkinter as tk
 from tkinter import filedialog, ttk
 from .audio import Cancelled
-from .elevenlabs import ElevenLabs, build_pack
+from .elevenlabs import ElevenLabs, build_pack, CancelEither
 from .models import settings_path
 from .voicepacks import vocabulary
 
@@ -87,14 +87,15 @@ class ElevenLabsDialog:
                 destination=Path(values['Voice pack folder'])/name
                 if destination.exists():raise ValueError('Choose a new pack name. Completed packs are never overwritten.')
             self.cancel.clear(); self.busy=True
+            request_cancel=CancelEither(self.cancel,self.app.background_cancel)
             self.generate.configure(state='disabled');self.load.configure(state='disabled');self.use.grid_remove()
             self.cancel_button.configure(text='Cancel generation' if action=='generate' else 'Cancel request')
             self.status.set('Generating local clips. API usage consumes credits.' if action=='generate' else 'Loading voices...')
             def task():
                 try:
-                    if action=='voices':self.events.put(('voices',client.voices(self.cancel)))
+                    if action=='voices':self.events.put(('voices',client.voices(request_cancel)))
                     else:
-                        path=build_pack(client,destination,values['Voice label'],values['Voice ID'],values['Model ID'],values['Custom intro'],self.cancel,
+                        path=build_pack(client,destination,values['Voice label'],values['Voice ID'],values['Model ID'],values['Custom intro'],request_cancel,
                                         progress=lambda done,total:self.events.put(('progress',(done,total))))
                         self.events.put(('done',path))
                 except Cancelled:self.events.put(('error','Cancelled. Completed clips are kept. Use the same settings to resume. An in flight API request may still consume credits.'))

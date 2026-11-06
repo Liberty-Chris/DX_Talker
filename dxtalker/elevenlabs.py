@@ -13,6 +13,15 @@ from .updates import update_ssl_context
 from .voicepacks import vocabulary, trim_clip
 
 
+class CancelEither:
+    """Generation stops on its own Cancel or application shutdown, even if Tk is gone."""
+    def __init__(self, local, shutdown):
+        self.local, self.shutdown = local, shutdown
+
+    def is_set(self):
+        return self.local.is_set() or self.shutdown.is_set()
+
+
 class NoRedirect(request.HTTPRedirectHandler):
     def redirect_request(self, *args, **kwargs):
         raise ValueError('ElevenLabs redirected the request. No API key was forwarded.')
