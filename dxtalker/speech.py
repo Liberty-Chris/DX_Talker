@@ -65,6 +65,11 @@ class SpeechService:
         return self._render(spot_plan(spot, settings), settings, cancel)
 
     def _render(self, plan, settings, cancel, structured=True):
+        if settings.speech_provider == "Recorded":
+            from .voicepacks import VoicePack
+            if not settings.voice_pack or Path(settings.voice_pack).name != settings.voice_pack:
+                raise ValueError('Choose an installed recorded voice pack')
+            return VoicePack(Path(settings.voice_pack_root)/settings.voice_pack).render(plan,settings,cancel)
         if settings.speech_provider == "Windows":
             return WindowsSpeech().render(plan_ssml(plan) if structured else plan[0][0], settings.voice,
                                           settings.speech_rate, cancel, settings.voice_gender, ssml=structured)

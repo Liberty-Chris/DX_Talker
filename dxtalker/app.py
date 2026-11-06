@@ -25,6 +25,8 @@ from .source import SourceClient
 from .profiles import ProfileStore, SOURCE_FIELDS
 from .history import History
 from . import updates
+from .diagnostics import Diagnostics
+from . import transfer
 
 
 def resource_root():
@@ -60,6 +62,18 @@ class Application:
         except Exception:
             self.settings = Settings()
             settings_error = "Saved settings could not be loaded. Defaults are shown. Your settings file has not been replaced."
+        try:
+            self.diagnostics = Diagnostics(enabled=self.settings.diagnostics_enabled)
+        except OSError:
+            self.diagnostics = Diagnostics(enabled=False)
+            settings_error += " Diagnostic logs could not be opened. Check folder permissions."
+        root.report_callback_exception = self._callback_exception
+        self._previous_thread_hook = threading.excepthook
+        def thread_failure(args):
+            self.diagnostics.exception('thread_exception', args.exc_type, args.exc_traceback)
+            self.engine.stop('A background task failed. Output stopped. See diagnostic logs.')
+            self.emit('journal', 'A background task failed. Export diagnostic logs for investigation.')
+        threading.excepthook = thread_failure
         self.history = None
         self.history_error = False
         self.update_release = self.update_download = None
@@ -74,7 +88,7 @@ class Application:
             self.profile_store = None
             settings_error += " Cluster profiles could not be loaded. The existing file has been retained."
         self.engine = Engine(self.settings, self.emit)
-        self.engine.source_available = lambda: self.source is not None and self.source.ready.is_set()
+        self.engine.source_available = lambda: self.source is not None and self.source.connected.is_set()
         self.variables = {}
         self.combos = {}
         self.field_widgets = {}
@@ -276,12 +290,25 @@ class Application:
 
             bind_children(frame)
 
+    def _callback_exception(self, exc_type, exc_value, tb):
+        self.diagnostics.exception('ui_exception', exc_type, tb)
+        self.engine.stop('An interface error stopped output. See diagnostic logs.')
+        messagebox.showerror('DX Talker', 'An unexpected interface error occurred. Output stopped. Export diagnostic logs from History / Updates.')
+
+    def _export_diagnostics(self):
+        path = filedialog.asksaveasfilename(title='Export diagnostic report', defaultextension='.zip', filetypes=[('ZIP report', '*.zip')])
+        if path:
+            self.diagnostics.export(path)
+            messagebox.showinfo('Diagnostic report', 'Saved locally. No report was uploaded. You can review and share the ZIP yourself.')
+
     def guard(self, action):
         def wrapped():
             try:
                 action()
             except Exception as exc:
-                messagebox.showerror("DX Talker", str(exc))
+                if not isinstance(exc, ValueError):
+                    self.diagnostics.exception('action_exception', type(exc), exc.__traceback__)
+                messagebox.showerror("DX Talker", str(exc) if isinstance(exc, ValueError) else "The action failed. See diagnostic logs for details.")
         return wrapped
 
     def _field(self, parent, row, label, name, choices=None, note=None, browse=False, compact=False):
@@ -367,6 +394,65 @@ class Application:
         self.log = tk.Text(frame, height=3, wrap="word", state="disabled", font=("Consolas", 9), relief="flat")
         self.log.grid(row=6, column=0, sticky="ew")
 
+    def _profile_qr(self):
+        if not self.selected_profile_id:
+            raise ValueError("Select and save a profile before generating its QR")
+        profile = next(p for p in self.profile_store.profiles if p['id'] == self.selected_profile_id)
+        payload = transfer.encode(transfer.document([profile], self._read_settings()), qr=True)
+        import io, base64, qrcode
+        from qrcode.image.pure import PyPNGImage
+        output = io.BytesIO()
+        qrcode.make(payload, image_factory=PyPNGImage, error_correction=qrcode.constants.ERROR_CORRECT_M,
+                    box_size=4, border=4).save(output)
+        window = tk.Toplevel(self.root)
+        window.title('Import this cluster on Android')
+        window.transient(self.root)
+        window.lift()
+        photo = tk.PhotoImage(data=base64.b64encode(output.getvalue()))
+        label = ttk.Label(window, image=photo)
+        label.image = photo
+        label.pack(padx=16,pady=16)
+        ttk.Label(window, text='Scan with DX Talker Android. Includes saved connection and current filters.\nNo password or token. Review the destination details before connecting.', wraplength=520).pack(padx=16,pady=(0,16))
+
+    def _export_profiles(self):
+        if not self.profile_store or not self.profile_store.profiles:
+            raise ValueError('Save a cluster profile first')
+        raw = transfer.encode(transfer.document(self.profile_store.profiles, self._read_settings()))
+        path = filedialog.asksaveasfilename(title='Export profiles and filters', defaultextension='.dxt.json', filetypes=[('DX Talker transfer','*.json')])
+        if path: Path(path).write_bytes(raw)
+
+    def _cluster_directory(self):
+        window = tk.Toplevel(self.root)
+        window.title('Curated cluster directory')
+        items = []
+        listing = tk.Listbox(window, width=72, height=12)
+        listing.pack(padx=12,pady=12)
+        note = tk.StringVar(value="Dad's curated list is pending. Load a directory file when available. Status is curated, not a live reachability guarantee.")
+        ttk.Label(window,textvariable=note,wraplength=580).pack(padx=12,pady=8)
+        def populate(path):
+            if Path(path).stat().st_size > transfer.MAX_BYTES: raise ValueError('Directory exceeds 64 KiB')
+            entries = transfer.catalog(json.loads(Path(path).read_text()))
+            items[:] = entries
+            listing.delete(0,'end')
+            for entry in items: listing.insert('end', f"{entry['name']} ({entry['status']}; checked {entry['checked'] or 'unknown'})")
+        def load():
+            path = filedialog.askopenfilename(title='Load curated cluster directory',filetypes=[('JSON directory','*.json')])
+            if path: populate(path)
+        def add():
+            choice = listing.curselection()
+            if not choice: raise ValueError('Choose a directory entry')
+            item = items[choice[0]]
+            if item['status'] != 'active': raise ValueError('This directory entry is retired')
+            if any(p['connection'] == item['connection'] for p in self.profile_store.profiles):
+                raise ValueError('This connection is already saved')
+            self.profile_store.save(item['name'], replace(self.settings, **item['connection']))
+            self._refresh_profiles()
+            note.set('Added. Select the profile to enter your callsign and any required password. Nothing connected automatically.')
+        ttk.Button(window,text='Load directory file',command=self.guard(load)).pack(side='left',padx=12,pady=12)
+        ttk.Button(window,text='Add selected cluster',command=self.guard(add)).pack(side='left',padx=12,pady=12)
+        bundled = resource_root() / 'assets/catalog/clusters.json'
+        if bundled.exists(): populate(bundled)
+
     def _source_tab(self):
         frame = self.tabs["Source"]
         profiles = ttk.LabelFrame(frame, text="Cluster profiles", padding=12)
@@ -388,6 +474,10 @@ class Application:
         self.delete_profile_button = ttk.Button(buttons, text="Delete profile", command=self.guard(self._delete_profile))
         self.delete_profile_button.pack(side="left", padx=(0, 8))
         self._connection_control(buttons).pack(side="left")
+        sharing = ttk.Frame(profiles)
+        sharing.grid(row=4, column=0, columnspan=2, sticky="w", pady=(8,0))
+        for label, action in (("QR to phone", self._profile_qr), ("Export profiles", self._export_profiles), ("Cluster directory", self._cluster_directory)):
+            ttk.Button(sharing, text=label, command=self.guard(action)).pack(side="left", padx=(0,8))
         self.profile_status = tk.StringVar()
         ttk.Label(profiles, textvariable=self.profile_status, wraplength=610).grid(row=3, column=0, columnspan=2, sticky="w")
         details = ttk.LabelFrame(frame, text="Connection details", padding=12)
@@ -904,7 +994,7 @@ class Application:
         ttk.Label(frame, text="Set announcement format in Announcements.").grid(row=0, column=0, sticky="w", pady=(0, 10))
         delivery = ttk.LabelFrame(frame, text="Speech delivery", padding=12)
         delivery.grid(row=1, column=0, sticky="w", pady=(0, 12))
-        self._field(delivery, 0, "Provider", "speech_provider", ["Windows", "Piper"], compact=True)
+        self._field(delivery, 0, "Provider", "speech_provider", ["Windows", "Piper", "Recorded"], compact=True)
         self._field(delivery, 1, "Frequency units", "frequency_unit", ["kHz", "MHz"],
                     note="Used by announcements and the live view.", compact=True)
         self._field(delivery, 2, "Speed", "speech_rate", note="Minus 10 to 10. Zero is normal.", compact=True)
@@ -922,8 +1012,23 @@ class Application:
         for row, name, title in ((0, "piper_executable", "Choose Piper executable"), (1, "piper_model", "Choose Piper ONNX model")):
             ttk.Button(self.piper_speech_fields, text="Browse", command=lambda n=name, t=title: self._browse_file(n, t)).grid(row=row, column=2, padx=8)
         ttk.Label(self.piper_speech_fields, text="Optional local runtime and model. The model chooses the voice.", wraplength=600).grid(row=2, column=0, columnspan=3, sticky="w", pady=(8, 0))
+        self.recorded_speech_fields = ttk.LabelFrame(frame, text="Recorded voice", padding=12)
+        self.recorded_speech_fields.grid(row=4,column=0,sticky="w",pady=(0,12))
+        self._field(self.recorded_speech_fields,0,"Voice pack folder","voice_pack_root",compact=True)
+        self.field_widgets['voice_pack_root'].configure(width=40)
+        def choose_packs():
+            value=filedialog.askdirectory(title='Choose folder containing voice packs')
+            if value:self.variables['voice_pack_root'].set(value);self._refresh_voice_packs()
+        ttk.Button(self.recorded_speech_fields,text='Browse',command=choose_packs).grid(row=0,column=2,padx=8)
+        self._field(self.recorded_speech_fields,1,'Recorded voice','voice_pack',[],compact=True)
+        self.pack_display = tk.StringVar()
+        self.pack_ids = {}
+        self.field_widgets['voice_pack'].configure(width=36, textvariable=self.pack_display)
+        self.combos['voice_pack'].bind('<<ComboboxSelected>>', lambda event: self.variables['voice_pack'].set(self.pack_ids[self.pack_display.get()]))
+        ttk.Label(self.recorded_speech_fields,text='Local pre-generated WAVs. No inference at playback. Custom intro words must exist in the chosen pack.',wraplength=600).grid(row=2,column=0,columnspan=3,pady=8)
+        self._refresh_voice_packs()
         access = ttk.LabelFrame(frame, text="Interface", padding=12)
-        access.grid(row=4, column=0, sticky="w", pady=(0, 12))
+        access.grid(row=5, column=0, sticky="w", pady=(0, 12))
         self._field(access, 0, "Text size", "text_size", note="10 to 18 points. High contrast is in Appearance.", compact=True)
         controls = ttk.Frame(frame)
         controls.grid(row=0, column=0, sticky="e", pady=(0, 10))
@@ -935,7 +1040,19 @@ class Application:
     def _speech_provider_changed(self):
         windows = self.variables["speech_provider"].get() == "Windows"
         self.windows_speech_fields.grid() if windows else self.windows_speech_fields.grid_remove()
-        self.piper_speech_fields.grid_remove() if windows else self.piper_speech_fields.grid()
+        piper = self.variables["speech_provider"].get() == "Piper"
+        recorded = self.variables["speech_provider"].get() == "Recorded"
+        self.piper_speech_fields.grid() if piper else self.piper_speech_fields.grid_remove()
+        self.recorded_speech_fields.grid() if recorded else self.recorded_speech_fields.grid_remove()
+        self.field_widgets["speech_rate"].configure(state="disabled" if recorded else "normal")
+
+    def _refresh_voice_packs(self):
+        from .voicepacks import installed
+        packs=installed(self.variables['voice_pack_root'].get())
+        self.pack_ids={label+' ('+identity+')':identity for identity,label in packs.items()}
+        self.combos['voice_pack'].configure(values=list(self.pack_ids))
+        selected=self.variables['voice_pack'].get()
+        self.pack_display.set(next((label for label,identity in self.pack_ids.items() if identity==selected),''))
 
     def _speech_help(self):
         self.notebook.select(self.tabs["Help and Info"])
@@ -974,6 +1091,8 @@ class Application:
         self._field(frame, 4, "History file size in MiB", "log_max_mb", note="1 to 100 MiB per file")
         self._field(frame, 5, "History backup files", "log_backups", note="1 to 30 plus the active file")
         ttk.Button(frame, text="Open history folder", command=self.guard(self._open_history)).grid(row=6, column=1, sticky="w", pady=8)
+        self._field(frame, 12, "Keep local diagnostic logs", "diagnostics_enabled", note="No automatic upload. Restart to apply.")
+        ttk.Button(frame, text="Export diagnostic report", command=self.guard(self._export_diagnostics)).grid(row=13, column=1, sticky="w", pady=8)
         self._field(frame, 7, "Check for updates automatically", "check_updates")
         self._field(frame, 8, "Update channel", "update_channel", ["Pilot", "Stable"])
         self.update_status = tk.StringVar(value="Installed version: " + __version__)
@@ -1169,6 +1288,7 @@ class Application:
         self.emit("journal", "Settings saved")
 
     def _connect(self):
+        keep_listening = self.engine.local_enabled
         self._apply()
         self.settings.validate_connection()
         secret = self.secret.get()
@@ -1193,6 +1313,8 @@ class Application:
 
         self.source = SourceClient(self.settings, source_event, secret)
         self.connection_phase = "connecting"
+        if keep_listening:
+            self.engine.listen_locally()
         self._render_connections()
         self.source.start()
 
@@ -1301,6 +1423,7 @@ class Application:
             pass
 
     def _poll(self):
+        self.diagnostics.heartbeat()
         if self.closing:
             return
         for target in (self.control_events, self.events, self.raw_events):
@@ -1313,6 +1436,8 @@ class Application:
                     generation, kind, value = value
                     if generation != self.source_generation:
                         continue
+                    if kind == "source_lost":
+                        self.diagnostics.record("source_failure", code=str(value).split(". Retrying")[0])
                     if kind == "raw":
                         self._append_raw(value)
                         continue
@@ -1330,12 +1455,16 @@ class Application:
                         self.source_ready = False
                         self.connection_phase = "retrying"
                     self.source_status.set("Source: " + value)
+                elif kind == "diagnostic":
+                    self.diagnostics.record('output_failure', **value)
+                    continue
                 elif kind == "announcement":
                     self._history_record("announcement", profile=self.connected_profile, **value)
                     continue
                 elif kind == "output":
                     self.output_status.set(value)
                 elif kind == "activity":
+                    self.diagnostics.record('activity', state=value)
                     self.activity.set(value)
                 elif kind == "voices":
                     self.combos["voice"].configure(values=[""] + value)
@@ -1372,6 +1501,9 @@ class Application:
         self.root.after(75, self._poll)
 
     def _journal(self, text):
+        # Fixed application categories only; freeform journal text is not diagnostic data.
+        if text.startswith(('Source ', 'Cluster ', 'Feed ')):
+            self.diagnostics.record('source_status', code=('retrying' if 'Retrying' in text else 'state_change'))
         self.log.configure(state="normal")
         self.log.insert("end", datetime.now().strftime("%H:%M:%S ") + text + "\n")
         self.log_lines += 1
@@ -1398,6 +1530,8 @@ class Application:
                 messagebox.showwarning("Waiting for output", "Output is still stopping. Verify the radio is unkeyed. The application will remain open while cleanup finishes.")
             self.root.after(50, lambda: self._wait_close(count + 1))
         else:
+            self.diagnostics.close()
+            threading.excepthook = self._previous_thread_hook
             self.root.destroy()
 
 
@@ -1405,6 +1539,18 @@ def main():
     if sys.platform == "win32":
         import ctypes
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("DXTalker.Desktop")
-    root = tk.Tk()
-    Application(root)
-    root.mainloop()
+    app = None
+    try:
+        root = tk.Tk()
+        app = Application(root)
+        app.diagnostics.enable_native_faults()
+        root.mainloop()
+    except Exception as exc:
+        try:
+            diagnostic = app.diagnostics if app else Diagnostics()
+            diagnostic.exception('unhandled_application_exception', type(exc), exc.__traceback__)
+            if app: app.engine.shutdown()
+            diagnostic.close(clean=False)
+        except Exception:
+            pass
+        raise

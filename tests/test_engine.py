@@ -232,11 +232,14 @@ class EngineTests(unittest.TestCase):
         self.assertFalse(self.engine.local_enabled)
         self.assertFalse(self.engine.offer(self.spot("WB4IUY")))
 
-    def test_local_listening_requires_source_and_device_and_stops_on_failure(self):
+    def test_local_listening_can_arm_before_source_and_still_requires_device(self):
         self.engine.source_available = lambda: False
-        with self.assertRaises(ValueError):
-            self.engine.listen_locally()
-        self.engine.source_available = lambda: True
+        self.engine.listen_locally()
+        self.assertTrue(self.engine.local_enabled)
+        self.assertTrue(self.engine.offer(self.spot()))
+        wait_for(lambda: len(self.audio.played)==1 and not self.engine.busy)
+        self.assertEqual(self.ptts, [])
+        self.engine.stop()
         self.engine.configure(replace(self.settings, preview_device=""))
         with self.assertRaises(ValueError):
             self.engine.listen_locally()

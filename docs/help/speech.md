@@ -82,3 +82,11 @@ Speak units belongs to Frequency and moves with it. Uncheck it to omit kilohertz
 The sentence example updates immediately with a portable callsign and a decimal frequency. Actual callsigns are spoken phonetically. Listen to example uses the pending format with your saved voice, pauses and local preview output. It does not save other edits, reconnect a source or assert serial PTT. Stop active output and wait for Idle before previewing. A shared local/radio audio device can still key a VOX radio, so the usual shared device confirmation applies.
 
 Save and apply makes the format active for RF, live local listening and spot previews. Editing the format stops active output; it never resumes automatically. These controls do not change CW IDs, freeform voice ID text or recorded voice IDs.
+
+## Listen before the first spot
+
+Listen locally can be armed before connecting or before a cluster emits its first spot. Select and save a local audio output, then enable listening. Only newly received validated spots are spoken; the first one is eligible immediately. If listening is already armed when you explicitly press Connect, it is restored before the source worker starts, so the first valid packet is not lost to a connection/listening race. Connecting still applies the edited settings. RF is never preserved this way. Source loss still stops listening and automatic reconnection does not silently resume it.
+
+## Recorded voices
+
+Recorded uses pre-generated local WAV assets instead of system speech or live model inference. Select a parent voice pack folder and a named voice. Existing providers remain available. Recorded rate is fixed at generation time; character and group pauses remain configurable. Unknown custom intro/ID words produce an error asking for added assets or another provider. See the repository's recorded voice pack guide for generation, installation and per-model licensing.

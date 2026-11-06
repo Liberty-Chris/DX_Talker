@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0a8. November 6, 2026
+
+Arm local listening before the first spot and preserve that intent during explicit Connect. Add bounded private diagnostics and manual export, clearer feed errors, QR/file profile/filter transfer, an initially empty curated directory, recorded WAV voice packs and a local model/speaker batch generator. Improve Android import, parsing, pronunciation, filtering, queuing, connection lifecycle and credential storage. Add Windows x86 artifacts with matching updates and a separate limited XP source test kit. Gate stable legal/privacy acceptance on owner approved text and expand radio setup guidance.
+
 ## 0.2.0a7. November 5, 2026
 
 Clarify profile creation, editing, renaming and confirmed deletion. Remove the fixed profile count cap and isolate profile operations from unrelated pending settings. Explain optional Windows protected password/token storage. Compact Source and Audio / PTT, hide inactive connection and serial controls and retain their values.

@@ -6,7 +6,8 @@ import queue
 import re
 import socket
 import threading
-from urllib import request
+from urllib import request, error
+import ssl
 
 from .models import UTC, Settings, parse_json_feed, parse_line
 from .protocol import LineFramer, TelnetDecoder, TerminalText
@@ -112,6 +113,16 @@ class SourceClient:
             if failure is not None:
                 if isinstance(failure, ClusterLoginError):
                     detail = str(failure)
+                elif isinstance(failure, error.HTTPError):
+                    detail = {401: "Feed authentication required. Check the token", 403: "Feed denied access. Check permission or rate limits",
+                              404: "Feed URL was not found", 429: "Feed rate limit reached. Increase the polling interval"}.get(failure.code, f"Feed returned HTTP {failure.code}")
+                elif isinstance(failure, error.URLError):
+                    reason = failure.reason
+                    detail = ("Feed certificate could not be verified. Check the clock and HTTPS filtering" if isinstance(reason, ssl.SSLCertVerificationError)
+                              else "Feed hostname could not be resolved" if isinstance(reason, socket.gaierror)
+                              else "Feed request timed out" if isinstance(reason, TimeoutError) else "Feed network request failed")
+                elif isinstance(failure, ConnectionResetError):
+                    detail = "Cluster closed the connection. Check access rules or duplicate sessions"
                 elif isinstance(failure, socket.gaierror):
                     detail = "Cluster hostname could not be resolved"
                 elif isinstance(failure, ConnectionRefusedError):
@@ -127,6 +138,7 @@ class SourceClient:
                     break
                 delay = min(delay * 2, 60)
         self.secret = ""
+        self.connected.clear()
         self.emit("source_state", "Disconnected")
 
     def _cluster(self):

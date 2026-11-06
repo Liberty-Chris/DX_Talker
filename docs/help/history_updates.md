@@ -32,3 +32,11 @@ Existing versions without an updater need one manual installation of this update
 The status includes the installed version and selected channel after a successful check. Stable does not offer preview releases. If a newer compatible preview exists, the status explains that Pilot is needed instead of reporting only that nothing was found.
 
 A failed check is not evidence that no release exists. DNS errors, TLS certificate verification, timeouts, GitHub HTTP responses and public API rate limits receive distinct messages. GitHub can rate limit a shared public address even when ordinary internet access works. Use Release page for a manual installer download if needed. Do not disable HTTPS verification to work around a certificate error.
+
+## Local diagnostics and support reports
+
+History is the optional spot/connection record. Diagnostics are separate bounded local application records under %LOCALAPPDATA%\DXTalker\diagnostics. Pilot logging defaults on and can be disabled through Keep local diagnostic logs; restart applies that choice. Stable builds default off. No diagnostic or crash report is automatically sent anywhere.
+
+Records include version, session ID, fixed connection failure categories, output activity times and exception types with source file/function/line locations. Exceptions do not include message values, locals, passwords, tokens, full profile/settings files or raw cluster text. A UI watchdog samples code locations after a long delay and records recovery. A file dialog or slow system operation can also delay the UI; a stall record is evidence, not a root cause by itself. Native fault dumps are enabled after desktop startup and paths are reduced to basenames in exported reports. Not every native failure, power loss or forced termination can produce a crash trace; incomplete session markers are recorded on the next launch without guessing why.
+
+Export diagnostic report creates a local ZIP of bounded diagnostic logs only. Review and share it manually when investigating a problem. No report is uploaded. Logs cannot recover activity before diagnostics were enabled, and failure to create the log folder is reported in the app. Future public telemetry requires separate explicit consent and approved privacy/usage terms; it is not implemented by this local export feature.

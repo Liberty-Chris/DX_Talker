@@ -34,3 +34,9 @@ The current Python 3.12 and Windows 10 installer floor are unchanged. Do not adv
 | iOS | VoiceOver accessible local cluster listening prototype | Contract and lifecycle plan |
 | Android | TalkBack accessible local cluster listening prototype | Contract and lifecycle plan |
 | Older OS and x86 | Runtime and dependency matrix on named versions | Not yet tested |
+
+## November 2026 pilot targets
+
+The build matrix now produces x64 and x86 installers and portable packages. The x86 target is for Windows 10 22H2; Windows 11 is an x64 target here. x86 has its own installer identity, directory and shortcuts, while account settings remain shared. Do not run both architectures against the same live station at once. Each runtime's updater selects its own architecture. x86 packaging tests on a current x64 Windows runner do not establish operation on a physical 32 bit Windows machine.
+
+Windows XP cannot run the modern Python 3.12 application or its dependencies. The separate `legacy/xp` source test kit uses Python 3.4 plus Windows SAPI/cscript for minimal local TCP listening. It has no RF, HTTPS, profiles, QR import or modern updater and is not a full XP port. It requires a separately installed compatible interpreter. Modern CI syntax/parser checks are not XP runtime validation. Both XP x86 SP3 and XP x64 SP2 require real machine or VM acceptance. A full modern feature XP installer remains unimplemented.

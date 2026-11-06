@@ -63,3 +63,11 @@ New profile and deleting the selected profile stop the previous connection, clea
 
 
 If Windows cannot unlock a remembered password or token, the profile's connection details still load so it can be edited or deleted. A message asks you to enter the credential again. The stored credential is preserved until you save or delete the profile. Saving with Remember unchecked removes it; checking Remember and saving stores the newly entered value for this account.
+
+## Transfer to Android and curated clusters
+
+QR to phone transfers the selected saved profile and current filters. Export profiles saves all profiles and filters to a file. Passwords/tokens are excluded; private feed URL query parameters must be removed before sharing. Review the QR/file's visible destination information before importing it on Android through Manage cluster profiles. Imported names do not overwrite existing profiles and no connection starts automatically. See the repository profile transfer guide for the versioned format.
+
+Cluster directory is ready for Dad's forthcoming curated list. It can load a directory JSON file and add active entries, while retired entries are marked unavailable. The initial bundled list is empty. Review dates are not live availability guarantees. Existing saved profiles are removed only through the confirmed Delete profile action.
+
+Connection errors distinguish DNS, refused or timed out connections, rejected or duplicate logins, HTTP authentication/permission/rate-limit errors and certificate verification failures. Status explains retry timing. Raw server text and credential-bearing URLs are excluded from diagnostic reports.

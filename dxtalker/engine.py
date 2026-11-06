@@ -7,6 +7,7 @@ from datetime import datetime
 import threading
 import time
 
+from .diagnostics import Diagnostics
 from .audio import AudioOutput, Cancelled, scale_clip, join_clips, morse_clip, wav_clip
 from .models import UTC
 from .speech import SpeechService
@@ -136,8 +137,6 @@ class Engine:
                 raise ValueError("Stop output and wait for Idle before starting local listening")
             if not self.settings.preview_device:
                 raise ValueError("Choose a local preview audio device")
-            if not self.source_available():
-                raise ValueError("Connect to a working source first")
             self.cancel.clear()
             self.items.clear()
             self.seen.clear()
@@ -278,6 +277,7 @@ class Engine:
             except Cancelled:
                 self.stop("Output cancelled. RF disabled.")
             except Exception as exc:
+                self.emit('diagnostic', dict(error_type=type(exc).__name__, frames=Diagnostics.frames(exc.__traceback__)))
                 # Transport errors can contain identifiers; only expected local
                 # validation messages are shown verbatim.
                 detail = str(exc) if isinstance(exc, (ValueError, TimeoutError)) else type(exc).__name__

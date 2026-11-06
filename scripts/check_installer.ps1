@@ -1,9 +1,12 @@
+param([ValidateSet('x64','x86')][string]$Architecture = 'x64')
 $ErrorActionPreference = 'Stop'
 Set-Location (Split-Path $PSScriptRoot -Parent)
-$installDir = Join-Path $env:LOCALAPPDATA 'Programs\DXTalker'
+$suffix = if ($Architecture -eq 'x86') { ' (x86)' } else { '' }
+$folder = if ($Architecture -eq 'x86') { 'DXTalker-x86' } else { 'DXTalker' }
+$installDir = Join-Path $env:LOCALAPPDATA "Programs\$folder"
 $settingsDir = Join-Path $env:LOCALAPPDATA 'DXTalker'
-$desktop = Join-Path ([Environment]::GetFolderPath('Desktop')) 'DX Talker.lnk'
-$startMenu = Join-Path ([Environment]::GetFolderPath('Programs')) 'DX Talker\DX Talker.lnk'
+$desktop = Join-Path ([Environment]::GetFolderPath('Desktop')) "DX Talker$suffix.lnk"
+$startMenu = Join-Path ([Environment]::GetFolderPath('Programs')) "DX Talker$suffix\DX Talker$suffix.lnk"
 # Refuse to touch an existing operator installation.
 if ((Test-Path $installDir) -or (Test-Path $settingsDir) -or (Test-Path $desktop) -or (Test-Path (Split-Path $startMenu))) {
     throw 'Installer checks require a clean disposable Windows account'
@@ -13,7 +16,7 @@ function Run-Checked($file, $arguments) {
     if (-not $process.WaitForExit(120000)) { $process.Kill(); throw "Timed out: $file" }
     if ($process.ExitCode -ne 0) { throw "Failed with exit code $($process.ExitCode): $file" }
 }
-$setup = Join-Path $PWD 'dist\DXTalker-Setup-Windows-x64.exe'
+$setup = Join-Path $PWD "dist\DXTalker-Setup-Windows-$Architecture.exe"
 $reportPath = Join-Path $PWD 'installer-smoke.json'
 $report = [ordered]@{ ok = $false; windows = [Environment]::OSVersion.VersionString }
 try {
