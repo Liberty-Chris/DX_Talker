@@ -1,6 +1,6 @@
 # DX Talker Windows pilot
 
-Version 0.2.0a7. Installer targets: Windows 10 22H2 and Windows 11, x64.
+Version 0.2.0a8. Installer targets: Windows 10 22H2 and Windows 11, x64.
 
 ## Install DX Talker
 
@@ -81,4 +81,11 @@ The remaining operator checks are a live W4MR sign in, speech pronunciation and 
 
 ## Updates and operator controls
 
-The 0.2.0a7 pilot adds named sources, adjustable speech pacing, optional local neural voices, independent levels, local listening, history and application update notifications. See the bundled help topics and [release process](docs/release_process.md). Install an updater enabled build manually once; later compatible releases can be downloaded and installed from the app.
+The 0.2.0a8 pilot adds named sources, adjustable speech pacing, optional local neural voices, independent levels, local listening, history and application update notifications. See the bundled help topics and [release process](docs/release_process.md). Install an updater enabled build manually once; later compatible releases can be downloaded and installed from the app.
+
+
+## Pilot artifact collection
+
+The Windows pilot workflow produces x64 and x86 installers and portable packages, a generated LJ Speech voice pack and the limited XP source test kit. Published pilot downloads are under [GitHub Releases](https://github.com/Liberty-Chris/DX_Talker/releases). The Actions Windows pilot and Android APK workflow pages expose pre-release verification artifacts when signed into GitHub. A merge/push check does not publish a release; use the publish workflow input after verification.
+
+The x86 installer is a separate Windows 10 22H2 target. It does not run on XP. See [platform targets](docs/platforms.md), [recorded voice packs](docs/recorded_voices.md) and [profile transfer](docs/profile_transfer.md).

@@ -3,7 +3,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <application android:label="DX Talker" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:usesCleartextTraffic="true">
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <application android:allowBackup="false" android:icon="@drawable/dxt_icon" android:name=".DxApplication" android:label="DX Talker" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:usesCleartextTraffic="true">
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
         </activity>

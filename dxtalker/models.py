@@ -11,6 +11,8 @@ from pathlib import Path
 import re
 from urllib.parse import urlsplit
 
+from . import __version__
+
 UTC = timezone.utc
 CALL = r"[A-Z0-9][A-Z0-9/\-]{1,19}"
 SPOT = re.compile(rf"^DX de (?P<spotter>{CALL}):\s+(?P<freq>\d{{1,7}}(?:\.\d{{1,4}})?)\s+(?P<dx>{CALL})\s+(?P<rest>.*)$", re.I)
@@ -173,9 +175,12 @@ class Settings:
     speak_units: bool = True
     piper_executable: str = ""
     piper_model: str = ""
+    voice_pack_root: str = ""
+    voice_pack: str = ""
     supervised_ack: bool = False
     display_limit: int = 500
     logging_enabled: bool = True
+    diagnostics_enabled: bool = bool(re.search(r"(a|b|rc)\d+$", __version__))
     log_directory: str = ""
     log_max_mb: int = 5
     log_backups: int = 4
@@ -208,7 +213,7 @@ class Settings:
         for name, options in {"source_type": ("TCP/Telnet", "HTTPS JSON"),
                               "ptt_method": ("VOX", "RTS", "DTR", "RTS+DTR"),
                               "voice_mode": ("Speech", "WAV"),
-                              "speech_provider": ("Windows", "Piper"),
+                              "speech_provider": ("Windows", "Piper", "Recorded"),
                               "frequency_unit": ("kHz", "MHz"),
                               "update_channel": ("Pilot", "Stable"),
                               "voice_gender": ("Any", "Male", "Female"),

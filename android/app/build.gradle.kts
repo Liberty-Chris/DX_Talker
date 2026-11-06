@@ -9,9 +9,22 @@ android {
         applicationId = "club.dxtalker.android"
         minSdk = 29
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.2.0a8"
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
 }
+
+dependencies {
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
+}
+
+val syncBrand by tasks.registering(Copy::class) {
+    from(rootProject.file("../assets/brand")) { include("icon.png", "logo-dark.png"); rename("icon.png", "dxt_icon.png"); rename("logo-dark.png", "dxt_logo_dark.png") }
+    into(layout.buildDirectory.dir("generated/brand-res/drawable"))
+}
+android.sourceSets.getByName("main").res.srcDir(layout.buildDirectory.dir("generated/brand-res"))
+tasks.matching { it.name == "preBuild" }.configureEach { dependsOn(syncBrand) }

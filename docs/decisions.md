@@ -140,3 +140,14 @@ Use presets, checkboxes and Up/Down controls rather than requiring drag gestures
 Remove the fixed 100 profile cap on both save and load. Preserve stable IDs during edits and renames and reject updates to missing IDs. Use explicit Save new profile, Save changes and Delete profile actions, update both selectors and keep deletion confirmation. Profile save/load uses connection data plus applied settings as a base, so unrelated unfinished edits cannot block it or be applied accidentally.
 
 Use compact grouped Source and Audio / PTT controls with only the selected connection type and PTT fields visible. Clarify that remembered credentials are the existing cluster password or token encrypted for the current Windows account, not a newly created secret key. New/delete clears the old session display and credential while preserving other saved profiles.
+
+
+## November 6, 2026. Diagnostics, transfer and pilot targets
+
+Permit local listening to arm independently of source readiness and restore already armed listening before an explicitly requested connection starts its worker. Do not preserve RF or auto-resume after source failure. Diagnostics use bounded private files, fixed error categories and safe stack locations, with manual report export and no upload transport. Stable builds default logging off and require owner approval of exact legal/privacy texts.
+
+Use a versioned credential-free QR/file schema rather than accounts. Keep canonical filters in kHz, reject unknown fields and query-bearing feed URLs in transfers, review before mobile import and never connect automatically. Dad's curated directory starts empty with explicit active/retired states and review dates; no automatic deletion of operator profiles occurs.
+
+Separate x86 packaging and installer identity from x64; choose updater assets by runtime bitness. XP is incompatible with the modern runtime. Keep a separately labelled Python 3.4/SAPI source test kit while a full XP port and actual XP acceptance remain open.
+
+Recorded voices are deterministic local PCM assets with checksummed manifests and bounds, generated from separately reviewed Piper models. The reference LJ Speech card identifies a public domain training dataset. Do not bulk redistribute every voice under one assumed license. Multi-model/speaker generation is opt-in local work with a matching card per model.

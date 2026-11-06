@@ -40,3 +40,17 @@ Without a source, RF can still send initial, periodic and manually requested IDs
 ## Compact Audio / PTT controls
 
 Audio outputs, Push to talk, Transmit timing and Audio levels are separate compact groups. Device selectors have bounded widths and numeric fields show their units and ranges. Refresh devices updates both audio and serial choices and stops output as before. VOX hides serial port and polarity fields; choosing a serial PTT method shows them again with their saved values. Changing the visible method does not change the configured hardware until settings are saved and applied. CM108 HID and CAT remain outside this pilot.
+
+## Radio setup recipes
+
+Start with RF disabled and a monitored test path. Choose the exact radio audio output and a separate local speaker/headphone output. Avoid device defaults that can change after a USB reconnect. Turn off Windows audio enhancements and spatial processing for the radio output, then start the application's spot and ID gains low and increase while monitoring the transmitted audio. Device selection and a working USB cable do not establish a safe level or compatible PTT wiring.
+
+For an HF transceiver with built in USB audio, select its USB audio device and select the radio's USB/data audio input using that model's manual. Set an appropriate operating mode and data input gain. Use the radio's VOX/data VOX if supported, or a separate compatible serial PTT interface. Selecting a CAT COM port is insufficient: this pilot does not send CAT commands.
+
+For an FM mobile such as a Kenwood TM-V71A or TM-281, use an interface matched to that radio's audio input, ground and PTT connections. Some data connectors provide different receive audio pins and levels; this app needs the transmit audio path. Do not infer a pinout or level from another Kenwood model. Use the exact radio and interface manuals before making a cable. Select VOX only if the radio/interface actually keys from the provided audio. Otherwise use a compatible RTS/DTR interface with verified polarity.
+
+For a RIM/CM108 interface, Windows may expose usable audio but the app does not drive its HID PTT. Use a separately supported PTT path or an already configured VOX interface. A repeater controller's COS/COR, CTCSS and flat/deemphasized audio paths need a controller-specific integration; choosing an audio device does not implement those functions.
+
+Preview CW and voice locally first. With the test radio path ready, enable RF to send the initial ID and verify keying, lead/tail timing, volume and release. Stop RF while an item is playing and verify unkeying. Test device unplug and source failure before normal operation. Check FM deviation with appropriate equipment; this app has no deviation measurement or busy channel detector. Audio Morse IDs are transmitted audio, not direct hardware CW keying.
+
+For exact model menus and pinouts, record the radio model, interface model, connector used and whether the intended path is FM, SSB or repeater-controller audio. Those details are required before a model-specific wiring guide can be verified.

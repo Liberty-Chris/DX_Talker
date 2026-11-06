@@ -68,3 +68,6 @@ The 0.2.0a6 format editor adds presets, optional sections and spoken units, cust
 
 
 The 0.2.0a7 followup removes the profile count cap, clarifies edit/save/delete flows and compacts Source and Audio / PTT. Profile management uses connection fields only, while Connect and Save and apply retain their existing application behavior.
+
+
+The 0.2.0a8 operations batch adds first-spot listening, private diagnostic export, desktop/Android transfer and curated-directory infrastructure, x86 build coverage and recorded voice generation/playback. Dad's directory entries, actual phone camera/background acceptance and physical radio setup remain operator gates. The XP source kit is a bounded listening prototype, not completion of a full XP port. Stable usage/privacy texts must be supplied and approved before stable installer builds.

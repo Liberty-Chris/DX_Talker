@@ -7,6 +7,7 @@ import re
 import socket
 import ssl
 import sys
+import struct
 import threading
 from urllib import request, error
 from urllib.parse import urlsplit
@@ -15,7 +16,7 @@ from . import __version__
 
 REPOSITORY = "Liberty-Chris/DX_Talker"
 API = f"https://api.github.com/repos/{REPOSITORY}/releases?per_page=30"
-INSTALLER = "DXTalker-Setup-Windows-x64.exe"
+INSTALLER = "DXTalker-Setup-Windows-" + ("x86" if struct.calcsize("P") == 4 else "x64") + ".exe"
 CHECKSUMS = "SHA256SUMS.txt"
 MAX_INSTALLER = 300 * 1024 * 1024
 

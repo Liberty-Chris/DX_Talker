@@ -1,3 +1,5 @@
 sounddevice==0.5.3
 pyserial==3.5
 truststore==0.10.5; sys_platform == "win32"
+qrcode==8.2
+pypng==0.20220715.0

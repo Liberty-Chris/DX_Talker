@@ -35,3 +35,6 @@ STOP ALL OUTPUT cancels current and queued output and requests PTT release. Wait
 Settings are saved locally. RF and local listening enable state are never saved. Passwords and tokens remain session only unless you explicitly remember one in a Windows protected cluster profile.
 
 For speech, keyboard and local listening tools, see Listening and accessibility. History and updates covers retention, log folders and the application update process.
+
+
+For new pilot targets, use the named x64 or x86 download. x86 is a Windows 10 target and does not imply XP compatibility. The XP source test kit is a separate limited listener requiring its own runtime. Optional recorded voices need a downloaded/generated pack selected in Speech. Cluster profiles and filters can be transferred through Source's QR/file controls without exporting credentials.

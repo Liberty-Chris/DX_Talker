@@ -473,3 +473,24 @@ class AppTests(unittest.TestCase):
             self.app._delete_profile()
         self.assertIn("'Locked'", ask.call_args.args[1])
         self.assertEqual([p['name'] for p in self.app.profile_store.profiles], ['Working'])
+
+
+    def test_listening_is_armed_before_the_first_connection_packet(self):
+        app=self.app
+        class Source:
+            def __init__(self, settings, emit, secret):
+                self.emit=emit;self.ready=threading.Event();self.connected=threading.Event()
+            def start(self):
+                assert app.engine.local_enabled
+                self.emit('spot',app_test_spot)
+            def stop(self):pass
+        app_test_spot=self.spot()
+        app.variables['preview_device'].set('local')
+        app._apply()
+        app._listen()
+        self.assertTrue(app.engine.local_enabled)
+        with patch('dxtalker.app.SourceClient',Source),patch.object(app.engine,'offer') as offer:
+            app._connect();app._poll()
+        offer.assert_called_once_with(app_test_spot)
+        self.assertTrue(app.engine.local_enabled)
+        self.assertFalse(app.engine.enabled)
