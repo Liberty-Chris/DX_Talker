@@ -17,6 +17,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class MainActivity : Activity() {
+    private val qrCollection = QrCollection()
     private lateinit var status: TextView
     private lateinit var listenButton: Button
     private lateinit var spotsView: LinearLayout
@@ -59,7 +60,14 @@ class MainActivity : Activity() {
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 100)
         }
+        savedInstanceState?.getStringArrayList("qr_pages")?.forEach {
+            try { qrCollection.accept(it) } catch (_: Exception) { qrCollection.reset() }
+        }
         showHome()
+    }
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putStringArrayList("qr_pages", qrCollection.saved())
+        super.onSaveInstanceState(outState)
     }
     private fun command(action: String) {
         val intent = Intent(this, ListenerService::class.java).setAction(action)
@@ -116,8 +124,8 @@ class MainActivity : Activity() {
         setContentView(ScrollView(this).apply { addView(root) })
         root.addView(button("Back to listener") { showHome() })
         root.addView(label("Cluster profiles", 25f, accent))
-        root.addView(button("Scan desktop QR") { IntentIntegrator(this).setDesiredBarcodeFormats(IntentIntegrator.QR_CODE)
-            .setPrompt("Scan the DX Talker profile QR").setBeepEnabled(false).setOrientationLocked(false).initiateScan() })
+        root.addView(button("Scan desktop QR") { scanQr() })
+        root.addView(button("Reset QR collection") { qrCollection.reset(); Toast.makeText(this,"QR collection cleared",Toast.LENGTH_SHORT).show() })
         root.addView(button("Import profile file") {
             startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE), 201)
         })
@@ -205,7 +213,11 @@ class MainActivity : Activity() {
     }
     private fun reviewImport(text: String) {
         try {
-            val data = TransferCodec.decode(text)
+            reviewImportData(TransferCodec.decode(text))
+        } catch (_: Exception) { Toast.makeText(this,"Invalid or unsupported DX Talker transfer",Toast.LENGTH_LONG).show() }
+    }
+    private fun reviewImportData(data: JSONObject) {
+        try {
             val profiles = data.getJSONArray("profiles")
             val description = (0 until profiles.length()).joinToString("\n") {
                 val p = profiles.getJSONObject(it); val c = p.getJSONObject("connection")
@@ -219,11 +231,32 @@ class MainActivity : Activity() {
                 }.show()
         } catch (_: Exception) { Toast.makeText(this,"Invalid or unsupported DX Talker transfer",Toast.LENGTH_LONG).show() }
     }
+    private fun scanQr() {
+        IntentIntegrator(this).setDesiredBarcodeFormats(IntentIntegrator.QR_CODE)
+            .setPrompt("Scan DX Talker QR. ${qrCollection.scanned} pages collected")
+            .setBeepEnabled(false).setOrientationLocked(false).initiateScan()
+    }
     @Deprecated("Legacy activity results are used by the QR scanner")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode,resultCode,data)
         val result = IntentIntegrator.parseActivityResult(requestCode,resultCode,data)
-        if (result != null) { result.contents?.let { reviewImport(it) }; return }
+        if (result != null) {
+            result.contents?.let { text ->
+                try {
+                    val collection = qrCollection.accept(text)
+                    if (collection != null) { qrCollection.reset(); reviewImportData(collection) }
+                    else AlertDialog.Builder(this).setTitle("Collection QR progress")
+                        .setMessage("Scanned ${qrCollection.scanned} of ${qrCollection.total} pages. No profiles saved yet. Scan the remaining pages in any order.")
+                        .setPositiveButton("Scan next") { _, _ -> scanQr() }
+                        .setNegativeButton("Continue later",null).show()
+                } catch (_: Exception) {
+                    AlertDialog.Builder(this).setTitle("QR could not be added")
+                        .setMessage("Invalid page or a different collection. Current collection: ${qrCollection.scanned} of ${qrCollection.total} pages. Keep scanning this collection or reset to start another.")
+                        .setPositiveButton("Keep collection",null).setNegativeButton("Reset") { _, _ -> qrCollection.reset() }.show()
+                }
+            }
+            return
+        }
         if(requestCode==202&&resultCode==RESULT_OK){
             try{val uri=data?.data?:return;contentResolver.openOutputStream(uri)?.use{output->java.util.zip.ZipOutputStream(output).use{zip->
                 val dir=java.io.File(filesDir,"diagnostics")

@@ -1,13 +1,7 @@
-DX Talker 0.2.0a8 improves first-spot listening, troubleshooting and portable setup.
+DX Talker 0.2.0a9 adds collection QR transfer, optional receive audio transmit hold and ElevenLabs recorded voice generation.
 
-Local listening can be armed before a connection or its first spot. Explicit Connect preserves already armed listening before starting the source worker. Source failure still stops output and automatic reconnect does not resume it. RF remains independent of cluster readiness with valid radio and ID settings.
+Source’s QR to phone opens a profile selector with the entire collection selected. Large selections use numbered QR pages. Update Android to this version to collect pages in any order, resume scanning and review the complete collection before importing. Passwords and tokens are excluded.
 
-Bounded local diagnostics capture safe Python error locations, source failure categories, activity timing, UI stalls/recovery and supported native fault traces. Export a report manually from History / Updates. No automatic upload is implemented. Stable releases default diagnostic logging off and require owner approved terms/privacy text before installer creation.
+Audio / PTT can monitor a selected radio receive input and defer queued spots and IDs until the audio has been absent for 5 to 10 seconds. A live level display and input test help set the threshold. Incoming audio interrupts playback and releases PTT; eligible work retries after quiet. Input failure stops RF. The default is off. This is audio detection rather than hardware carrier detection and requires acceptance with your radio’s squelch, receive audio wiring and interface.
 
-Source can show a credential-free QR for the selected saved profile and filters, export a full profile collection and add entries from a curated cluster directory. Dad's list is pending; the bundled directory is empty. Retired entries cannot be added and saved profiles are removed only by confirmed operator action.
-
-Android adds reviewed QR/file import, corresponding filters/units and phonetic announcements, stricter spot parsing, fragmented Telnet/terminal handling, first-spot speech queuing, bounded audio backlog, clearer connection errors, local diagnostic export and Keystore credential protection. It remains listening only. Physical phone background, camera and audio acceptance remain required.
-
-Windows downloads now include separate x64 and x86 installers/portable packages. x86 is for Windows 10 22H2 testing, not XP. A separate experimental XP listening source kit requires a genuine XP compatible Python 3.4 runtime and SAPI/cscript. It is not a full modern XP app or RF port and is not yet runtime-verified on XP.
-
-Recorded voice packs assemble pre-generated local WAVs without live model inference. The reference English LJ Speech pack contains 77 assets. The batch generator supports reviewed local models/speakers; voice licenses differ. Existing Windows and Piper synthesis remain available. Radio setup recipes are expanded in Help.
+Speech includes shared ElevenLabs online speech and a recorded voice generator. Testers choose a voice without entering API keys. The owner keeps the account key in private server configuration and supplies only a service address and revocable pilot admission value to trusted builds. Online generation uses the shared testing allowance. Recorded playback stays offline. Windows speech and Piper remain available. The service must be deployed and configured before distributing an enabled build. No ElevenLabs account key is included in the app.

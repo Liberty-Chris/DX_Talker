@@ -71,3 +71,8 @@ The 0.2.0a7 followup removes the profile count cap, clarifies edit/save/delete f
 
 
 The 0.2.0a8 operations batch adds first-spot listening, private diagnostic export, desktop/Android transfer and curated-directory infrastructure, x86 build coverage and recorded voice generation/playback. Dad's directory entries, actual phone camera/background acceptance and physical radio setup remain operator gates. The XP source kit is a bounded listening prototype, not completion of a full XP port. Stable usage/privacy texts must be supplied and approved before stable installer builds.
+
+
+## Next pilot acceptance
+
+Collection QR transfer, receive audio transmit hold and ElevenLabs recorded voice generation are implemented for 0.2.0a9. Validate collection scanning on physical Android devices, threshold and quiet delay with actual receiver audio and PTT and paid voice generation/pronunciation with an operator account. Hardware carrier input remains open. Shared online ElevenLabs speech is implemented through the private pilot gateway; DreamHost deployment, account configuration and live acceptance are still required.

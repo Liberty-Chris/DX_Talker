@@ -68,7 +68,7 @@ The listening toggle uses already applied settings. It does not save pending edi
 
 ## Announcement policy controls
 
-Announcements groups Frequency range, Timing and repeats and RF supervision into compact sections. Frequency limits always use kHz. Timing fields are in seconds, with supported ranges beside them. The busy channel limitation appears as guidance; an acknowledgement checkbox no longer gates RF. Editing, validation and Save and apply behavior are unchanged.
+Announcements groups Frequency range, Timing and repeats and RF supervision into compact sections. Frequency limits always use kHz. Timing fields are in seconds, with supported ranges beside them. Optional receive audio transmit hold is configured in Audio / PTT; an acknowledgement checkbox no longer gates RF. Editing, validation and Save and apply behavior are unchanged.
 
 
 ## Announcement format
@@ -90,3 +90,20 @@ Listen locally can be armed before connecting or before a cluster emits its firs
 ## Recorded voices
 
 Recorded uses pre-generated local WAV assets instead of system speech or live model inference. Select a parent voice pack folder and a named voice. Existing providers remain available. Recorded rate is fixed at generation time; character and group pauses remain configurable. Unknown custom intro/ID words produce an error asking for added assets or another provider. See the repository's recorded voice pack guide for generation, installation and per-model licensing.
+
+
+## Shared ElevenLabs pilot speech
+
+Choose ElevenLabs in the Provider menu to use the shared DX Talker pilot account. No API key is required in the app. Refresh voices to load the enabled choices or leave Voice blank for the service default. Save and apply and use Preview sample speech with local speakers before enabling RF. The model and allowance are managed by the pilot administrator. Speed is fixed by the service while character and group pauses remain configurable.
+
+This online provider sends announcement and speech ID text to the DX Talker speech service and ElevenLabs. Synthesis completes before PTT is keyed. A network, quota or service failure stops output with a message. There is no automatic provider fallback or billed retry. Choose Windows, Piper or Recorded if the service is unavailable. Builds made before the service address is configured show setup guidance instead of asking testers for a key.
+
+## Generate an ElevenLabs recorded voice
+
+Choose Generate ElevenLabs recorded voice in Speech to create offline assets through the same shared pilot service. No key or model field is shown. Refresh voices to choose an enabled voice, or leave blank for the service default. Choose a readable label, parent voice pack folder and a new pack name. The current custom announcement intro is included as a phrase.
+
+Generate voice pack uses the shared testing allowance. The screen shows the clip count and approximate text size first. The standard vocabulary contains 77 clips; a custom intro may add one. No request is sent merely by opening the window. Completed clips are kept in a partial folder on cancellation. Retry with the same folder, name, voice, label and intro to reuse verified clips. A request already in progress can still use allowance. Completed packs are never overwritten.
+
+When finished, choose Use this voice, Save and apply and Preview sample speech. The provider becomes Recorded. Playback uses local WAVs without an internet connection or further API requests. Windows speech and Piper remain available. Generated packs retain voice and model provenance; sharing rights depend on the account plan and voice permissions. Arbitrary ID text may require a separate WAV or additional assets.
+
+The owner enters the ElevenLabs account key on the hosting server once, outside the public website folder. It is not included in app settings, QR transfers, logs or installers. The repository’s shared speech service guide covers DreamHost setup and build configuration.

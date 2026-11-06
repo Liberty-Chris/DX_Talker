@@ -15,19 +15,7 @@ object TransferCodec {
         var raw = text.toByteArray(Charsets.UTF_8)
         if (text.startsWith("DXT1:")) {
             require(raw.size <= 1800) { "QR transfer too large" }
-            val inflater = Inflater()
-            try {
-                inflater.setInput(Base64.getUrlDecoder().decode(text.substring(5)))
-                val out = ByteArray(MAX + 1)
-                var count = 0
-                while (!inflater.finished() && count < out.size) {
-                    val read = inflater.inflate(out, count, out.size-count)
-                    require(read > 0) { "Incomplete compressed transfer" }
-                    count += read
-                }
-                require(inflater.finished() && inflater.remaining == 0 && count <= MAX) { "Oversized or incomplete transfer" }
-                raw = out.copyOf(count)
-            } finally { inflater.end() }
+            return decodeCompressed(Base64.getUrlDecoder().decode(text.substring(5)))
         }
         require(raw.size <= MAX) { "Transfer exceeds 64 KiB" }
         val data = JSONObject(String(raw, Charsets.UTF_8))
@@ -68,6 +56,24 @@ object TransferCodec {
         require(f.optInt("max_age_seconds",180) in 30..600 && f.optInt("repeat_seconds",300) in 30..3600 && f.optInt("spacing_seconds",5) in 1..120)
         require(f.optString("frequency_unit","kHz") in listOf("kHz","MHz"))
         return data
+    }
+    fun decodeCompressed(compressed: ByteArray): JSONObject {
+        require(compressed.size <= MAX + 1024) { "Compressed transfer too large" }
+        val inflater = Inflater()
+        try {
+            inflater.setInput(compressed)
+            val out = ByteArray(MAX + 1)
+            var count = 0
+            while (!inflater.finished() && count < out.size) {
+                val read = inflater.inflate(out, count, out.size-count)
+                require(read > 0) { "Incomplete compressed transfer" }
+                count += read
+            }
+            require(inflater.finished() && inflater.remaining == 0 && count <= MAX) { "Oversized or incomplete transfer" }
+            val text = String(out, 0, count, Charsets.UTF_8)
+            require(text.trimStart().startsWith("{")) { "Expected a transfer document" }
+            return decode(text)
+        } finally { inflater.end() }
     }
     fun importInto(data: JSONObject, prefs: SharedPreferences) {
         // Call only after decode and explicit review. One editor commits all changes atomically.

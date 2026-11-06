@@ -8,6 +8,34 @@ from .audio import Clip, Cancelled, wav_clip
 
 LETTERS = dict(zip('abcdefghijklmnopqrstuvwxyz', ['ay','bee','see','dee','ee','ef','gee','aitch','eye','jay','kay','el','em','en','oh','pee','cue','ar','ess','tee','you','vee','double you','ex','why','zee']))
 
+def vocabulary(extra=''):
+    from .models import PHONETIC, DIGITS
+    words = {v.lower(): v for v in PHONETIC.values()}
+    words.update({v: v for v in DIGITS.values()})
+    words.update({v: v for v in 'new on at frequency callsign this is stroke dash point kilohertz megahertz'.split()})
+    words['dx'] = 'D X'
+    words.update({'letter:'+key: value for key, value in LETTERS.items()})
+    for phrase in ['New DX', 'New DX on', extra]:
+        if phrase.strip(): words['phrase:'+phrase.strip().lower()] = phrase.strip()
+    return words
+
+
+def trim_clip(clip):
+    from array import array
+    import sys
+    values = array('h'); values.frombytes(clip.pcm)
+    if sys.byteorder != 'little': values.byteswap()
+    audible = [i for i, value in enumerate(values) if abs(value)>100]
+    if not audible: raise ValueError('A generated clip was silent')
+    padding = round(22050*.025)
+    values = values[max(0,audible[0]-padding):min(len(values),audible[-1]+padding+1)]
+    fade = min(110,len(values)//2)
+    for i in range(fade):
+        values[i] = round(values[i]*i/fade); values[-1-i] = round(values[-1-i]*i/fade)
+    if sys.byteorder != 'little': values.byteswap()
+    return Clip(values.tobytes())
+
+
 def keys_for(text):
     words = re.findall(r"[A-Za-z0-9/\-]+", text)
     result=[]

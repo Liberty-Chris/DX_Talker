@@ -49,7 +49,7 @@ Preserve the frequency value and explicit units. Use a documented callsign pronu
 
 ## Identification policy
 
-CW and voice text are separate settings. The pilot supports CW, Voice, Alternate and Both policies with intervals from 1 to 30 minutes. It identifies immediately on enable, prioritizes due IDs and does not add a final ID on stop. The chosen station operating policy still needs operator acceptance. The scheduler must not starve identification behind a busy spot queue. A failed required ID must visibly pause further automatic announcements until the configured policy can be satisfied.
+CW and voice text are separate settings. The pilot supports CW, Voice, Alternate and Both policies with intervals from 1 to 30 minutes. It identifies on enable after the optional receiver quiet delay, prioritizes due IDs and does not add a final ID on stop. The chosen station operating policy still needs operator acceptance. The scheduler must not starve identification behind a busy spot queue. A failed required ID must visibly pause further automatic announcements until the configured policy can be satisfied.
 
 In this scope, CW means audio Morse sent through the radio audio path. Direct hardware keying of an HF CW input is a separate possible feature.
 
@@ -64,3 +64,8 @@ Busy channel detection is unresolved because audio and PTT alone do not establis
 ## Release limits
 
 Initial hardware support is limited to interfaces actually tested. Publish the supported Windows versions, interfaces and feed providers once they've been tested.
+
+
+Optional receive audio monitoring must delay all RF until 5 to 10 continuous quiet seconds, measure locally without recording, cancel interrupted playback through the coordinator and disable RF on input failure. It does not gate local previews/listening or establish hardware carrier detection.
+
+Profile QR selection must include the entire saved collection by default and support reviewed subsets. A multi page transfer must validate the complete collection before import and preserve credential exclusion. ElevenLabs uses the shared pilot account through a private HTTPS service. Testers never enter keys. The owner configures the key outside the public website folder; only service connection data is packaged. Both online speech and offline Recorded generation use explicit provider/generator choices. Server quotas, voice/model restrictions and no automatic billed retries bound testing.

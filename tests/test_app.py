@@ -494,3 +494,50 @@ class AppTests(unittest.TestCase):
         offer.assert_called_once_with(app_test_spot)
         self.assertTrue(app.engine.local_enabled)
         self.assertFalse(app.engine.enabled)
+
+
+    def test_collection_qr_starts_with_all_profiles_and_paginates(self):
+        from tkinter import ttk
+        import tkinter as tk
+        self.app.profile_store.save('Home',Settings(),'secret',False)
+        self.app.profile_store.save('Travel',Settings(),'secret',False)
+        self.app._profile_qr()
+        dialog=next(w for w in self.root.winfo_children() if isinstance(w,tk.Toplevel))
+        def descendants(widget):
+            for child in widget.winfo_children():
+                yield child
+                yield from descendants(child)
+        picker=next(w for w in descendants(dialog) if isinstance(w,tk.Listbox))
+        self.assertEqual(picker.curselection(),(0,1))
+        generate=next(w for w in descendants(dialog) if isinstance(w,ttk.Button) and w.cget('text')=='Generate QR codes')
+        with patch("dxtalker.app.messagebox.showerror", side_effect=AssertionError("QR generation failed")):
+            generate.invoke()
+        self.root.update()
+        self.assertTrue(any(isinstance(w,ttk.Label) and str(w.cget('textvariable')) for w in descendants(dialog)))
+        dialog.destroy()
+
+    def test_elevenlabs_window_requires_no_key_and_does_not_generate_on_open(self):
+        from dxtalker.elevenlabs_ui import ElevenLabsDialog
+        with patch('dxtalker.elevenlabs_ui.SharedSpeech') as client:
+            dialog=ElevenLabsDialog(self.app);self.root.update()
+            client.assert_not_called()
+            self.assertNotIn('API key',self.app.variables)
+            self.assertNotIn('API key',dialog.values)
+            dialog.close()
+
+
+    def test_shared_speech_provider_has_voice_choices_and_no_tester_keys(self):
+        self.app.variables['speech_provider'].set('ElevenLabs')
+        self.app._speech_provider_changed()
+        self.assertTrue(self.app.eleven_speech_fields.grid_info())
+        self.assertEqual(str(self.app.field_widgets['speech_rate'].cget('state')),'disabled')
+        self.assertEqual(self.app._read_settings().speech_provider,'ElevenLabs')
+        self.assertNotIn('api_key',self.app.variables)
+        with patch('dxtalker.cloud_speech.SharedSpeech') as client:
+            client.return_value.voices.return_value={'Pilot voice (voiceA)':'voiceA'}
+            self.app._load_shared_voices()
+            import time
+            deadline=time.monotonic()+2
+            while self.app.shared_voices_loading and time.monotonic()<deadline:
+                self.app._poll();time.sleep(.01)
+        self.assertEqual(self.app.eleven_voices,{'Pilot voice (voiceA)':'voiceA'})

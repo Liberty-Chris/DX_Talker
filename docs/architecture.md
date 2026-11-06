@@ -48,3 +48,10 @@ Physical verification must cover the named interface, operating system, audio ro
 The selected stack and pinned direct dependency versions are recorded in [decisions](decisions.md), requirements.txt and requirements-build.txt. The portable Windows build packages the application runtime and canonical help pages. Native APIs remain behind AudioOutput, WindowsSpeech and serial PTT adapters.
 
 Speech provider boundaries, local listening and future platform contracts are recorded in [platforms](platforms.md). Release discovery, verified downloads and publication are covered by the [release process](release_process.md).
+
+
+## Shared pilot speech boundary
+
+ElevenLabs online speech and Recorded asset generation use a PHP HTTPS gateway on the existing DreamHost account. The upstream key stays in owner only configuration outside the website. The public entry point contains only a private include path. Trusted app builds receive an endpoint and revocable pilot admission value; no provider key reaches the client. The pilot admission value is extractable from a distributed app, so it is supported by atomic global quotas, per server observed IP request limits, voice/model allowlists and bounded cached PCM responses rather than treated as public release authentication.
+
+The gateway returns a complete mono PCM clip before the existing transmission coordinator may assert PTT. It never controls audio devices or PTT itself. Cache files, quota state and account settings stay outside public web storage. Text reaches the gateway and ElevenLabs only when the operator selects online speech or explicitly generates a pack. Android currently retains Android system speech; its collection import remains independent of this desktop provider change.
