@@ -102,6 +102,18 @@ class ReceiverEngineTests(unittest.TestCase):
         wait_for(lambda:len(self.audio.played)==1 and not self.engine.items and not self.engine.busy)
         self.assertEqual(self.speech.texts,[])
 
+    def test_inactive_input_is_checked_again_before_keying_even_with_a_recent_callback(self):
+        from dxtalker.audio import Clip
+        self.guarded()
+        monitor=ReceiveMonitor()
+        now=time.monotonic()
+        monitor.stream=SimpleNamespace(active=False,abort=lambda:None,close=lambda:None)
+        monitor._started_at=now-10;monitor.last_frame=now;monitor.quiet_since=now-10
+        self.engine.monitor=monitor
+        with self.assertRaisesRegex(ValueError,'monitoring failed'):
+            self.engine._transmit(Clip(b'\0\0'*100),self.engine.settings)
+        self.assertEqual(self.ptts,[])
+
     def test_input_loss_disarms_instead_of_transmitting(self):
         self.guarded();self.engine.enable();self.monitor.failed=True
         wait_for(lambda:not self.engine.enabled)

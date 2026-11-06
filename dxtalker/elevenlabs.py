@@ -50,7 +50,7 @@ class ElevenLabs:
                 if cancel.is_set(): raise Cancelled()
                 return bytes(result)
         except error.HTTPError as exc:
-            messages = {401:'ElevenLabs rejected the API key.', 403:'ElevenLabs denied access. Check key permissions, the voice and your plan.',
+            messages = {401:'ElevenLabs rejected the request. Check the API key, account credits and voice access.', 403:'ElevenLabs denied access. Check key permissions, the voice and your plan.',
                         402:'ElevenLabs credits or plan access are insufficient.', 429:'ElevenLabs rate or credit limit reached. Wait or check your account, then resume.'}
             raise ValueError(messages.get(exc.code, f'ElevenLabs returned HTTP {exc.code}. Check your account and resume later.')) from None
         except (error.URLError, OSError, TimeoutError):

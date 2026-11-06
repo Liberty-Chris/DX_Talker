@@ -197,6 +197,8 @@ class Engine:
             raise Cancelled()
         # Resolve the exact audio device before keying, then resolve again at playback.
         self.audio.resolve(s.radio_device, clip.channels)
+        if s.receive_guard and not self.monitor.ready():
+            raise ChannelBusy()
         receive_cancel = ReceiveCancel(self.cancel, self.monitor) if s.receive_guard else None
         playback_cancel = receive_cancel or self.cancel
         if playback_cancel.is_set():
@@ -208,6 +210,8 @@ class Engine:
         watchdog = None
         try:
             ptt.open()
+            if s.receive_guard and not self.monitor.ready():
+                raise ChannelBusy()
             if playback_cancel.is_set():
                 raise Cancelled()
             deadline = self.clock() + s.max_tx_seconds
