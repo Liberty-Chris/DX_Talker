@@ -16,8 +16,13 @@ def show_profile_qr(app):
     panel = ttk.Frame(window, padding=16)
     panel.pack(fill='both', expand=True)
     ttk.Label(panel, text='Choose profiles. Your entire collection is selected.').pack(anchor='w')
-    selection = tk.Listbox(panel, selectmode='extended', exportselection=False, width=60, height=min(10, len(profiles)))
-    selection.pack(fill='both', expand=True, pady=8)
+    choices = ttk.Frame(panel)
+    choices.pack(fill='both', expand=True, pady=8)
+    selection = tk.Listbox(choices, selectmode='extended', exportselection=False, width=60, height=min(10, len(profiles)))
+    scrollbar = ttk.Scrollbar(choices, orient='vertical', command=selection.yview)
+    selection.configure(yscrollcommand=scrollbar.set)
+    scrollbar.pack(side='right', fill='y')
+    selection.pack(side='left', fill='both', expand=True)
     for profile in profiles:
         selection.insert('end', profile['name'])
     selection.selection_set(0, 'end')
@@ -48,8 +53,11 @@ def show_profile_qr(app):
             from qrcode.image.pure import PyPNGImage
             position[0] = index
             output = io.BytesIO()
-            qrcode.make(pages[index], image_factory=PyPNGImage,
-                        error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=4, border=4).save(output)
+            code = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, border=4)
+            code.add_data(pages[index])
+            code.make(fit=True)
+            code.box_size = max(2, min(4, (window.winfo_screenheight()-210)//(code.modules_count+8)))
+            code.make_image(image_factory=PyPNGImage).save(output)
             photo = tk.PhotoImage(data=base64.b64encode(output.getvalue()))
             picture.configure(image=photo)
             picture.image = photo
