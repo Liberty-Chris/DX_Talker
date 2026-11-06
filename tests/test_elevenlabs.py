@@ -29,6 +29,13 @@ class ElevenLabsTests(unittest.TestCase):
         with self.assertRaises(Cancelled):client.render('Alpha','voice','model',cancel)
         self.assertEqual(len(requests),1)
 
+    def test_voice_page_accepts_extra_defaults_but_only_displays_one_hundred(self):
+        body=json.dumps({'voices':[{'voice_id':f'voice{i}','name':f'Voice {i}'} for i in range(120)]}).encode()
+        client=ElevenLabs('key',opener=lambda *a,**k:BytesIO(body))
+        voices=client.voices(threading.Event())
+        self.assertEqual(len(voices),100)
+        self.assertEqual(voices['Voice 0 (voice0)'],'voice0')
+
     def test_api_errors_are_actionable_and_never_echo_credentials_or_bodies(self):
         for code in [401,402,403,429,500]:
             def fail(req,timeout):raise HTTPError(req.full_url,code,'SECRET server body',{},None)

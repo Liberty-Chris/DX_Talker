@@ -66,8 +66,9 @@ class ElevenLabs:
         raw = self._request('/v2/voices?page_size=100', cancel, limit=2*1024*1024)
         try:
             items = json.loads(raw)['voices']
-            if not isinstance(items, list) or len(items)>100: raise ValueError()
-            return {str(item['name'])[:100]+' ('+item['voice_id']+')':item['voice_id'] for item in items
+            # Page zero can include extra default voices beyond page_size.
+            if not isinstance(items, list) or len(items)>1000: raise ValueError()
+            return {str(item['name'])[:100]+' ('+item['voice_id']+')':item['voice_id'] for item in items[:100]
                     if re.fullmatch(r'[A-Za-z0-9_-]{1,128}', item['voice_id'])}
         except (KeyError, TypeError, ValueError):
             raise ValueError('ElevenLabs returned an invalid voice list') from None
