@@ -141,7 +141,7 @@ jobs:
           path: release
       - uses: actions/download-artifact@v4
         with:
-          name: DXTalker-Windows-${{ matrix.architecture }}
+          name: DXTalker-Windows-x64
           path: portable/DXTalker
       - uses: actions/download-artifact@v4
         with:
