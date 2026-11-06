@@ -64,3 +64,8 @@ python3 -m unittest discover -s tests -p 'test_cloud_speech.py' -v
 ```
 
 The PHP checks exercise the actual service logic with a synthetic provider, including atomic quota reservation, cache reuse, admission, malformed payloads, provider failure and parallel requests where pcntl is available. They do not call a paid API. Actual DreamHost deployment, HTTPS reachability and provider generation remain owner acceptance steps.
+
+
+## Website filtering during setup
+
+The shared client sends a DXTalker User-Agent for both catalog and audio requests. A deployed pilot reproduced Cloudflare error 1010 for Python’s default User-Agent while the same unauthenticated request with DXTalker reached the PHP service and returned the expected JSON 401. Keep TLS and pilot admission checks enabled. Use the current client rather than changing a voice label or disabling website security globally. A website HTTP 403 is distinct from a JSON voice_unavailable or model_changed response from the speech service.

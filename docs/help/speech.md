@@ -107,3 +107,6 @@ Generate voice pack uses the shared testing allowance. The screen shows the clip
 When finished, choose Use this voice, Save and apply and Preview sample speech. The provider becomes Recorded. Playback uses local WAVs without an internet connection or further API requests. Windows speech and Piper remain available. Generated packs retain voice and model provenance; sharing rights depend on the account plan and voice permissions. Arbitrary ID text may require a separate WAV or additional assets.
 
 The owner enters the ElevenLabs account key on the hosting server once, outside the public website folder. It is not included in app settings, QR transfers, logs or installers. The repository’s shared speech service guide covers DreamHost setup and build configuration.
+
+
+If Refresh voices or the service check reports website access blocked with HTTP 403, contact the pilot administrator about website security filtering. That failure does not establish that a voice or model is invalid. The app identifies itself as DXTalker rather than using Python’s default client identifier. An explicit service voice/model denial during synthesis instead asks for refreshed voice choices.
