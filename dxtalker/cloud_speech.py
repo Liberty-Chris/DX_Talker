@@ -7,6 +7,7 @@ import time
 from urllib import request, error
 from urllib.parse import urlsplit
 
+from . import __version__
 from .audio import Cancelled, Clip
 from .updates import update_ssl_context
 
@@ -47,7 +48,7 @@ class SharedSpeech:
     def _request(self, cancel, payload=None):
         if cancel.is_set():raise Cancelled()
         req=request.Request(self.config['url'],data=json.dumps(payload).encode() if payload is not None else None,
-                            headers={'X-DXTalker-Pilot':self.config['pilot_token'],'Content-Type':'application/json',
+                            headers={'User-Agent':'DXTalker/'+__version__,'X-DXTalker-Pilot':self.config['pilot_token'],'Content-Type':'application/json',
                                      'Accept':'application/octet-stream' if payload is not None else 'application/json'})
         limit=MAX_AUDIO if payload is not None else 65536
         try:
@@ -66,8 +67,16 @@ class SharedSpeech:
                 if cancel.is_set():raise Cancelled()
                 return bytes(result)
         except error.HTTPError as exc:
+            voice_denied=False
+            if exc.code==403 and payload is not None:
+                try:
+                    detail=json.loads(exc.read(1024))
+                    voice_denied=isinstance(detail,dict) and detail.get('error') in ('voice_unavailable','model_changed')
+                except (ValueError,TypeError,AttributeError,OSError):
+                    pass
             messages={401:'Shared speech access has expired. Contact the pilot administrator for an updated build.',
-                      403:'This ElevenLabs voice or model is no longer enabled for the pilot. Refresh the voice list.',
+                      403:('This ElevenLabs voice or model is no longer enabled for the pilot. Refresh the voice list.' if voice_denied else
+                           'The speech website blocked access (HTTP 403). Contact the pilot administrator to check website security filtering.'),
                       429:'Shared speech is busy or has reached its testing limit. Try later or choose Windows or Recorded speech.',
                       503:'Shared speech has not been configured or is temporarily unavailable. Contact the pilot administrator.'}
             raise ValueError(messages.get(exc.code,'The shared speech service could not generate audio. Try later or choose Windows or Recorded speech.')) from None

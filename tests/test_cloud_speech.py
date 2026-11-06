@@ -10,6 +10,7 @@ import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError
 
+from dxtalker import __version__
 from dxtalker.audio import Cancelled, Clip
 from dxtalker.cloud_speech import SharedSpeech, configuration, NoRedirect
 from dxtalker.models import Settings
@@ -32,6 +33,7 @@ class SharedSpeechTests(unittest.TestCase):
         clip=SharedSpeech(CONFIG,opener).render_plan([('New DX on',450),('Alpha',0)],'voiceA',threading.Event())
         self.assertGreater(clip.duration,0)
         self.assertEqual(json.loads(requests[0].data)['plan'],[['New DX on',450],['Alpha',0]])
+        self.assertEqual(requests[0].get_header('User-agent'),'DXTalker/'+__version__)
         self.assertIsNone(requests[0].get_header('Xi-api-key'))
         self.assertEqual(requests[0].get_header('X-dxtalker-pilot'),'dxp_'+'a'*40)
         with self.assertRaises(ValueError):NoRedirect().redirect_request(None)
@@ -49,6 +51,26 @@ class SharedSpeechTests(unittest.TestCase):
             self.assertNotIn('PRIVATE_RESPONSE',str(exc.exception))
         with self.assertRaisesRegex(ValueError,'size limit'):
             SharedSpeech(CONFIG,lambda *a,**k:BytesIO(b'x'*(22050*2*120+1))).render_plan([('Alpha',0)],'',threading.Event())
+
+    def test_catalog_identifies_itself_and_cloudflare_403_does_not_blame_voice(self):
+        seen=[]
+        def blocked(req,timeout):
+            seen.append(req)
+            raise HTTPError(req.full_url,403,'Forbidden',{},BytesIO(b'error code: 1010'))
+        with self.assertRaisesRegex(ValueError,'website blocked access'):
+            SharedSpeech(CONFIG,blocked).catalog(threading.Event())
+        self.assertEqual(seen[0].get_header('User-agent'),'DXTalker/'+__version__)
+        self.assertIsNone(seen[0].data)
+
+    def test_only_explicit_service_denials_are_described_as_voice_or_model_errors(self):
+        for body,expected in [(b'{"error":"voice_unavailable","private":"DO_NOT_ECHO"}','voice or model'),
+                              (b'{"error":"model_changed"}','voice or model'),
+                              (b'<html>DO_NOT_ECHO</html>','website blocked access'),
+                              (b'{"error":"unrecognized"}','website blocked access')]:
+            def blocked(req,timeout):raise HTTPError(req.full_url,403,'Forbidden',{},BytesIO(body))
+            with self.assertRaisesRegex(ValueError,expected) as exc:
+                SharedSpeech(CONFIG,blocked).render_plan([('Alpha',0)],'',threading.Event())
+            self.assertNotIn('DO_NOT_ECHO',str(exc.exception))
 
     def test_provider_routes_through_coordinator_pcm_boundary(self):
         s=replace(Settings(),speech_provider='ElevenLabs',eleven_voice='voiceA')
