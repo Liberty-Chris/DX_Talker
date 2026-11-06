@@ -1010,7 +1010,7 @@ class Application:
         ttk.Label(frame, text="Set announcement format in Announcements.").grid(row=0, column=0, sticky="w", pady=(0, 10))
         delivery = ttk.LabelFrame(frame, text="Speech delivery", padding=12)
         delivery.grid(row=1, column=0, sticky="w", pady=(0, 12))
-        self._field(delivery, 0, "Provider", "speech_provider", ["Windows", "Piper", "Recorded"], compact=True)
+        self._field(delivery, 0, "Provider", "speech_provider", ["Windows", "Piper", "Recorded", "ElevenLabs"], compact=True)
         self._field(delivery, 1, "Frequency units", "frequency_unit", ["kHz", "MHz"],
                     note="Used by announcements and the live view.", compact=True)
         self._field(delivery, 2, "Speed", "speech_rate", note="Minus 10 to 10. Zero is normal.", compact=True)
@@ -1044,8 +1044,19 @@ class Application:
         ttk.Label(self.recorded_speech_fields,text='Local pre-generated WAVs. No inference at playback. Custom intro words must exist in the chosen pack.',wraplength=600).grid(row=2,column=0,columnspan=3,pady=8)
         self._refresh_voice_packs()
         ttk.Button(frame, text='Generate ElevenLabs recorded voice', command=self._elevenlabs_dialog).grid(row=5,column=0,sticky='w',pady=(0,12))
+        self.eleven_speech_fields = ttk.LabelFrame(frame, text='ElevenLabs shared pilot voice', padding=12)
+        self.eleven_speech_fields.grid(row=6, column=0, sticky='w', pady=(0,12))
+        self._field(self.eleven_speech_fields,0,'Voice','eleven_voice',[],compact=True)
+        self.eleven_display=tk.StringVar(value=self.settings.eleven_voice)
+        self.eleven_voices={}
+        self.field_widgets['eleven_voice'].configure(width=38,textvariable=self.eleven_display)
+        self.combos['eleven_voice'].bind('<<ComboboxSelected>>',lambda event:self.variables['eleven_voice'].set(self.eleven_voices[self.eleven_display.get()]))
+        ttk.Button(self.eleven_speech_fields,text='Refresh voices',command=self._load_shared_voices).grid(row=0,column=2,padx=8)
+        self.eleven_status=tk.StringVar(value='Uses the DX Talker pilot account. No API key is required. Blank uses the service default voice.')
+        ttk.Label(self.eleven_speech_fields,textvariable=self.eleven_status,wraplength=610).grid(row=1,column=0,columnspan=3,sticky='w',pady=(8,0))
+        ttk.Label(self.eleven_speech_fields,text='Online synthesis sends announcement and voice ID text to our speech service and ElevenLabs. Testing limits apply. Windows, Piper and Recorded remain available. Speed is fixed; character and group pauses are retained.',wraplength=610).grid(row=2,column=0,columnspan=3,sticky='w',pady=(8,0))
         access = ttk.LabelFrame(frame, text="Interface", padding=12)
-        access.grid(row=6, column=0, sticky="w", pady=(0, 12))
+        access.grid(row=7, column=0, sticky="w", pady=(0, 12))
         self._field(access, 0, "Text size", "text_size", note="10 to 18 points. High contrast is in Appearance.", compact=True)
         controls = ttk.Frame(frame)
         controls.grid(row=0, column=0, sticky="e", pady=(0, 10))
@@ -1065,7 +1076,19 @@ class Application:
         recorded = self.variables["speech_provider"].get() == "Recorded"
         self.piper_speech_fields.grid() if piper else self.piper_speech_fields.grid_remove()
         self.recorded_speech_fields.grid() if recorded else self.recorded_speech_fields.grid_remove()
-        self.field_widgets["speech_rate"].configure(state="disabled" if recorded else "normal")
+        eleven = self.variables['speech_provider'].get() == 'ElevenLabs'
+        self.eleven_speech_fields.grid() if eleven else self.eleven_speech_fields.grid_remove()
+        self.field_widgets["speech_rate"].configure(state="disabled" if recorded or eleven else "normal")
+
+    def _load_shared_voices(self):
+        if getattr(self,'shared_voices_loading',False):return
+        self.shared_voices_loading=True
+        self.eleven_status.set('Loading shared pilot voices...')
+        def task():
+            from .cloud_speech import SharedSpeech
+            try:self.emit('shared_voices',SharedSpeech().voices(self.background_cancel))
+            except Exception as exc:self.emit('shared_voices_error',str(exc) if isinstance(exc,ValueError) else 'Shared voices are unavailable. Contact the pilot administrator.')
+        threading.Thread(target=task,daemon=True,name='Shared speech voices').start()
 
     def _refresh_voice_packs(self):
         from .voicepacks import installed
@@ -1490,6 +1513,18 @@ class Application:
                 elif kind == "activity":
                     self.diagnostics.record('activity', state=value)
                     self.activity.set(value)
+                elif kind == 'shared_voices':
+                    self.shared_voices_loading=False
+                    self.eleven_voices=value
+                    self.combos['eleven_voice'].configure(values=['']+list(value))
+                    selected=self.variables['eleven_voice'].get()
+                    self.eleven_display.set(next((label for label,identity in value.items() if identity==selected),''))
+                    self.eleven_status.set('Shared pilot voices ready. Choose a voice or leave blank for the service default. Save and apply, then preview locally.')
+                    continue
+                elif kind == 'shared_voices_error':
+                    self.shared_voices_loading=False
+                    self.eleven_status.set(value)
+                    continue
                 elif kind == "voices":
                     self.combos["voice"].configure(values=[""] + value)
                     continue

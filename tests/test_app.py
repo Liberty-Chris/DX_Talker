@@ -516,12 +516,28 @@ class AppTests(unittest.TestCase):
         self.assertTrue(any(isinstance(w,ttk.Label) and str(w.cget('textvariable')) for w in descendants(dialog)))
         dialog.destroy()
 
-    def test_elevenlabs_window_is_session_only_and_does_not_generate_on_open(self):
+    def test_elevenlabs_window_requires_no_key_and_does_not_generate_on_open(self):
         from dxtalker.elevenlabs_ui import ElevenLabsDialog
-        with patch('dxtalker.elevenlabs_ui.ElevenLabs') as client:
+        with patch('dxtalker.elevenlabs_ui.SharedSpeech') as client:
             dialog=ElevenLabsDialog(self.app);self.root.update()
             client.assert_not_called()
             self.assertNotIn('API key',self.app.variables)
-            dialog.values['API key'].set('private_key')
+            self.assertNotIn('API key',dialog.values)
             dialog.close()
-            self.assertEqual(dialog.values['API key'].get(),'')
+
+
+    def test_shared_speech_provider_has_voice_choices_and_no_tester_keys(self):
+        self.app.variables['speech_provider'].set('ElevenLabs')
+        self.app._speech_provider_changed()
+        self.assertTrue(self.app.eleven_speech_fields.grid_info())
+        self.assertEqual(str(self.app.field_widgets['speech_rate'].cget('state')),'disabled')
+        self.assertEqual(self.app._read_settings().speech_provider,'ElevenLabs')
+        self.assertNotIn('api_key',self.app.variables)
+        with patch('dxtalker.cloud_speech.SharedSpeech') as client:
+            client.return_value.voices.return_value={'Pilot voice (voiceA)':'voiceA'}
+            self.app._load_shared_voices()
+            import time
+            deadline=time.monotonic()+2
+            while self.app.shared_voices_loading and time.monotonic()<deadline:
+                self.app._poll();time.sleep(.01)
+        self.assertEqual(self.app.eleven_voices,{'Pilot voice (voiceA)':'voiceA'})

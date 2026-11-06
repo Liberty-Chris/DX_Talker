@@ -5,3 +5,8 @@ build/
 dist/
 *.spec
 .pytest_cache/
+
+# Owner speech configuration and runtime files stay outside source control.
+server/speech/config.json
+server/speech/client.json
+server/speech/state/

@@ -1,4 +1,4 @@
-"""Provider independent speech plans. Both providers produce PCM before output."""
+"""Provider independent speech plans. Providers produce PCM before output."""
 from array import array
 from html import escape
 from pathlib import Path
@@ -65,6 +65,9 @@ class SpeechService:
         return self._render(spot_plan(spot, settings), settings, cancel)
 
     def _render(self, plan, settings, cancel, structured=True):
+        if settings.speech_provider == "ElevenLabs":
+            from .cloud_speech import SharedSpeech
+            return SharedSpeech().render_plan(plan, settings.eleven_voice, cancel)
         if settings.speech_provider == "Recorded":
             from .voicepacks import VoicePack
             if not settings.voice_pack or Path(settings.voice_pack).name != settings.voice_pack:

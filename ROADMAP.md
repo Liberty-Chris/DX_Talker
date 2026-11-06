@@ -75,4 +75,4 @@ The 0.2.0a8 operations batch adds first-spot listening, private diagnostic expor
 
 ## Next pilot acceptance
 
-Collection QR transfer, receive audio transmit hold and ElevenLabs recorded voice generation are implemented for 0.2.0a9. Validate collection scanning on physical Android devices, threshold and quiet delay with actual receiver audio and PTT and paid voice generation/pronunciation with an operator account. Hardware carrier input and live cloud announcement synthesis are not implemented.
+Collection QR transfer, receive audio transmit hold and ElevenLabs recorded voice generation are implemented for 0.2.0a9. Validate collection scanning on physical Android devices, threshold and quiet delay with actual receiver audio and PTT and paid voice generation/pronunciation with an operator account. Hardware carrier input remains open. Shared online ElevenLabs speech is implemented through the private pilot gateway; DreamHost deployment, account configuration and live acceptance are still required.

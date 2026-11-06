@@ -170,6 +170,7 @@ class Settings:
     group_pause_ms: int = 450
     voice_gender: str = "Any"
     speech_provider: str = "Windows"
+    eleven_voice: str = ""
     frequency_unit: str = "kHz"
     announcement_order: str = "intro,frequency,callsign"
     announcement_intro: str = "New DX on"
@@ -217,7 +218,7 @@ class Settings:
         for name, options in {"source_type": ("TCP/Telnet", "HTTPS JSON"),
                               "ptt_method": ("VOX", "RTS", "DTR", "RTS+DTR"),
                               "voice_mode": ("Speech", "WAV"),
-                              "speech_provider": ("Windows", "Piper", "Recorded"),
+                              "speech_provider": ("Windows", "Piper", "Recorded", "ElevenLabs"),
                               "frequency_unit": ("kHz", "MHz"),
                               "update_channel": ("Pilot", "Stable"),
                               "voice_gender": ("Any", "Male", "Female"),

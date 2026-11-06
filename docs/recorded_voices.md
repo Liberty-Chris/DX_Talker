@@ -19,16 +19,12 @@ Clips are mono 22050 Hz PCM16 with silence trimming and short fades. The manifes
 
 ## ElevenLabs generation
 
-The desktop Speech screen includes Generate ElevenLabs recorded voice with a session only key, account voice lookup, editable voice/model IDs, custom intro and progress/cancel/resume. It produces the same Recorded manifest and mono 22050 Hz PCM16 WAV assets as the Piper builder. Normal playback does not contact ElevenLabs. No ElevenLabs key or generated voice is included in the application or public workflow.
+The desktop offers a shared ElevenLabs provider for live online speech and a generator for reusable Recorded packs. Testers do not enter keys. The generator uses the same private service, allowed voice list and testing allowance. The owner configures the upstream account key on DreamHost as described in [shared speech setup](../server/speech/README.md).
 
-For a developer workflow, run the following from the repository. The script prompts for the key without echoing it. `ELEVENLABS_API_KEY` is also accepted as an environment variable; keys are never command line arguments.
+The generator produces the same mono 22050 Hz PCM16 WAV format and checksummed manifest as the Piper builder. Progress, cancellation and verified clip resume remain available. Normal Recorded playback never contacts the service. Voice and model provenance is retained in PROVENANCE.txt and the manifest. This grants no additional sharing rights.
 
-```powershell
-python scripts/build_elevenlabs_pack.py --voice-id YOUR_VOICE_ID --model-id eleven_multilingual_v2 --label "My ElevenLabs voice" --output C:\DXTalkerVoices\elevenlabs --intro "New DX on"
-```
+The standard pack contains 77 assets plus an optional custom intro. Each generation request uses the shared account’s allowance; cached service segments can be reused across testers. A failed or cancelled request is not automatically retried and may already have consumed credits. App shutdown prevents subsequent generation requests without relying on interface callbacks.
 
-This consumes account credits for the standard vocabulary and optional intro. Each completed clip is hashed and recorded in a generation journal, allowing an interrupted batch to resume with the same settings. Changed voice settings require a new destination. Completed packs are not overwritten. A cancelled or failed request can already have incurred usage, so requests are not automatically retried. The fixed HTTPS API host does not allow redirects with the key. Responses and individual audio clips are bounded. The client requests `pcm_22050` and wraps the returned mono PCM16 in WAV containers, then trims silence and applies short fades.
-
-The pack includes PROVENANCE.txt with the voice and model IDs. This does not grant redistribution rights. Review your account plan and voice permissions before sharing a pack. API key permission, credits, real voice pronunciation and listening quality require an account test. The project’s tests use synthetic PCM and mocked HTTP responses, not a paid API request.
+The developer only script `scripts/build_elevenlabs_pack.py` remains available for an owner who intentionally generates directly using a private local key. It prompts privately or reads ELEVENLABS_API_KEY. It is not the tester workflow and does not embed a key in the app or pack.
 
 API references: [Create speech](https://elevenlabs.io/docs/api-reference/text-to-speech/convert) and [List voices](https://elevenlabs.io/docs/api-reference/voices/search).

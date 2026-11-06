@@ -2,7 +2,7 @@
 
 ## 0.2.0a9. November 6, 2026
 
-Choose all or selected cluster profiles for QR transfer. Large selections use numbered pages collected and validated on Android before reviewed import. Add optional receive audio transmit hold with a level display, adjustable threshold, 5 to 10 second quiet delay, input fault shutdown and interrupted transmission retry. Add explicit ElevenLabs generation of reusable Recorded voice packs with session only credentials and verified clip resume. Windows speech and Piper remain available.
+Choose all or selected cluster profiles for QR transfer. Large selections use numbered pages collected and validated on Android before reviewed import. Add optional receive audio transmit hold with a level display, adjustable threshold, 5 to 10 second quiet delay, input fault shutdown and interrupted transmission retry. Add shared ElevenLabs online speech and reusable Recorded voice generation with no tester key entry. Keep the account key in private DreamHost configuration, enforce server allowances and preserve verified clip resume. Windows speech and Piper remain available.
 
 ## 0.2.0a8. November 6, 2026
 
