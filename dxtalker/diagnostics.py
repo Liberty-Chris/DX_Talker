@@ -17,6 +17,28 @@ import os
 from . import __version__
 from .models import settings_path
 
+def process_alive(pid):
+    if pid <= 0: return False
+    if sys.platform == 'win32':
+        # os.kill(pid, 0) terminates processes on Windows; never use it as a probe.
+        import ctypes
+        from ctypes import wintypes
+        kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+        kernel.OpenProcess.argtypes=[wintypes.DWORD,wintypes.BOOL,wintypes.DWORD]
+        kernel.OpenProcess.restype=wintypes.HANDLE
+        kernel.GetExitCodeProcess.argtypes=[wintypes.HANDLE,ctypes.POINTER(wintypes.DWORD)]
+        kernel.GetExitCodeProcess.restype=wintypes.BOOL
+        kernel.CloseHandle.argtypes=[wintypes.HANDLE]
+        handle=kernel.OpenProcess(0x1000,False,pid)
+        if not handle:return ctypes.get_last_error()==5
+        try:
+            code=wintypes.DWORD()
+            return not kernel.GetExitCodeProcess(handle,ctypes.byref(code)) or code.value==259
+        finally:kernel.CloseHandle(handle)
+    try:os.kill(pid,0);return True
+    except PermissionError:return True
+    except ProcessLookupError:return False
+
 class Diagnostics:
     def __init__(self, directory=None, enabled=True, clock=time.monotonic):
         self.directory = Path(directory) if directory else settings_path().parent / 'diagnostics'
@@ -37,7 +59,8 @@ class Diagnostics:
             incomplete=0
             for old in self.directory.glob('session-*.pending'):
                 try:
-                    pid=int(old.read_text());os.kill(pid,0)
+                    pid=int(old.read_text())
+                    if not process_alive(pid):raise ProcessLookupError()
                 except PermissionError:
                     continue
                 except (OSError,ValueError):

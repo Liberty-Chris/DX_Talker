@@ -4,7 +4,7 @@ import hashlib,json,tempfile,threading,unittest,wave,zipfile,zlib,base64
 from pathlib import Path
 from dxtalker.models import Settings,UTC,parse_line
 from dxtalker.profiles import ProfileStore
-from dxtalker.diagnostics import Diagnostics
+from dxtalker.diagnostics import Diagnostics, process_alive
 from dxtalker import transfer
 from dxtalker.voicepacks import VoicePack
 from dxtalker.speech import spot_plan
@@ -25,6 +25,15 @@ class DiagnosticsTests(unittest.TestCase):
             d.export(Path(folder)/'report.zip')
             with zipfile.ZipFile(Path(folder)/'report.zip') as archive:
                 self.assertEqual(set(archive.namelist()),{'diagnostics.jsonl','README.txt'})
+    def test_another_live_instance_is_not_reported_as_a_crash(self):
+        import os
+        self.assertTrue(process_alive(os.getpid()))
+        with tempfile.TemporaryDirectory() as folder:
+            first=Diagnostics(folder);second=Diagnostics(folder)
+            first.close();second.close()
+            records=[json.loads(line) for line in (Path(folder)/'diagnostics.jsonl').read_text().splitlines()]
+            self.assertEqual([r['previous_incomplete'] for r in records if r['event']=='startup'],[0,0])
+
     def test_unclean_marker_and_opt_out(self):
         with tempfile.TemporaryDirectory() as folder:
             d=Diagnostics(folder);d.close(clean=False);d.marker.write_text("2147483647")
