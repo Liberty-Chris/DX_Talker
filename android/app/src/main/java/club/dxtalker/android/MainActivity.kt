@@ -30,6 +30,9 @@ class MainActivity : Activity() {
     private lateinit var spotsView: LinearLayout
     private lateinit var root: LinearLayout
     private val prefs by lazy { getSharedPreferences("dx", MODE_PRIVATE) }
+    private val uiHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var refreshQueued = false
+    private val refreshTask = Runnable { refreshQueued=false;refresh() }
     private var page = "Listen"
     private val history = java.util.ArrayDeque<String>()
     private val drafts = mutableMapOf<String, String>()
@@ -40,7 +43,7 @@ class MainActivity : Activity() {
     private var secondary = Color.LTGRAY
     private val accent = Color.rgb(0, 183, 232)
     private val receiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) { refresh() }
+        override fun onReceive(context: Context?, intent: Intent?) { refreshControls();if(!refreshQueued) { refreshQueued=true;uiHandler.postDelayed(refreshTask,150) } }
     }
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
     private fun rounded(color: Int, radius: Float = 16f) = GradientDrawable().apply {
@@ -61,8 +64,10 @@ class MainActivity : Activity() {
         }
     }
     private fun edit(container: LinearLayout, name: String, value: String, password: Boolean = false, key: String = name): EditText {
-        container.addView(label(name, 13f, secondary))
+        val caption=label(name, 13f, secondary)
+        container.addView(caption)
         return EditText(this).apply {
+            id=View.generateViewId();caption.labelFor=id;contentDescription=name
             setText(drafts["$page:$key"] ?: value); setTextColor(ink); setHintTextColor(secondary)
             setSingleLine(true); minHeight = dp(48)
             if (password) inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
@@ -162,19 +167,27 @@ class MainActivity : Activity() {
         val live = section("Recent spots")
         spotsView = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }; live.addView(spotsView)
     }
-    private fun refresh() {
+    private fun refreshControls() {
         if(!::status.isInitialized)return
         listenButton.text = if(ListenerService.listeningActive) "Stop listening" else "Start listening"
         muteButton.text = if(ListenerService.muted) "Unmute" else "Mute"
         pauseButton.text = if(ListenerService.paused) "Resume" else "Pause"
         muteButton.isEnabled = ListenerService.listeningActive; pauseButton.isEnabled = ListenerService.listeningActive
         status.text = ListenerService.status + if(ListenerService.listeningActive) " · " + (if(ListenerService.muted) "Muted" else if(ListenerService.paused) "Paused" else "Audio on") else ""
+    }
+    private fun refresh() {
+        refreshControls()
         if(page != "Listen" || !::spotsView.isInitialized)return
         val items = synchronized(ListenerService.spots) { ListenerService.spots.toList() }
         if(spotsView.tag == items)return
         spotsView.tag = items; spotsView.removeAllViews()
         if(items.isEmpty()) spotsView.addView(label("Your matching spots will appear here. Listening can start before the first spot arrives.",15f,secondary))
-        items.take(60).forEach { spotsView.addView(label(it,16f)) }
+        items.take(60).forEach { item ->
+            val row=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(0,dp(6),0,dp(6)) }
+            row.addView(label(item.substringBefore('\n'),18f).apply { setTypeface(null,Typeface.BOLD) })
+            if(item.contains('\n'))row.addView(label(item.substringAfter('\n'),13f,secondary))
+            spotsView.addView(row)
+        }
     }
     private fun showHome() = go("Listen",true)
     private fun showProfiles() = go("Clusters",true)
@@ -390,5 +403,5 @@ class MainActivity : Activity() {
         else @Suppress("DEPRECATION") registerReceiver(receiver,IntentFilter(ListenerService.UPDATE))
         if (::status.isInitialized) refresh()
     }
-    override fun onStop() { unregisterReceiver(receiver); super.onStop() }
+    override fun onStop() { uiHandler.removeCallbacks(refreshTask);refreshQueued=false;unregisterReceiver(receiver); super.onStop() }
 }

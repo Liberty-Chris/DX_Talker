@@ -10,6 +10,7 @@ import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.*
 import androidx.test.espresso.assertion.ViewAssertions.*
 import androidx.test.espresso.matcher.ViewMatchers.*
+import org.junit.Assert.*
 import org.junit.Test
 import org.junit.Before
 import org.junit.runner.RunWith
@@ -25,15 +26,20 @@ class NavigationTests {
     }
     private fun screenshot(name: String) {
         val image=InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
-        val dir=File(context.getExternalFilesDir(null),"screenshots").apply { mkdirs() }
-        File(dir,"$name.png").outputStream().use { image.compress(Bitmap.CompressFormat.PNG,100,it) };image.recycle()
+        val values=android.content.ContentValues().apply {
+            put(android.provider.MediaStore.Images.Media.DISPLAY_NAME,"$name.png")
+            put(android.provider.MediaStore.Images.Media.MIME_TYPE,"image/png")
+            put(android.provider.MediaStore.Images.Media.RELATIVE_PATH,"Pictures/DXTalker-verification")
+        }
+        val uri=context.contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values)!!
+        context.contentResolver.openOutputStream(uri)!!.use { image.compress(Bitmap.CompressFormat.PNG,100,it) };image.recycle()
     }
     @Test fun navigationBackDraftsAndRecreation() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             onView(withText("Recent spots")).check(matches(isDisplayed())); screenshot("listen-dark")
             onView(withText("Clusters")).perform(click())
             onView(withText("Add cluster")).perform(click())
-            onView(withText("My cluster")).perform(replaceText("Dad portable"),closeSoftKeyboard())
+            onView(withContentDescription("Profile name")).perform(replaceText("Dad portable"),closeSoftKeyboard())
             scenario.recreate()
             onView(withText("Dad portable")).check(matches(isDisplayed())); screenshot("edit-cluster")
             androidx.test.espresso.Espresso.pressBack()
@@ -51,6 +57,37 @@ class NavigationTests {
             onView(withText("Listen")).perform(click())
             onView(withText("Recent spots")).check(matches(isDisplayed()))
         }
+    }
+    @Test fun navigationAndFilterApplyKeepTheSameLiveConnection() {
+        val server=java.net.ServerSocket(0)
+        val accepted=java.util.concurrent.CountDownLatch(1)
+        val release=java.util.concurrent.CountDownLatch(1)
+        val closed=java.util.concurrent.atomic.AtomicBoolean(false)
+        val worker=Thread {
+            try { server.accept().use { socket ->
+                socket.soTimeout=200;accepted.countDown()
+                while(release.count>0) {
+                    try { if(socket.getInputStream().read()<0) { closed.set(true);break } }
+                    catch(_:java.net.SocketTimeoutException) {}
+                }
+            } } catch(_:Exception) { if(release.count>0)closed.set(true) }
+        };worker.start()
+        context.getSharedPreferences("dx",Context.MODE_PRIVATE).edit().putString("host","127.0.0.1").putString("port",server.localPort.toString()).commit()
+        try {
+            ActivityScenario.launch(MainActivity::class.java).use {
+                onView(withText("Start listening")).perform(click())
+                assertTrue(accepted.await(5,java.util.concurrent.TimeUnit.SECONDS))
+                onView(withText("Settings")).perform(click())
+                onView(withText("Stop listening")).check(matches(isDisplayed()))
+                onView(withText("Bands, modes and activities")).perform(click())
+                onView(withText("Save filters")).perform(scrollTo(),click())
+                assertTrue(ListenerService.listeningActive)
+                assertFalse("Navigation or filtering closed the original TCP session",closed.get())
+                androidx.test.espresso.Espresso.pressBack()
+                onView(withText("Listen")).perform(click())
+                onView(withText("Stop listening")).perform(click())
+            }
+        } finally { release.countDown();server.close();worker.join(1000);context.stopService(Intent(context,ListenerService::class.java)) }
     }
     @Test fun lightAppearanceHasWorkingNavigation() {
         context.getSharedPreferences("dx",Context.MODE_PRIVATE).edit().putString("appearance","Light").commit()

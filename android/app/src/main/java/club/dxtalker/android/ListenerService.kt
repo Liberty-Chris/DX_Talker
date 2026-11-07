@@ -50,8 +50,14 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
             builder.addAction(android.R.drawable.ic_media_play,when(action){"mute"->if(muted)"Unmute" else "Mute";"pause"->if(paused)"Resume" else "Pause";else->"Stop"},intent)
         };return builder.build()
     }
-    private fun update(message:String?=null){if(message!=null)status=message
-        sendBroadcast(Intent(UPDATE).setPackage(packageName));if(running)getSystemService(NotificationManager::class.java).notify(1,notification())}
+    private var lastNotification=0L
+    private fun update(message:String?=null){
+        val changed=message!=null && message!=status
+        if(message!=null)status=message
+        sendBroadcast(Intent(UPDATE).setPackage(packageName))
+        val now=android.os.SystemClock.elapsedRealtime()
+        if(running && (changed || now-lastNotification>=500)) { lastNotification=now;getSystemService(NotificationManager::class.java).notify(1,notification()) }
+    }
     override fun onInit(result:Int){main.post{
         speechReady=result==TextToSpeech.SUCCESS && tts?.setLanguage(Locale.US) in listOf(TextToSpeech.LANG_AVAILABLE,TextToSpeech.LANG_COUNTRY_AVAILABLE,TextToSpeech.LANG_COUNTRY_VAR_AVAILABLE)
         tts?.setOnUtteranceProgressListener(object:UtteranceProgressListener(){
@@ -103,7 +109,8 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
         main.post{
             if(!active(token))return@post
             if(!SpotFilters.matches(spot) { key -> setting(key,"") } || spot.frequency<setting("min_khz","1").toBigDecimal() || spot.frequency>setting("max_khz","10000000").toBigDecimal())return@post
-            synchronized(spots){spots.add(0,spot.call+"  "+spot.frequency(setting("frequency_unit","kHz"))+" "+setting("frequency_unit","kHz"));while(spots.size>150)spots.removeAt(spots.lastIndex)}
+            val details=SpotFilters.mode(spot.comment,spot.mode)+" · "+SpotFilters.tags(spot.comment).sorted().joinToString(" / ")+" · "+java.time.format.DateTimeFormatter.ofPattern("HH:mm 'UTC'").withZone(java.time.ZoneOffset.UTC).format(spot.time)
+            synchronized(spots){spots.add(0,spot.call+"  "+spot.frequency(setting("frequency_unit","kHz"))+" "+setting("frequency_unit","kHz")+"\n"+details);while(spots.size>150)spots.removeAt(spots.lastIndex)}
             update("Receiving matching DX spots")
             val age=setting("max_age_seconds","180").toLong();val key=spot.call+":"+spot.frequency.stripTrailingZeros().toPlainString();val tick=android.os.SystemClock.elapsedRealtime()
             seen.entries.removeAll{tick-it.value>=setting("repeat_seconds","300").toLong()*1000}

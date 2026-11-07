@@ -667,6 +667,7 @@ class Application:
     def _spot_filter_picker(self, key, title, values):
         dialog = tk.Toplevel(self.root)
         dialog.title(title)
+        dialog.configure(background=PALETTES[self.theme.get()]["bg"])
         dialog.transient(self.root)
         selected = set(self.variables[key].get().split(','))
         flags = {value: tk.BooleanVar(value=value in selected) for value in values}
@@ -677,6 +678,10 @@ class Application:
             self.variables[key].set(','.join(v for v, flag in flags.items() if flag.get()))
             dialog.destroy()
         ttk.Button(dialog, text="Apply selection", command=apply).grid(row=2+(len(values)+2)//3, column=0, columnspan=3, pady=12)
+        dialog.bind("<Escape>", lambda event: dialog.destroy())
+        dialog.bind("<Return>", lambda event: apply())
+        dialog.update_idletasks()
+        dialog.geometry(f"+{self.root.winfo_rootx()+80}+{self.root.winfo_rooty()+120}")
         dialog.grab_set()
 
     FORMAT_FIELDS = ("announcement_order", "announcement_intro", "include_intro",
