@@ -313,8 +313,8 @@ class MainActivity : Activity() {
                 val enabled = drafts["Speech:include_$key"]?.toBoolean() ?: when(key) { "intro" -> current.substringBefore('{').isNotBlank(); "frequency" -> current.contains("{frequency}"); else -> current.contains("{call}") }
                 val check = CheckBox(this).apply { text=key.replaceFirstChar { it.uppercase() }; setTextColor(ink); isChecked=enabled; setOnCheckedChangeListener { _,checked -> drafts["Speech:include_$key"] = checked.toString() } }
                 flags[key]=check; row.addView(check,LinearLayout.LayoutParams(0,-2,1f))
-                row.addView(button("Up") { java.util.Collections.swap(order,index,index-1); drafts["Speech:order"]=order.joinToString(","); draw() }.apply { isEnabled=index>0; contentDescription="Move $key up" })
-                row.addView(button("Down") { java.util.Collections.swap(order,index,index+1); drafts["Speech:order"]=order.joinToString(","); draw() }.apply { isEnabled=index<order.lastIndex; contentDescription="Move $key down" }); rows.addView(row)
+                row.addView(button("Up") { java.util.Collections.swap(order,index,index-1); drafts["Speech:order"]=order.joinToString(","); draw() }.apply { isEnabled=index>0; contentDescription="Move $key up" },LinearLayout.LayoutParams(dp(72),-2).apply { marginEnd=dp(4) })
+                row.addView(button("Down") { java.util.Collections.swap(order,index,index+1); drafts["Speech:order"]=order.joinToString(","); draw() }.apply { isEnabled=index<order.lastIndex; contentDescription="Move $key down" },LinearLayout.LayoutParams(dp(72),-2)); rows.addView(row)
             }
         }; draw()
         val units = CheckBox(this).apply { text="Speak kHz or MHz"; setTextColor(ink); isChecked=drafts["Speech:units"]?.toBoolean() ?: current.contains("{unit}"); setOnCheckedChangeListener { _,checked -> drafts["Speech:units"]=checked.toString() } }; panel.addView(units)

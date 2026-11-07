@@ -25,6 +25,8 @@ class NavigationTests {
         if(android.os.Build.VERSION.SDK_INT>=33) InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand("pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS").close()
     }
     private fun screenshot(name: String) {
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+        android.os.SystemClock.sleep(250)
         val image=InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
         val values=android.content.ContentValues().apply {
             put(android.provider.MediaStore.Images.Media.DISPLAY_NAME,"$name.png")
@@ -52,7 +54,12 @@ class NavigationTests {
             onView(withText("Bands: 20m")).check(matches(isDisplayed())); screenshot("filters")
             androidx.test.espresso.Espresso.pressBack()
             onView(withText("Voice and announcement")).perform(click())
-            onView(withText("Announcement builder")).check(matches(isDisplayed())); screenshot("speech")
+            onView(withText("Announcement builder")).check(matches(isDisplayed()))
+            onView(withText("Intro")).check(matches(isDisplayed()))
+            onView(withText("Frequency")).check(matches(isDisplayed()))
+            onView(withText("Callsign")).check(matches(isDisplayed()))
+            onView(withContentDescription("Move intro down")).perform(click())
+            onView(withText("Intro")).check(matches(isDisplayed())); screenshot("speech")
             androidx.test.espresso.Espresso.pressBack()
             onView(withText("Listen")).perform(click())
             onView(withText("Recent spots")).check(matches(isDisplayed()))
