@@ -71,3 +71,11 @@ QR to phone opens a collection selector with every saved profile selected. Keep 
 Cluster directory is ready for Dad's forthcoming curated list. It can load a directory JSON file and add active entries, while retired entries are marked unavailable. The initial bundled list is empty. Review dates are not live availability guarantees. Existing saved profiles are removed only through the confirmed Delete profile action.
 
 Connection errors distinguish DNS, refused or timed out connections, rejected or duplicate logins, HTTP authentication/permission/rate-limit errors and certificate verification failures. Status explains retry timing. Raw server text and credential-bearing URLs are excluded from diagnostic reports.
+
+## Keeping a quiet cluster connected
+
+TCP keepalive is enabled on desktop and Android. Desktop requests a 60 second idle interval and 10 second probes where the operating system supports tuning; Android uses its operating system's keepalive timing. These are transport probes rather than cluster commands, passwords or DX spots. They help detect dead TCP connections but do not override a cluster's own idle logout policy or Android background restrictions.
+
+After 90 seconds without incoming cluster bytes, status explains that the feed may be quiet. A quiet feed alone does not cause a reconnect. Actual closed or failed connections still use bounded retry. No periodic command, blank line or backspace is injected into login or password prompts. Cluster specific application heartbeats require a documented compatible server command and remain future work.
+
+Automatic sign in ignores DX spot lines, including a packet split after a spotter callsign ending in CALL and comments mentioning passwords. These are spot metadata rather than authentication prompts. Android checks partial prompts at command delimiters or an idle read instead of scanning the growing line for every character.

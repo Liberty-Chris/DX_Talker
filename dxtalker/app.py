@@ -640,6 +640,15 @@ class Application:
             self.field_widgets[name].configure(width=14)
         ttk.Label(frequency, text="Filter limits use kHz, including when speech and display use MHz.",
                   wraplength=550).grid(row=2, column=0, columnspan=2, sticky="w", pady=(8, 0))
+        from .filtering import BANDS, MODES, ACTIVITIES
+        for row, (key, title, values) in enumerate((
+                ('filter_bands', 'Bands', [*BANDS, 'Other']),
+                ('filter_modes', 'Modes', MODES),
+                ('filter_activities', 'Activities', ACTIVITIES)), start=3):
+            self.variables[key] = tk.StringVar(value=getattr(self.settings, key))
+            ttk.Button(frequency, text="Choose " + title.lower(), command=lambda k=key, t=title, v=values: self._spot_filter_picker(k, t, v)).grid(row=row, column=0, sticky="w", pady=3)
+            ttk.Label(frequency, textvariable=self.variables[key], wraplength=400).grid(row=row, column=1, sticky="w")
+        ttk.Label(frequency, text="An empty selection accepts all. Unknown mode remains selectable. Filters affect announcements; Live spots retains received reports.", wraplength=550).grid(row=6, column=0, columnspan=2, sticky="w", pady=6)
         timing = ttk.LabelFrame(frame, text="Timing and repeats", padding=12)
         timing.grid(row=2, column=0, sticky="w", pady=(0, 12))
         self._field(timing, 0, "Maximum spot age (s)", "max_age_seconds", note="30 to 600 seconds", compact=True)
@@ -654,6 +663,26 @@ class Application:
                   wraplength=550).grid(row=0, column=0, sticky="w")
         ttk.Label(frame, text="Only validated spots are spoken. Comments and cluster commands are excluded.\nQueue: up to 100 spots. Starting output does not replay displayed history.",
                   wraplength=650).grid(row=4, column=0, sticky="w")
+
+    def _spot_filter_picker(self, key, title, values):
+        dialog = tk.Toplevel(self.root)
+        dialog.title(title)
+        dialog.configure(background=PALETTES[self.theme.get()]["bg"])
+        dialog.transient(self.root)
+        selected = set(self.variables[key].get().split(','))
+        flags = {value: tk.BooleanVar(value=value in selected) for value in values}
+        ttk.Label(dialog, text="Select the reports to announce. None selected accepts all.", wraplength=380).grid(row=0, column=0, columnspan=3, padx=12, pady=10)
+        for i, (value, flag) in enumerate(flags.items()):
+            ttk.Checkbutton(dialog, text=value, variable=flag).grid(row=1+i//3, column=i%3, sticky="w", padx=12, pady=5)
+        def apply():
+            self.variables[key].set(','.join(v for v, flag in flags.items() if flag.get()))
+            dialog.destroy()
+        ttk.Button(dialog, text="Apply selection", command=apply).grid(row=2+(len(values)+2)//3, column=0, columnspan=3, pady=12)
+        dialog.bind("<Escape>", lambda event: dialog.destroy())
+        dialog.bind("<Return>", lambda event: apply())
+        dialog.update_idletasks()
+        dialog.geometry(f"+{self.root.winfo_rootx()+80}+{self.root.winfo_rooty()+120}")
+        dialog.grab_set()
 
     FORMAT_FIELDS = ("announcement_order", "announcement_intro", "include_intro",
                      "include_callsign", "include_frequency", "speak_units")

@@ -28,20 +28,60 @@ class AppTests(unittest.TestCase):
         self.root.update()
 
     def tearDown(self):
-        self.app.close()
-        self.app.engine.worker.join(3)
-        for callback in self.root.tk.call("after", "info"):
-            self.root.after_cancel(callback)
         try:
-            self.root.destroy()
-        except Exception:
-            pass
-        self.env.stop()
-        self.folder.cleanup()
+            if not self.app.closing:
+                self.app.close()
+            if not self.app.diagnostics.closed.is_set():
+                # Production shutdown finishes from a Tk callback after the
+                # output worker exits. Keep that event loop running in tests.
+                self.root.after(3000, self.root.quit)
+                self.root.mainloop()
+            self.app.engine.worker.join(3)
+            self.assertFalse(self.app.engine.worker.is_alive(), "Output worker did not stop")
+            self.assertTrue(self.app.diagnostics.closed.is_set(), "Application shutdown did not finish")
+        finally:
+            self.app.diagnostics.close()
+            watcher = getattr(self.app.diagnostics, "watcher", None)
+            if watcher:
+                watcher.join(3)
+            for callback in self.root.tk.call("after", "info"):
+                self.root.after_cancel(callback)
+            try:
+                self.root.destroy()
+            except Exception:
+                pass
+            self.env.stop()
+            self.folder.cleanup()
+
+    def test_close_finishes_deferred_cleanup_before_releasing_the_log(self):
+        # Force the normal deferred path even when the worker stops quickly.
+        with patch.object(self.app.engine.worker, 'is_alive', side_effect=[True, False]):
+            self.app.close()
+            self.assertFalse(self.app.diagnostics.closed.is_set())
+            self.assertIsNotNone(self.app.diagnostics.handler)
+            self.root.mainloop()
+        self.assertTrue(self.app.diagnostics.closed.is_set())
+        self.assertIsNone(self.app.diagnostics.handler)
+        # Windows refuses this rename while the file is still open.
+        path = self.app.diagnostics.directory / 'diagnostics.jsonl'
+        path.rename(path.with_suffix('.closed'))
 
     def spot(self):
         now = datetime.now(UTC)
         return parse_line(f"DX de N0CALL: 7074 WB4IUY CQ {now:%H%M}Z", "cluster", now)
+
+    def test_spot_filter_picker_saves_choices_and_applies_them(self):
+        from dxtalker.filtering import MODES
+        self.app._spot_filter_picker('filter_modes', 'Modes', MODES)
+        dialog = [w for w in self.root.winfo_children() if w.winfo_class() == 'Toplevel'][-1]
+        from tkinter import ttk
+        for child in dialog.winfo_children():
+            if isinstance(child, ttk.Checkbutton) and child.cget('text') == 'FT8': child.invoke()
+        for child in dialog.winfo_children():
+            if isinstance(child, ttk.Button) and child.cget('text') == 'Apply selection': child.invoke()
+        self.app._apply()
+        self.assertEqual(self.app.settings.filter_modes, 'FT8')
+        self.assertFalse(self.app.engine.enabled)
 
     def test_settings_fields_acknowledgment_profiles_and_clear(self):
         from dataclasses import fields

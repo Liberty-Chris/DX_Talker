@@ -34,6 +34,8 @@ class Spot:
     timestamp: datetime
     received: datetime
     source: str
+    comment: str = ""
+    mode: str = ""
 
     @property
     def key(self) -> tuple:
@@ -76,7 +78,7 @@ class Spot:
 
 
 def make_spot(dx: str, freq: str, spotter: str, stamp: datetime,
-              source: str, now: datetime) -> Spot:
+              source: str, now: datetime, comment: str = "", mode: str = "") -> Spot:
     dx, spotter = dx.upper(), spotter.upper()
     if not valid_call(dx) or not valid_call(spotter):
         raise ValueError("Invalid callsign")
@@ -88,7 +90,8 @@ def make_spot(dx: str, freq: str, spotter: str, stamp: datetime,
     stamp = stamp.astimezone(UTC)
     if stamp > now + timedelta(minutes=2):
         raise ValueError("Timestamp is in the future")
-    return Spot(dx, value, spotter, stamp, now, source)
+    from .filtering import clean_comment
+    return Spot(dx, value, spotter, stamp, now, source, clean_comment(comment), clean_comment(mode))
 
 
 def parse_line(line: str, source: str, now: datetime | None = None) -> Spot | None:
@@ -105,7 +108,7 @@ def parse_line(line: str, source: str, now: datetime | None = None) -> Spot | No
         # Cluster HHMM fields do not carry dates. Pick the nearest UTC day,
         # then reject excessive future timestamps. The queue enforces freshness.
         stamp = min((stamp + timedelta(days=d) for d in (-1, 0, 1)), key=lambda t: abs((now-t).total_seconds()))
-        return make_spot(match["dx"], match["freq"], match["spotter"], stamp, source, now)
+        return make_spot(match["dx"], match["freq"], match["spotter"], stamp, source, now, match["rest"][:time_match.start()])
     except (ValueError, InvalidOperation):
         return None
 
@@ -121,7 +124,7 @@ def parse_json_feed(payload: bytes, source: str, now: datetime | None = None) ->
             if not isinstance(item, dict):
                 continue
             result.append(make_spot(str(item["dx_call"]), str(item["frequency_khz"]), str(item["spotter"]),
-                                    datetime.fromisoformat(str(item["time"]).replace("Z", "+00:00")), source, now))
+                                    datetime.fromisoformat(str(item["time"]).replace("Z", "+00:00")), source, now, item.get("comment", ""), item.get("mode", "")))
         except (KeyError, ValueError, InvalidOperation, TypeError, OverflowError):
             continue
     return result
@@ -160,6 +163,9 @@ class Settings:
     max_age_seconds: int = 180
     repeat_seconds: int = 300
     spacing_seconds: int = 5
+    filter_bands: str = ""
+    filter_modes: str = ""
+    filter_activities: str = ""
     min_khz: float = 1.0
     max_khz: float = 10000000.0
     volume_percent: int = 70
@@ -227,6 +233,10 @@ class Settings:
                 raise ValueError(f"Choose a valid {name.replace('_', ' ')}")
         if not all(math.isfinite(v) for v in (self.min_khz, self.max_khz)) or not 1 <= self.min_khz <= self.max_khz <= 10000000:
             raise ValueError("Frequency filter must be between 1 and 10000000 kHz")
+        from .filtering import choices, BANDS, MODES, ACTIVITIES
+        choices(self.filter_bands, (*BANDS, "Other"))
+        choices(self.filter_modes, MODES)
+        choices(self.filter_activities, ACTIVITIES)
         self.validate_format()
         if self.log_directory and not Path(self.log_directory).is_absolute():
             raise ValueError("Choose an absolute history folder path")

@@ -5,12 +5,12 @@ import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 
-data class DxSpot(val call: String, val frequency: BigDecimal, val time: Instant) {
+data class DxSpot(val call: String, val frequency: BigDecimal, val time: Instant, val comment: String = "", val mode: String = "") {
     fun frequency(unit: String): String = (if(unit=="MHz") frequency.divide(BigDecimal(1000)) else frequency).stripTrailingZeros().toPlainString()
 }
 object SpotPolicy {
     private val callPattern = Regex("[A-Z0-9][A-Z0-9/\\-]{1,19}")
-    private val pattern = Regex("^DX de ([A-Z0-9/\\-]+):\\s+(\\d{1,7}(?:\\.\\d{1,4})?)\\s+([A-Z0-9/\\-]+)\\s+(?:.*\\s)?(\\d{4})Z?\\s*$", RegexOption.IGNORE_CASE)
+    private val pattern = Regex("^DX de ([A-Z0-9/\\-]+):\\s+(\\d{1,7}(?:\\.\\d{1,4})?)\\s+([A-Z0-9/\\-]+)\\s+(?:(.*?)\\s+)?(\\d{4})Z?\\s*$", RegexOption.IGNORE_CASE)
     private val phonetics = "Alpha Bravo Charlie Delta Echo Foxtrot Golf Hotel India Juliet Kilo Lima Mike November Oscar Papa Quebec Romeo Sierra Tango Uniform Victor Whiskey Xray Yankee Zulu".split(' ')
     private val digits = "zero one two three four five six seven eight nine".split(' ')
     private fun validCall(call:String)=callPattern.matches(call) && call.any{it.isDigit()} && call.any{it in 'A'..'Z'}
@@ -18,10 +18,10 @@ object SpotPolicy {
         val match=pattern.matchEntire(line.trim())
         if(match==null) null else {
             val spotter=match.groupValues[1].uppercase(Locale.US); val call=match.groupValues[3].uppercase(Locale.US)
-            val frequency=match.groupValues[2].toBigDecimal(); val stamp=match.groupValues[4]
+            val frequency=match.groupValues[2].toBigDecimal(); val stamp=match.groupValues[5]
             val day=now.atZone(ZoneOffset.UTC).withHour(stamp.take(2).toInt()).withMinute(stamp.takeLast(2).toInt()).withSecond(0).withNano(0).toInstant()
             val time=listOf(day.minus(1,ChronoUnit.DAYS),day,day.plus(1,ChronoUnit.DAYS)).minBy{ kotlin.math.abs(it.epochSecond-now.epochSecond) }
-            if(!validCall(call)||!validCall(spotter)||frequency<BigDecimal.ONE||frequency>BigDecimal(10000000)||time>now.plusSeconds(120)) null else DxSpot(call,frequency,time)
+            if(!validCall(call)||!validCall(spotter)||frequency<BigDecimal.ONE||frequency>BigDecimal(10000000)||time>now.plusSeconds(120)) null else DxSpot(call,frequency,time,SpotFilters.clean(match.groupValues[4]))
         }
     } catch(_:Exception){null}
     fun speak(spot:DxSpot, template:String, unit:String):String {

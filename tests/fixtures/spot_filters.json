@@ -1,0 +1,138 @@
+[
+  {
+    "line": "DX de N0CALL: 14074 WB4IUY FT8 73!! 1234Z",
+    "mode": "FT8",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "FT8"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14074 WB4IUY CW POTA US-3051 1234Z",
+    "mode": "CW",
+    "activities": [
+      "POTA"
+    ],
+    "filters": {
+      "filter_modes": "CW",
+      "filter_activities": "POTA",
+      "filter_bands": "20m"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14074 WB4IUY FT8 POTA US-3051 1234Z",
+    "mode": "FT8",
+    "activities": [
+      "POTA"
+    ],
+    "filters": {
+      "filter_modes": "CW",
+      "filter_activities": "POTA"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14074 WB4IUY SOTA G/LD-001 USB 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "SOTA"
+    ],
+    "filters": {
+      "filter_modes": "SSB",
+      "filter_activities": "SOTA"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14074 WB4IUY FOTA RTTY 1234Z",
+    "mode": "RTTY",
+    "activities": [
+      "FOTA"
+    ],
+    "filters": {
+      "filter_activities": "FOTA"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14074 WB4IUY CQ DX OCEANIA 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "Unknown"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14074 WB4IUY FT8 CW 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "FT8"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14074 WB4IUY SPOTATO FOTAX FT80 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_activities": "POTA"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14074 WB4IUY POTA SOTA FM 1234Z",
+    "mode": "FM",
+    "activities": [
+      "POTA",
+      "SOTA"
+    ],
+    "filters": {
+      "filter_activities": "SOTA"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14074 WB4IUY PSK31 1234Z",
+    "mode": "PSK",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "PSK",
+      "filter_bands": "40m"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14074 WB4IUY LSB SSB 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "SSB"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14074 WB4IUY TU QSO 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {},
+    "match": true
+  }
+]

@@ -9,7 +9,7 @@ import java.util.zip.Inflater
 object TransferCodec {
     private const val MAX = 65536
     private val connectionKeys = setOf("source_type","host","port","login","feed_url","poll_seconds")
-    private val filterKeys = setOf("min_khz","max_khz","max_age_seconds","repeat_seconds","spacing_seconds","frequency_unit")
+    private val filterKeys = setOf("min_khz","max_khz","max_age_seconds","repeat_seconds","spacing_seconds","frequency_unit","filter_bands","filter_modes","filter_activities")
     private fun keys(value: JSONObject) = value.keys().asSequence().toSet()
     fun decode(text: String): JSONObject {
         var raw = text.toByteArray(Charsets.UTF_8)
@@ -19,7 +19,7 @@ object TransferCodec {
         }
         require(raw.size <= MAX) { "Transfer exceeds 64 KiB" }
         val data = JSONObject(String(raw, Charsets.UTF_8))
-        require(keys(data) == setOf("schema","version","profiles","filters") && data.getString("schema") == "dxtalker-transfer" && data.opt("version") is Int && data.getInt("version") == 1) { "Unsupported DX Talker transfer" }
+        require(keys(data) == setOf("schema","version","profiles","filters") && data.getString("schema") == "dxtalker-transfer" && data.opt("version") is Int && data.getInt("version") in 1..2) { "Unsupported DX Talker transfer" }
         val profiles = data.getJSONArray("profiles")
         require(profiles.length() > 0) { "No profiles in transfer" }
         for (i in 0 until profiles.length()) {
@@ -46,7 +46,7 @@ object TransferCodec {
         require(filterKeys.containsAll(keys(f))) { "Unsupported filter fields" }
         for(key in keys(f)){
             val value=f.get(key)
-            if(key=="frequency_unit")require(value is String) else {
+            if(key=="frequency_unit" || key.startsWith("filter_"))require(value is String) else {
                 require(value is Number && value.toDouble().isFinite()) { "Filter numbers must be numeric" }
                 if(key in setOf("max_age_seconds","repeat_seconds","spacing_seconds")) require(value.toDouble()%1.0==0.0) { "Timing values must be integers" }
             }
@@ -55,6 +55,9 @@ object TransferCodec {
         require(low.isFinite() && high.isFinite() && low >= 1 && high >= low && high <= 10000000)
         require(f.optInt("max_age_seconds",180) in 30..600 && f.optInt("repeat_seconds",300) in 30..3600 && f.optInt("spacing_seconds",5) in 1..120)
         require(f.optString("frequency_unit","kHz") in listOf("kHz","MHz"))
+        SpotFilters.selection(f.optString("filter_bands",""),SpotFilters.bands.keys+"Other")
+        SpotFilters.selection(f.optString("filter_modes",""),SpotFilters.modes)
+        SpotFilters.selection(f.optString("filter_activities",""),SpotFilters.activities)
         return data
     }
     fun decodeCompressed(compressed: ByteArray): JSONObject {
@@ -92,6 +95,7 @@ object TransferCodec {
         val editor = prefs.edit().putString("profiles",existing.toString())
         val f = data.getJSONObject("filters")
         for (key in filterKeys) if (f.has(key)) editor.putString(key,f.get(key).toString())
+        for(key in listOf("filter_bands","filter_modes","filter_activities")) editor.putString(key,f.optString(key,""))
         check(editor.commit()) { "Could not save imported profiles" }
     }
 }

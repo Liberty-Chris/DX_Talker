@@ -6,6 +6,7 @@ import queue
 import re
 import socket
 import threading
+import time
 from urllib import request, error
 import ssl
 
@@ -152,10 +153,22 @@ class SourceClient:
         if cancelled:
             sock.close()
             return
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        try:
+            if hasattr(sock, 'ioctl') and hasattr(socket, 'SIO_KEEPALIVE_VALS'):
+                sock.ioctl(socket.SIO_KEEPALIVE_VALS, (1, 60000, 10000))
+            else:
+                for option, value in (('TCP_KEEPIDLE', 60), ('TCP_KEEPINTVL', 10), ('TCP_KEEPCNT', 3)):
+                    if hasattr(socket, option):
+                        sock.setsockopt(socket.IPPROTO_TCP, getattr(socket, option), value)
+        except OSError:
+            self.emit("source_state", "Connected. TCP keepalive uses the operating system defaults.")
         sock.settimeout(0.5)
         self.emit("source_connected", "Connected. Waiting for sign in or the first valid spot.")
         decoder, framer, terminal = TelnetDecoder(), LineFramer(), TerminalText()
         sent_login = sent_password = receiving = False
+        last_data = time.monotonic()
+        quiet_reported = False
         while not self.cancel.is_set():
             try:
                 while True:
@@ -165,7 +178,12 @@ class SourceClient:
             try:
                 raw = sock.recv(4096)
             except socket.timeout:
+                if not quiet_reported and time.monotonic() - last_data >= 90:
+                    self.emit("source_state", "Connected. No recent cluster data; the feed may be quiet.")
+                    quiet_reported = True
                 continue
+            last_data = time.monotonic()
+            quiet_reported = False
             if not raw:
                 raise ConnectionError("Cluster disconnected")
             clean, reply = decoder.feed(raw)
@@ -177,14 +195,15 @@ class SourceClient:
             # each framed line and the partial prompt, not only the packet tail.
             candidates = [(line, True) for line in lines] + ([(partial, False)] if partial else [])
             for line, complete in candidates:
+                is_dx = line.lstrip().upper().startswith("DX DE ")
                 if complete:
                     self._raw(line)
-                if re.search(r"(?:already (?:connected|logged\s*in)|duplicate (?:login|connection))", line, re.I):
+                if not is_dx and re.search(r"(?:already (?:connected|logged\s*in)|duplicate (?:login|connection))", line, re.I):
                     raise ClusterLoginError("Callsign is already connected. Close the other session or use a cluster supported SSID")
-                if re.search(r"(?:invalid password|login failed|access denied|authentication failed)", line, re.I):
+                if not is_dx and re.search(r"(?:invalid password|login failed|access denied|authentication failed)", line, re.I):
                     raise ClusterLoginError("Cluster rejected sign in. Check the callsign and required password")
-                prompt = re.search(r"(?:login|call\s*sign|callsign|call|user\s*name)\s*[:>]\s*$", line, re.I)
-                password = re.search(r"password\s*[:>]\s*$", line, re.I)
+                prompt = not is_dx and re.search(r"(?<![A-Z0-9])(?:login|call\s*sign|callsign|call|user\s*name)\s*[:>]\s*$", line, re.I)
+                password = not is_dx and re.search(r"(?<![A-Z0-9])password\s*[:>]\s*$", line, re.I)
                 if prompt and not sent_login:
                     if not complete:
                         self._raw(line)

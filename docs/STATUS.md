@@ -1,6 +1,6 @@
 # Project status
 
-Updated November 4, 2026.
+Updated November 6, 2026.
 
 ## Where things stand
 
@@ -181,3 +181,17 @@ A deterministic fake stream reproduced the exact RuntimeError when its completio
 Known playback exceptions now carry allowlisted fixed codes and numeric queued/expected frame counts, sample rate and channels. The coordinator records those fields and local/radio route and displays fixed readable guidance rather than only RuntimeError. Other arbitrary exception messages remain excluded. No automatic resume, device fallback or source reconnection is added. Physical output acceptance and the actual cause on the operator’s device remain open; the reproducible race is a possible explanation, not a claimed hardware diagnosis.
 
 Local verification passes all 145 tests under a dummy X display without skips, plus documentation/help, version alignment and whitespace checks. Audio tests include normal completion at the state query, delayed completion, genuine early stop, bounded missing confirmation and cancellation. Coordinator tests verify fixed diagnostic evidence, readable messages, RF disarming and PTT release. Native Windows packaging and installer verification are pending the feature branch workflow.
+
+## 0.2.0a11. Mobile listening and local spot selection
+
+Implemented: permanent Android Listen, Clusters and Settings navigation, persistent audio controls, detail Back history, saved page/form drafts across recreation, connection-specific profile fields, confirmed profile removal, active session switching and a visual announcement builder that preserves optional sections and custom order when reopened. System/Light/Dark/High contrast appearance and system speech settings are available. Filter/announcement edits can apply without reconnecting. Paused/muted speech clears its backlog; new arrivals respect the speech spacing deadline. No radio controls or paid speech calls are added to Android.
+
+Desktop and Android share band/mode/activity semantics through identical fixtures. Comments are bounded in memory, never spoken and removed from history writes. Explicit JSON mode wins; missing/conflicting mode is Unknown. Activity tags require explicit tokens and cannot identify untagged activations. Transfer version 2 carries selection fields; legacy version 1 remains readable. Desktop rows remain visible regardless of announcement filters, while Android displays matching spots. Server-side filters are not overwritten.
+
+Both TCP clients enable OS keepalive. Desktop requests 60 second idle, 10 second interval and three probes where available; Android uses native OS timings. Quiet data status after 90 seconds does not itself reconnect or claim a dead feed. No automatic application command or heartbeat is sent during login. A reproduced prompt bug is fixed: partial spotter callsigns ending in CALL and spot comments cannot trigger automatic sign in. Android avoids repeated authentication regex scans for every incoming spot character. Server-specific filter/heartbeat adapters remain planned work.
+
+Local verification: 153 Python tests pass without skips under a Linux dummy X display. Documentation and aligned 0.2.0a11 Windows release metadata checks pass. Android local debug build and all fifteen JVM unit tests pass. The app and instrumentation APKs compile locally. Emulator navigation verification is pending CI. The instrumentation workflow covers navigation, Back, draft recreation and light/dark screenshots. Actual phone camera, accessibility, Bluetooth, background listening and cluster operator acceptance remain required. No RF hardware or paid speech provider was used in these tests.
+
+### PR 23 Windows test cleanup followup
+
+A duplicate push run on b97a03d5b30f63dee6cb1d6a96b8cae313667823 failed while deleting a temporary diagnostic log, although the PR run passed. The UI test harness joined the output worker, cancelled the scheduled Tk shutdown callback and deleted the temporary folder before Diagnostics.close had released its Windows file handle. Tests now continue the normal shutdown event loop with a bounded timeout, verify worker/diagnostic completion and join the diagnostics watcher before removing fixtures. A regression forces deferred shutdown and verifies that the log can be renamed after completion. The local full suite passes 154 tests under a dummy X display without skips. Windows verification for this test harness correction is pending. Application and Android runtime code are unchanged by this followup.

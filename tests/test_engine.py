@@ -77,6 +77,18 @@ class EngineTests(unittest.TestCase):
 
         self.engine = Engine(self.settings, lambda *event: self.events.append(event), self.audio, self.speech, create)
 
+    def test_mode_and_activity_filter_rejects_before_audio_or_ptt(self):
+        self.engine.settings = replace(self.settings, filter_modes='CW', filter_activities='POTA')
+        self.engine.local_enabled = True
+        now = datetime.now(UTC)
+        digital = parse_line(f'DX de N0CALL: 14074 WB4IUY FT8 POTA {now:%H%M}Z', 'fixture', now)
+        unknown = parse_line(f'DX de N0CALL: 14025 WB4IUY CQ {now:%H%M}Z', 'fixture', now)
+        self.assertFalse(self.engine.offer(digital))
+        self.assertFalse(self.engine.offer(unknown))
+        self.assertEqual(len(self.engine.items), 0)
+        self.assertFalse(self.ptts)
+        self.assertFalse(self.speech.texts)
+
     def tearDown(self):
         self.engine.shutdown()
         self.engine.worker.join(3)

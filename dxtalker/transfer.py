@@ -8,11 +8,11 @@ from urllib.parse import urlsplit
 from .models import Settings
 from .profiles import SOURCE_FIELDS
 
-FILTER_FIELDS = ('min_khz', 'max_khz', 'max_age_seconds', 'repeat_seconds', 'spacing_seconds', 'frequency_unit')
+FILTER_FIELDS = ('min_khz', 'max_khz', 'max_age_seconds', 'repeat_seconds', 'spacing_seconds', 'frequency_unit', 'filter_bands', 'filter_modes', 'filter_activities')
 MAX_BYTES = 65536
 
 def validate(data):
-    if not isinstance(data, dict) or data.get('schema') != 'dxtalker-transfer' or type(data.get('version')) is not int or data.get('version') != 1:
+    if not isinstance(data, dict) or data.get('schema') != 'dxtalker-transfer' or type(data.get('version')) is not int or data.get('version') not in (1, 2):
         raise ValueError('Unsupported DX Talker transfer')
     if set(data) != {'schema', 'version', 'profiles', 'filters'} or not isinstance(data['profiles'], list) or not data['profiles']:
         raise ValueError('Transfer must contain profiles and filters only')
@@ -34,7 +34,7 @@ def validate(data):
     return data
 
 def document(profiles, settings):
-    return validate(dict(schema='dxtalker-transfer', version=1,
+    return validate(dict(schema='dxtalker-transfer', version=2,
                          profiles=[dict(name=p['name'], connection=dict(p['connection'])) for p in profiles],
                          filters={k:getattr(settings,k) for k in FILTER_FIELDS}))
 
@@ -76,7 +76,7 @@ def decode(value):
     except (TypeError, KeyError, UnicodeError, json.JSONDecodeError): raise ValueError('Invalid transfer document') from None
 
 def catalog(data):
-    if not isinstance(data,dict) or data.get('schema') != 'dxtalker-directory' or type(data.get('version')) is not int or data.get('version') != 1:
+    if not isinstance(data,dict) or data.get('schema') != 'dxtalker-directory' or type(data.get('version')) is not int or data.get('version') not in (1, 2):
         raise ValueError('Unsupported cluster directory')
     entries = data.get('entries')
     if not isinstance(entries,list): raise ValueError('Invalid cluster directory entries')
