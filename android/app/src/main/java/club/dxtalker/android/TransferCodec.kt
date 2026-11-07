@@ -95,6 +95,7 @@ object TransferCodec {
         val editor = prefs.edit().putString("profiles",existing.toString())
         val f = data.getJSONObject("filters")
         for (key in filterKeys) if (f.has(key)) editor.putString(key,f.get(key).toString())
+        for(key in listOf("filter_bands","filter_modes","filter_activities")) editor.putString(key,f.optString(key,""))
         check(editor.commit()) { "Could not save imported profiles" }
     }
 }

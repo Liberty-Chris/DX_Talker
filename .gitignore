@@ -14,3 +14,4 @@ server/speech/state/
 android/.gradle/
 android/screenshots/
 android/local.properties
+android/.kotlin/

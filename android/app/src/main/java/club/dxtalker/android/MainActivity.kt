@@ -41,7 +41,7 @@ class MainActivity : Activity() {
     private var surface = Color.rgb(24, 36, 47)
     private var ink = Color.WHITE
     private var secondary = Color.LTGRAY
-    private val accent = Color.rgb(0, 183, 232)
+    private var accent = Color.rgb(0, 185, 239)
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) { refreshControls();if(!refreshQueued) { refreshQueued=true;uiHandler.postDelayed(refreshTask,150) } }
     }
@@ -53,7 +53,12 @@ class MainActivity : Activity() {
         TextView(this).apply { this.text = text; textSize = size; setTextColor(color); setPadding(dp(4), dp(8), dp(4), dp(8)) }
     private fun button(text: String, action: () -> Unit): Button = Button(this).apply {
         this.text = text; setOnClickListener { action() }; isAllCaps = false
-        setTextColor(ink); minHeight = dp(48); textSize = 15f
+        setTextColor(android.content.res.ColorStateList(arrayOf(intArrayOf(-android.R.attr.state_enabled),intArrayOf()),intArrayOf(secondary,ink)))
+        minHeight = dp(48); minWidth=dp(48); textSize = 15f; elevation=0f
+        val fill=if(ink==Color.WHITE) Color.rgb(32,46,60) else Color.rgb(229,237,244)
+        background=android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(Color.argb(70,0,185,239)),rounded(fill,12f),null)
+        setPadding(dp(12),dp(8),dp(12),dp(8))
+        layoutParams=LinearLayout.LayoutParams(-1,-2).apply { topMargin=dp(4);bottomMargin=dp(4) }
     }
     private fun section(title: String): LinearLayout {
         return LinearLayout(this).apply {
@@ -88,6 +93,7 @@ class MainActivity : Activity() {
         background = if(dark) Color.rgb(15,23,31) else Color.rgb(241,245,249)
         surface = if(dark) Color.rgb(24,36,47) else Color.WHITE
         ink = if(dark) Color.WHITE else Color.rgb(15,23,31)
+        accent = if(dark) Color.rgb(0,185,239) else Color.rgb(0,125,166)
         secondary = if(dark) Color.rgb(185,201,214) else Color.rgb(67,83,98)
         if(prefs.getString("appearance", "") == "High contrast") { background = Color.BLACK; surface = Color.BLACK; secondary = Color.WHITE }
     }
@@ -133,7 +139,7 @@ class MainActivity : Activity() {
             insets
         }
         val heading = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; setPadding(dp(12),dp(6),dp(12),dp(6)) }
-        if(page !in listOf("Listen","Clusters","Settings")) heading.addView(button("Back") { onBackPressed() })
+        if(page !in listOf("Listen","Clusters","Settings")) heading.addView(button("Back") { onBackPressed() }.apply { background=rounded(Color.TRANSPARENT);setTextColor(accent) },LinearLayout.LayoutParams(dp(76),-2))
         if(page == "Listen") heading.addView(ImageView(this).apply { setImageResource(R.drawable.dxt_icon); contentDescription="DX Talker logo" },LinearLayout.LayoutParams(dp(40),dp(40)).apply { rightMargin=dp(8) })
         heading.addView(label(if(page == "Listen") "DX Talker" else page, 24f).apply { setTypeface(null,Typeface.BOLD) })
         shell.addView(heading)
@@ -145,21 +151,30 @@ class MainActivity : Activity() {
         player.addView(status)
         val controls = LinearLayout(this)
         listenButton = button("Listen") { command(if(ListenerService.listeningActive) "stop" else "start") }
-        listenButton.backgroundTintList=android.content.res.ColorStateList.valueOf(accent); listenButton.setTextColor(Color.BLACK)
+        listenButton.backgroundTintList=android.content.res.ColorStateList.valueOf(accent); listenButton.setTextColor(if(ink==Color.WHITE) Color.BLACK else Color.WHITE)
         muteButton = button("Mute") { command("mute") }; pauseButton = button("Pause") { command("pause") }
-        for(b in listOf(listenButton,muteButton,pauseButton)) controls.addView(b,LinearLayout.LayoutParams(0,-2,1f))
+        for(b in listOf(listenButton,muteButton,pauseButton)) controls.addView(b,LinearLayout.LayoutParams(0,-2,1f).apply { marginEnd=dp(6);topMargin=dp(4);bottomMargin=dp(4) })
         player.addView(controls); shell.addView(player)
         val nav = LinearLayout(this).apply { setPadding(dp(4),0,dp(4),dp(4)); setBackgroundColor(surface) }
+        val activeTab=if(page in listOf("Listen","Clusters","Settings"))page else history.firstOrNull { it in listOf("Listen","Clusters","Settings") } ?: "Settings"
         for(tab in listOf("Listen","Clusters","Settings")) nav.addView(button(tab) { go(tab,true) }.apply {
-            isSelected = tab == page; setTextColor(if(isSelected) accent else ink)
+            isSelected = tab == activeTab; setTextColor(if(isSelected) accent else secondary)
+            background=rounded(if(isSelected) { if(ink==Color.WHITE) Color.rgb(6,65,83) else Color.rgb(211,231,240) } else Color.TRANSPARENT,12f)
             contentDescription = if(isSelected) "$tab, selected" else tab
         },LinearLayout.LayoutParams(0,-2,1f))
-        shell.addView(nav); setContentView(shell); refresh()
+        shell.addView(nav); setContentView(shell)
+        if(Build.VERSION.SDK_INT>=30) {
+            val light=android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+            window.insetsController?.setSystemBarsAppearance(if(ink==Color.WHITE)0 else light,light)
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility=if(ink==Color.WHITE)0 else View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        }
+        refresh()
     }
     private fun homeContent() {
-        val cluster = section("Your listening session")
+        val cluster = section("Cluster")
         cluster.addView(label(prefs.getString("profile_name", prefs.getString("host","w4mr.ddns.net")).orEmpty(),18f))
-        cluster.addView(label("Announcements through your phone. No radio setup required.",14f,secondary))
         val row = LinearLayout(this)
         row.addView(button("Change cluster") { go("Clusters",true) },LinearLayout.LayoutParams(0,-2,1f))
         row.addView(button("Filters") { go("Filters") },LinearLayout.LayoutParams(0,-2,1f)); cluster.addView(row)
@@ -181,7 +196,7 @@ class MainActivity : Activity() {
         val items = synchronized(ListenerService.spots) { ListenerService.spots.toList() }
         if(spotsView.tag == items)return
         spotsView.tag = items; spotsView.removeAllViews()
-        if(items.isEmpty()) spotsView.addView(label("Your matching spots will appear here. Listening can start before the first spot arrives.",15f,secondary))
+        if(items.isEmpty()) spotsView.addView(label("Start listening to hear new matching spots. Your recent spots will appear here.",15f,secondary))
         items.take(60).forEach { item ->
             val row=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(0,dp(6),0,dp(6)) }
             row.addView(label(item.substringBefore('\n'),18f).apply { setTypeface(null,Typeface.BOLD) })
@@ -214,7 +229,7 @@ class MainActivity : Activity() {
                 AlertDialog.Builder(this).setTitle("Remove ${p.optString("name")}?").setMessage("This removes the saved profile. An active session continues until you stop it or switch clusters.")
                     .setNegativeButton("Cancel",null).setPositiveButton("Remove") { _,_ ->
                         val updated = JSONArray(); for(j in 0 until entries.length())if(j != i)updated.put(entries.getJSONObject(j))
-                        prefs.edit().putString("profiles",updated.toString()).apply(); render()
+                        prefs.edit().putString("profiles",updated.toString()).apply();editIndex=null;drafts.keys.filter { it.startsWith("Edit cluster:") }.toList().forEach { drafts.remove(it) }; render()
                     }.show()
             },LinearLayout.LayoutParams(0,-2,1f)); row.addView(actions)
         }
@@ -230,7 +245,16 @@ class MainActivity : Activity() {
         val type = spinner(panel,"Connection type",listOf("TCP/Telnet","HTTPS JSON"),p.optString("source_type","TCP/Telnet"))
         val host = edit(panel,"Hostname",p.optString("host")); val port = edit(panel,"Port",p.optString("port","7373")).apply { inputType = InputType.TYPE_CLASS_NUMBER }
         val url = edit(panel,"HTTPS feed URL",p.optString("feed_url")); val poll = edit(panel,"Poll interval (seconds)",p.optString("poll_seconds","30"))
-        fun relevant() { val https = type.selectedItem == "HTTPS JSON"; host.isEnabled = !https; port.isEnabled = !https; url.isEnabled = https; poll.isEnabled = https }
+        fun relevant() {
+            val https = type.selectedItem == "HTTPS JSON"
+            for((field,show) in listOf(host to !https,port to !https,url to https,poll to https)) {
+                field.visibility=if(show)View.VISIBLE else View.GONE
+                for(i in 0 until panel.childCount) {
+                    val caption=panel.getChildAt(i)
+                    if(caption is TextView && caption.labelFor==field.id)caption.visibility=field.visibility
+                }
+            }
+        }
         type.onItemSelectedListener = object : AdapterView.OnItemSelectedListener { override fun onNothingSelected(parent: AdapterView<*>?) {} ; override fun onItemSelected(parent: AdapterView<*>?,view: View?,position: Int,id: Long) { drafts["$page:Connection type"] = type.selectedItem.toString(); relevant() } }; relevant()
         val call = edit(panel,"Login callsign",p.optString("call"))
         val password = edit(panel,"Password or bearer token",runCatching { SecretStore.reveal(p.optString("password")) }.getOrDefault(""),true)
@@ -277,7 +301,7 @@ class MainActivity : Activity() {
         val panel = section("Announcement builder")
         panel.addView(label("Choose what to say and move the sections into your preferred order. Comments are never spoken.",14f,secondary))
         val current = prefs.getString("format","New DX on. {frequency} {unit}. {call}.").orEmpty()
-        val intro = edit(panel,"Intro phrase",current.substringBefore('{').trim().trimEnd('.').ifBlank { "New DX" })
+        val intro = edit(panel,"Intro phrase",current.substringBefore('{').trim().trimEnd('.').ifBlank { "New DX" }).apply { filters=arrayOf(android.text.InputFilter.LengthFilter(80)) }
         val initialOrder = listOf("intro","frequency","callsign").sortedBy { key -> when(key) { "intro" -> 0; "frequency" -> current.indexOf("{frequency}").takeIf { it >= 0 } ?: Int.MAX_VALUE; else -> current.indexOf("{call}").takeIf { it >= 0 } ?: Int.MAX_VALUE } }
         val order = (drafts["Speech:order"] ?: initialOrder.joinToString(",")).split(',').toMutableList()
         val flags = mutableMapOf<String,CheckBox>()
@@ -316,12 +340,15 @@ class MainActivity : Activity() {
         for((key,title,values) in listOf(Triple("filter_bands","Bands",SpotFilters.bands.keys.toList()+"Other"),Triple("filter_modes","Modes",SpotFilters.modes),Triple("filter_activities","Activities",SpotFilters.activities))) {
             panel.addView(button(title+": "+(drafts["Filters:$key"] ?: prefs.getString(key,"").orEmpty()).ifBlank { "All" }) { chooseFilter(key,title,values) })
         }
-        panel.addView(label("Modes and activities are independent. Unknown means the spot did not identify a single mode. General means no recognized activity tag. No selections accepts all. Band ranges describe filters, not transmitting permissions.",14f,secondary))
+        panel.addView(button("How matching works") {
+            AlertDialog.Builder(this).setTitle("Spot matching").setMessage("Modes and activities are independent. Unknown means the spot did not identify a single mode. General means no recognized activity tag. Empty selections accept all. Band ranges describe filters, not transmitting permissions. Untagged activations cannot be identified reliably.").setPositiveButton("Got it",null).show()
+        })
         val units = spinner(panel,"Frequency units",listOf("kHz","MHz"),prefs.getString("frequency_unit","kHz").orEmpty())
-        val advanced = section("Timing and frequency limits")
+        panel.addView(button("Timing and frequency limits") { drafts["Filters:advanced"] = (!(drafts["Filters:advanced"]?.toBoolean() ?: false)).toString();render() })
+        val advanced = section("Timing and frequency limits").apply { visibility=if(drafts["Filters:advanced"]?.toBoolean()==true) View.VISIBLE else View.GONE }
         val specs = listOf(Triple("min_khz","Minimum frequency (kHz)","1"),Triple("max_khz","Maximum frequency (kHz)","10000000"),Triple("max_age_seconds","Maximum spot age (seconds)","180"),Triple("repeat_seconds","Repeat suppression (seconds)","300"),Triple("spacing_seconds","Gap between announcements (seconds)","5"))
         val fields = specs.associate { (key,title,default) -> key to edit(advanced,title,prefs.getString(key,default).orEmpty(),key=key).apply { inputType=InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL } }
-        advanced.addView(button("Save filters") {
+        panel.addView(button("Save filters") {
             try {
                 val low=fields.getValue("min_khz").text.toString().toDouble(); val high=fields.getValue("max_khz").text.toString().toDouble()
                 require(low.isFinite() && high.isFinite() && low>=1 && high>=low && high<=10000000)

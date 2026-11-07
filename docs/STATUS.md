@@ -1,6 +1,6 @@
 # Project status
 
-Updated November 4, 2026.
+Updated November 6, 2026.
 
 ## Where things stand
 
@@ -190,4 +190,4 @@ Desktop and Android share band/mode/activity semantics through identical fixture
 
 Both TCP clients enable OS keepalive. Desktop requests 60 second idle, 10 second interval and three probes where available; Android uses native OS timings. Quiet data status after 90 seconds does not itself reconnect or claim a dead feed. No automatic application command or heartbeat is sent during login. Server-specific filter/heartbeat adapters remain planned work.
 
-Local verification: 152 Python tests pass without skips under a Linux dummy X display. Documentation and aligned 0.2.0a11 Windows release metadata checks pass. Android local debug build and all ten JVM unit tests pass. The app and instrumentation APKs compile locally. Emulator navigation verification is pending CI. The instrumentation workflow covers navigation, Back, draft recreation and light/dark screenshots. Actual phone camera, accessibility, Bluetooth, background listening and cluster operator acceptance remain required. No RF hardware or paid speech provider was used in these tests.
+Local verification: 152 Python tests pass without skips under a Linux dummy X display. Documentation and aligned 0.2.0a11 Windows release metadata checks pass. Android local debug build and all eleven JVM unit tests pass. The app and instrumentation APKs compile locally. Emulator navigation verification is pending CI. The instrumentation workflow covers navigation, Back, draft recreation and light/dark screenshots. Actual phone camera, accessibility, Bluetooth, background listening and cluster operator acceptance remain required. No RF hardware or paid speech provider was used in these tests.

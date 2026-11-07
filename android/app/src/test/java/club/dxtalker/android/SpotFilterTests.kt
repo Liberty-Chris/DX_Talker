@@ -35,4 +35,20 @@ class SpotFilterTests {
         data.getJSONObject("filters").put("filter_modes","FT9")
         assertThrows(Exception::class.java) { TransferCodec.decode(data.toString()) }
     }
+    @Test fun legacyImportClearsNewSelectionsAndPreservesTheActiveProfile() {
+        val values=mutableMapOf("filter_modes" to "CW","filter_activities" to "POTA","host" to "active.example")
+        val editor=java.lang.reflect.Proxy.newProxyInstance(javaClass.classLoader,arrayOf(android.content.SharedPreferences.Editor::class.java)) { proxy,method,args ->
+            when(method.name) { "putString" -> { values[args!![0] as String]=args[1] as String;proxy }; "commit" -> true; else -> null }
+        } as android.content.SharedPreferences.Editor
+        val prefs=java.lang.reflect.Proxy.newProxyInstance(javaClass.classLoader,arrayOf(android.content.SharedPreferences::class.java)) { _,method,args ->
+            when(method.name) { "getString" -> values[args!![0] as String] ?: args[1]; "edit" -> editor; else -> null }
+        } as android.content.SharedPreferences
+        val data=TransferCodec.decode("""{"schema":"dxtalker-transfer","version":1,"profiles":[{"name":"Home","connection":{"source_type":"TCP/Telnet","host":"cluster.example","port":7373,"login":"KF4DBX","feed_url":"","poll_seconds":30}}],"filters":{}}""")
+        TransferCodec.importInto(data,prefs)
+        assertEquals("",values["filter_modes"]);assertEquals("",values["filter_activities"])
+        assertEquals("active.example",values["host"])
+        val profiles=JSONArray(values["profiles"])
+        assertEquals(1,profiles.length());assertEquals("",profiles.getJSONObject(0).getString("password"))
+    }
+
 }

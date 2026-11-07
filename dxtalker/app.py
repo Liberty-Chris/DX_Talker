@@ -646,7 +646,7 @@ class Application:
                 ('filter_modes', 'Modes', MODES),
                 ('filter_activities', 'Activities', ACTIVITIES)), start=3):
             self.variables[key] = tk.StringVar(value=getattr(self.settings, key))
-            ttk.Button(frequency, text=title + "…", command=lambda k=key, t=title, v=values: self._spot_filter_picker(k, t, v)).grid(row=row, column=0, sticky="w", pady=3)
+            ttk.Button(frequency, text="Choose " + title.lower(), command=lambda k=key, t=title, v=values: self._spot_filter_picker(k, t, v)).grid(row=row, column=0, sticky="w", pady=3)
             ttk.Label(frequency, textvariable=self.variables[key], wraplength=400).grid(row=row, column=1, sticky="w")
         ttk.Label(frequency, text="An empty selection accepts all. Unknown mode remains selectable. Filters affect announcements; Live spots retains received reports.", wraplength=550).grid(row=6, column=0, columnspan=2, sticky="w", pady=6)
         timing = ttk.LabelFrame(frame, text="Timing and repeats", padding=12)

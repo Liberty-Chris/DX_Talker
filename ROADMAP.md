@@ -1,6 +1,6 @@
 # DX Talker modernization roadmap
 
-Updated November 4, 2026.
+Updated November 6, 2026.
 
 The first Windows pilot is implemented in source. Automated tests cover the portable core and the Windows workflow checks and packages the desktop application. Live source and physical radio verification remain open. [Project status](docs/STATUS.md) tracks progress.
 

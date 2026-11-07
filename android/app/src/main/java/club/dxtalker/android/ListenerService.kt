@@ -189,7 +189,7 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
                 try{val time=Instant.parse(r.getString("time"));val stamp=java.time.format.DateTimeFormatter.ofPattern("HHmm'Z'").withZone(java.time.ZoneOffset.UTC).format(time)
                     if(time>=Instant.now().minusSeconds(600)&&time<=Instant.now().plusSeconds(120)) {
                         val line="DX de ${r.getString("spotter")}: ${r.getString("frequency_khz")} ${r.getString("dx_call")} $stamp"
-                        val parsed=SpotPolicy.parse(line)?.copy(time=time,comment=SpotFilters.clean(r.optString("comment","")),mode=SpotFilters.clean(r.optString("mode","")))
+                        val parsed=SpotPolicy.parse(line)?.copy(time=time,comment=SpotFilters.clean(r.opt("comment") as? String ?: ""),mode=SpotFilters.clean(r.opt("mode") as? String ?: ""))
                         if(parsed!=null)process(line,token,parsed)
                     }
                 }catch(_:Exception){}

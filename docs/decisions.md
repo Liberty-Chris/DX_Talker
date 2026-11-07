@@ -177,7 +177,7 @@ Use the completion notification as the output API completion signal and recheck 
 
 Use an owned AudioPlaybackError type for fixed operator messages and numeric evidence. Export only allowlisted cause codes and frame/rate/channel counts plus local/radio route. Do not log arbitrary backend exception messages, device names or audio. A generic historical RuntimeError alone cannot prove the failure mechanism.
 
-## November 7, 2026. Mobile navigation and received spot filters
+## November 6, 2026. Mobile navigation and received spot filters
 
 Keep Android listening focused on Listen, Clusters and Settings with persistent audio controls. Detail pages maintain a Back history and Bundle saved form drafts; navigation never owns the foreground listener. Applying local filters cancels pending speech rather than reconnecting. Saving profiles is distinct from selecting them. Announcement sections are controlled visually rather than requiring template syntax.
 
