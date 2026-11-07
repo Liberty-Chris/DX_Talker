@@ -76,3 +76,5 @@ The 0.2.0a8 operations batch adds first-spot listening, private diagnostic expor
 ## Next pilot acceptance
 
 Collection QR transfer, receive audio transmit hold and ElevenLabs recorded voice generation are implemented for 0.2.0a9. Validate collection scanning on physical Android devices, threshold and quiet delay with actual receiver audio and PTT and paid voice generation/pronunciation with an operator account. Hardware carrier input remains open. Shared online ElevenLabs speech is implemented through the private pilot gateway; DreamHost deployment, account configuration and live acceptance are still required.
+
+The 0.2.0a11 mobile followup adds a listener-focused navigation shell, persistent audio controls and a visual announcement editor. Shared local band, mode and activity filters move through version 2 transfers, and OS TCP keepalive distinguishes transport maintenance from cluster command injection. Server-specific filtering/heartbeat adapters and physical Android acceptance remain open. Automated navigation screenshots and Back/recreation checks complement core policy tests.

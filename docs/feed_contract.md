@@ -23,7 +23,7 @@ Return a JSON array with at most 2000 records and at most 1 MiB of encoded data.
 
 Frequency is in kilohertz and may be a JSON number or decimal string. Time must be an ISO timestamp with a timezone. Callsigns must include at least one letter and digit. Invalid records are skipped. A nonarray response is a feed failure.
 
-Comments and other fields are ignored. Future timestamps beyond two minutes are rejected. Spot age and duplicate policies apply before RF announcements, so an unchanged snapshot is not continually replayed.
+Optional comment and mode strings are retained as bounded printable metadata for local filtering. They are never spoken or written to diagnostic/history logs. A supported explicit mode takes precedence over comment tags; absent, conflicting or unsupported mode information is Unknown. Other fields are ignored. Future timestamps beyond two minutes are rejected. Spot age and duplicate policies apply before RF announcements, so an unchanged snapshot is not continually replayed.
 
 ## Limits
 

@@ -10,3 +10,7 @@ dist/
 server/speech/config.json
 server/speech/client.json
 server/speech/state/
+
+android/.gradle/
+android/screenshots/
+android/local.properties

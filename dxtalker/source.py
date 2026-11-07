@@ -6,6 +6,7 @@ import queue
 import re
 import socket
 import threading
+import time
 from urllib import request, error
 import ssl
 
@@ -152,10 +153,22 @@ class SourceClient:
         if cancelled:
             sock.close()
             return
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        try:
+            if hasattr(sock, 'ioctl') and hasattr(socket, 'SIO_KEEPALIVE_VALS'):
+                sock.ioctl(socket.SIO_KEEPALIVE_VALS, (1, 60000, 10000))
+            else:
+                for option, value in (('TCP_KEEPIDLE', 60), ('TCP_KEEPINTVL', 10), ('TCP_KEEPCNT', 3)):
+                    if hasattr(socket, option):
+                        sock.setsockopt(socket.IPPROTO_TCP, getattr(socket, option), value)
+        except OSError:
+            self.emit("source_state", "Connected. TCP keepalive uses the operating system defaults.")
         sock.settimeout(0.5)
         self.emit("source_connected", "Connected. Waiting for sign in or the first valid spot.")
         decoder, framer, terminal = TelnetDecoder(), LineFramer(), TerminalText()
         sent_login = sent_password = receiving = False
+        last_data = time.monotonic()
+        quiet_reported = False
         while not self.cancel.is_set():
             try:
                 while True:
@@ -165,7 +178,12 @@ class SourceClient:
             try:
                 raw = sock.recv(4096)
             except socket.timeout:
+                if not quiet_reported and time.monotonic() - last_data >= 90:
+                    self.emit("source_state", "Connected. No recent cluster data; the feed may be quiet.")
+                    quiet_reported = True
                 continue
+            last_data = time.monotonic()
+            quiet_reported = False
             if not raw:
                 raise ConnectionError("Cluster disconnected")
             clean, reply = decoder.feed(raw)

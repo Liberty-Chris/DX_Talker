@@ -25,7 +25,7 @@ TCP packet boundaries are not line boundaries. Preserve partial lines across rea
 
 ## Spot model
 
-The initial Spot record stores source, spotter, DX callsign, decimal frequency in kHz, normalized UTC timestamp and receipt time. Comments are excluded. A UI row identifier is separate from the callsign and frequency duplicate key. Raw prompts and source traffic remain in a bounded redacted session console and are excluded from disk diagnostics. Preserve raw source text only in bounded redacted diagnostics when useful.
+The initial Spot record stores source, spotter, DX callsign, decimal frequency in kHz, normalized UTC timestamp and receipt time. A bounded printable comment and optional mode are retained only in memory for local classification. They are excluded from speech, history and diagnostics. A UI row identifier is separate from the callsign and frequency duplicate key. Raw prompts and source traffic remain in a bounded redacted session console and are excluded from disk diagnostics. Preserve raw source text only in bounded redacted diagnostics when useful.
 
 The archive's time fields often contain only HHMMZ and sometimes are wrapped or incomplete. Do not invent a historical date. Live date inference and midnight rollover require explicit tests and a documented rule. Freshness checks must distinguish receipt time from source time.
 

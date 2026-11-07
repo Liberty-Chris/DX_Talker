@@ -28,13 +28,15 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
     private val pending=java.util.ArrayDeque<Pair<String,Instant>>()
     private val seen=mutableMapOf<String,Long>()
     private var speaking=false
+    private var nextAllowedAt=0L
+    private val speechWake=Runnable { nextSpeech() }
     private var utterance=""
     private var tts:TextToSpeech?=null
     @Volatile private var running=false
     @Volatile private var generation=0
     @Volatile private var socket:Socket?=null
     private var worker:Thread?=null
-    private var session:Map<String,String> = emptyMap()
+    @Volatile private var session:Map<String,String> = emptyMap()
     private val prefs by lazy { getSharedPreferences("dx",MODE_PRIVATE) }
     override fun onBind(intent:Intent?):IBinder?=null
     override fun onCreate(){super.onCreate();tts=TextToSpeech(this,this)
@@ -54,28 +56,42 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
         speechReady=result==TextToSpeech.SUCCESS && tts?.setLanguage(Locale.US) in listOf(TextToSpeech.LANG_AVAILABLE,TextToSpeech.LANG_COUNTRY_AVAILABLE,TextToSpeech.LANG_COUNTRY_VAR_AVAILABLE)
         tts?.setOnUtteranceProgressListener(object:UtteranceProgressListener(){
             override fun onStart(id:String?){}
-            override fun onDone(id:String?){main.post{if(id!=utterance)return@post;speaking=false;main.postDelayed({nextSpeech()},setting("spacing_seconds","5").toLong()*1000)}}
+            override fun onDone(id:String?){main.post{if(id!=utterance)return@post;speaking=false;nextAllowedAt=android.os.SystemClock.elapsedRealtime()+setting("spacing_seconds","5").toLong()*1000;nextSpeech()}}
             @Deprecated("TTS callback") override fun onError(id:String?){main.post{if(id!=utterance)return@post;speaking=false;pending.clear();update("Speech failed. Check the installed voice.")}}
         });if(!speechReady)update("Speech unavailable. Install an English system voice.") else{update();nextSpeech()}
     }}
     private fun nextSpeech(){
         if(!speechReady||speaking||paused||muted)return
+        val delay=nextAllowedAt-android.os.SystemClock.elapsedRealtime()
+        if(delay>0) { main.removeCallbacks(speechWake);main.postDelayed(speechWake,delay);return }
         while(pending.isNotEmpty()){
             val item=pending.removeFirst();if(item.second<Instant.now())continue
             speaking=true;utterance="dx"+System.nanoTime();val result=tts?.speak(item.first,TextToSpeech.QUEUE_FLUSH,null,utterance)
             if(result==TextToSpeech.ERROR){speaking=false;pending.clear();update("Speech failed. Check the system voice.")};break
         }
     }
-    private fun clearSpeech(){pending.clear();speaking=false;utterance="";tts?.stop()}
+    private fun clearSpeech(){main.removeCallbacks(speechWake);nextAllowedAt=0;pending.clear();speaking=false;utterance="";tts?.stop()}
+    private fun snapshot() = listOf("host","port","call","password","source_type","feed_url","poll_seconds","format","min_khz","max_khz","max_age_seconds","repeat_seconds","spacing_seconds","frequency_unit","filter_bands","filter_modes","filter_activities").mapNotNull { key -> prefs.getString(key,null)?.let { key to it } }.toMap()
     override fun onStartCommand(intent:Intent?,flags:Int,startId:Int):Int {
+        if(intent?.action == "switch") {
+            running=false;generation++;try { socket?.close() } catch(_:Exception) {};worker?.interrupt();clearSpeech()
+            listeningActive=false
+            return onStartCommand(Intent(this,ListenerService::class.java).setAction("start"),flags,startId)
+        }
         when(intent?.action){
+            "apply" -> {
+                // Update only listening policy, never an unsaved source or credentials.
+                val keys=setOf("format","min_khz","max_khz","max_age_seconds","repeat_seconds","spacing_seconds","frequency_unit","filter_bands","filter_modes","filter_activities")
+                val fresh=snapshot(); session=session + fresh.filterKeys { it in keys }; clearSpeech(); seen.clear()
+                synchronized(spots) { spots.clear() }; update()
+            }
             "start"->if(!running){
-                session=listOf("host","port","call","password","source_type","feed_url","poll_seconds","format","min_khz","max_khz","max_age_seconds","repeat_seconds","spacing_seconds","frequency_unit").mapNotNull{key->prefs.getString(key,null)?.let{key to it}}.toMap()
+                session=snapshot()
                 running=true;listeningActive=true;paused=false;generation++;val token=generation;seen.clear();clearSpeech();synchronized(spots){spots.clear()}
                 startForeground(1,notification());update("Connecting. Listening armed for the first spot.");worker=thread(name="dx-listener"){listenLoop(token)}}
-            "mute"->{muted=!muted;if(muted)clearSpeech();update()}
-            "pause"->{paused=!paused;if(paused)clearSpeech();update()}
-            "test"->{if(speechReady){clearSpeech();pending.add("New DX. Kilo Foxtrot four Delta Bravo Xray." to Instant.now().plusSeconds(120));nextSpeech()}else update("Wait for the speech engine or install an English voice.")}
+            "mute"->{muted=!muted;if(muted)clearSpeech();update();nextSpeech()}
+            "pause"->{paused=!paused;if(paused)clearSpeech();update();nextSpeech()}
+            "test"->{if(muted||paused)update("Resume and unmute before testing speech.")else if(speechReady){clearSpeech();pending.add(SpotPolicy.speak(DxSpot("KF4DBX",java.math.BigDecimal("14025.5"),Instant.now()),prefs.getString("format","New DX on. {frequency} {unit}. {call}.").orEmpty(),prefs.getString("frequency_unit","kHz").orEmpty()) to Instant.now().plusSeconds(120));nextSpeech()}else update("Wait for the speech engine or install an English voice.")}
             "stop"->{running=false;listeningActive=false;generation++;try{socket?.close()}catch(_:Exception){};worker?.interrupt();clearSpeech();update("Stopped");stopForeground(STOP_FOREGROUND_REMOVE);stopSelf()}
         };return START_NOT_STICKY
     }
@@ -86,8 +102,9 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
         val now=Instant.now();val spot=supplied?:SpotPolicy.parse(line,now)?:return
         main.post{
             if(!active(token))return@post
+            if(!SpotFilters.matches(spot) { key -> setting(key,"") } || spot.frequency<setting("min_khz","1").toBigDecimal() || spot.frequency>setting("max_khz","10000000").toBigDecimal())return@post
             synchronized(spots){spots.add(0,spot.call+"  "+spot.frequency(setting("frequency_unit","kHz"))+" "+setting("frequency_unit","kHz"));while(spots.size>150)spots.removeAt(spots.lastIndex)}
-            update("Receiving DX spots")
+            update("Receiving matching DX spots")
             val age=setting("max_age_seconds","180").toLong();val key=spot.call+":"+spot.frequency.stripTrailingZeros().toPlainString();val tick=android.os.SystemClock.elapsedRealtime()
             seen.entries.removeAll{tick-it.value>=setting("repeat_seconds","300").toLong()*1000}
             if(muted||paused||spot.time.plusSeconds(age)<now||spot.frequency<setting("min_khz","1").toBigDecimal()||spot.frequency>setting("max_khz","10000000").toBigDecimal()||key in seen||pending.size>=100)return@post
@@ -120,7 +137,7 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
         try{
             val host=setting("host","");val port=setting("port","7373").toInt()
             require(host.isNotBlank()&&port in 1..65535)
-            connection.connect(InetSocketAddress(host,port),10000);connection.soTimeout=1000
+            connection.keepAlive=true;connection.connect(InetSocketAddress(host,port),10000);connection.soTimeout=1000
             if(!active(token))return
             update("Connected. Listening for the first spot; sign in may still be required.")
             val decoder=TelnetText();val line=StringBuilder();var overflow=false;var loginSent=false;var passwordSent=false
@@ -138,8 +155,13 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
                 }else update("Cluster requests a password. Edit the profile and restart listening.")}
                 if(complete)process(text,token)
             }
+            var lastData=android.os.SystemClock.elapsedRealtime();var quietReported=false
             while(active(token)){
-                val count=try{input.read(buffer)}catch(_:java.net.SocketTimeoutException){continue}
+                val count=try{input.read(buffer)}catch(_:java.net.SocketTimeoutException){
+                    if(!quietReported && android.os.SystemClock.elapsedRealtime()-lastData >= 90000) { update("Connected. No recent cluster data; the feed may be quiet.");quietReported=true }
+                    continue
+                }
+                lastData=android.os.SystemClock.elapsedRealtime();quietReported=false
                 if(count<0)throw java.io.EOFException()
                 for(c in decoder.feed(buffer,count){output.write(it);output.flush()}){
                     if(c=='\r'||c=='\n'){if(!overflow&&line.isNotBlank())inspect(line.toString(),true);line.setLength(0);overflow=false}
@@ -160,7 +182,7 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
                 try{val time=Instant.parse(r.getString("time"));val stamp=java.time.format.DateTimeFormatter.ofPattern("HHmm'Z'").withZone(java.time.ZoneOffset.UTC).format(time)
                     if(time>=Instant.now().minusSeconds(600)&&time<=Instant.now().plusSeconds(120)) {
                         val line="DX de ${r.getString("spotter")}: ${r.getString("frequency_khz")} ${r.getString("dx_call")} $stamp"
-                        val parsed=SpotPolicy.parse(line)?.copy(time=time)
+                        val parsed=SpotPolicy.parse(line)?.copy(time=time,comment=SpotFilters.clean(r.optString("comment","")),mode=SpotFilters.clean(r.optString("mode","")))
                         if(parsed!=null)process(line,token,parsed)
                     }
                 }catch(_:Exception){}

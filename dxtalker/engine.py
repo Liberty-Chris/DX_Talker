@@ -86,7 +86,8 @@ class Engine:
             s = self.settings
             if not (self.enabled or self.local_enabled):
                 return False
-            if not s.min_khz <= spot.frequency_khz <= s.max_khz:
+            from .filtering import matches
+            if not s.min_khz <= spot.frequency_khz <= s.max_khz or not matches(spot, s):
                 return False
             age = (datetime.now(UTC) - spot.timestamp).total_seconds()
             if age > s.max_age_seconds or age < -120:

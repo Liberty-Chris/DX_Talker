@@ -110,3 +110,11 @@ The owner enters the ElevenLabs account key on the hosting server once, outside 
 
 
 If Refresh voices or the service check reports website access blocked with HTTP 403, contact the pilot administrator about website security filtering. That failure does not establish that a voice or model is invalid. The app identifies itself as DXTalker rather than using Python’s default client identifier. An explicit service voice/model denial during synthesis instead asks for refreshed voice choices.
+
+## Android listening interface
+
+Android uses permanent Listen, Clusters and Settings navigation. The audio controls stay visible on every page. Listen arms speech before the first spot; Stop listening closes the mobile session. Pause and Mute cancel current and queued speech without closing the feed. Resume or Unmute allows new matching spots; neither replays a backlog. Changing pages or applying filters does not reconnect the cluster. Selecting another saved cluster switches an active session to that profile and clears old results.
+
+Android Back returns through detail pages and then to Listen. Form drafts and the current page survive activity recreation and remain in memory until the activity is discarded. Save profile stores a profile without selecting or connecting it; Use this cluster selects it. Remove asks for confirmation. Existing QR collection and file imports are under Clusters, with reviewed complete collection import and credential exclusion preserved.
+
+Settings includes System, Light, Dark and High contrast appearance, local diagnostics and a visual announcement builder. Choose intro, callsign and frequency sections, move them up or down and optionally speak units. Save announcement applies to future speech and cancels pending speech without reconnecting. Test saved announcement uses Android system speech. Android engine and voice installation choices are available through Open speech settings. This mobile batch does not add paid online speech or radio transmission.

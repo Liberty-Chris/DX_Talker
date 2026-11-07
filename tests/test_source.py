@@ -76,6 +76,23 @@ class SourceTests(unittest.TestCase):
         self.assertFalse(failures)
         self.assertFalse(client.thread.is_alive())
 
+    def test_keepalive_and_quiet_feed_do_not_send_cluster_commands_or_reconnect(self):
+        options, sent, observed = [], [], []
+        class Socket:
+            def setsockopt(self, *args): options.append(args)
+            def settimeout(self, value): pass
+            def sendall(self, value): sent.append(value)
+            def recv(self, size):
+                client.cancel.set()
+                raise socket.timeout()
+        client = SourceClient(Settings(), lambda *event: observed.append(event), connector=lambda *a, **kw: Socket())
+        with patch('dxtalker.source.time.monotonic', side_effect=[0, 91]):
+            client._cluster()
+        self.assertIn((socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1), options)
+        self.assertFalse(sent)
+        self.assertTrue(any(k == 'source_state' and 'feed may be quiet' in v for k, v in observed))
+        self.assertFalse(any(k == 'source_lost' for k, v in observed))
+
     def test_manual_commands_are_bounded_single_lines(self):
         client = SourceClient(Settings(), lambda *args: None)
         client.sock = object()
@@ -156,6 +173,7 @@ class SourceTests(unittest.TestCase):
 
     def test_login_prompt_not_lost_when_banner_shares_same_network_chunk(self):
         class Socket:
+            def setsockopt(self, *args): pass
             def __init__(self):
                 self.packets = [b'login:\r\nWelcome to the test cluster\r\n']
                 self.sent = []
@@ -175,6 +193,7 @@ class SourceTests(unittest.TestCase):
         packets = b'\x1b[32mlogin:\x1b[0m\x00\r\nWelcome\r\nPassword:\x00'
         for split in range(len(packets) + 1):
             class Socket:
+                def setsockopt(self, *args): pass
                 def __init__(self):
                     self.packets = [p for p in (packets[:split], packets[split:]) if p]
                     self.sent = []
@@ -194,6 +213,7 @@ class SourceTests(unittest.TestCase):
     def test_quiet_cluster_session_prompt_is_visible_without_claiming_valid_spots(self):
         observed = []
         class Socket:
+            def setsockopt(self, *args): pass
             def __init__(self):
                 self.packets = [b'login:', b'WB4IUY de N0CALL 05-Nov-2026 1200Z dxspider >']
             def settimeout(self, value): pass
@@ -212,6 +232,7 @@ class SourceTests(unittest.TestCase):
 
     def test_failed_socket_is_closed_before_retry_notification(self):
         class Socket:
+            def setsockopt(self, *args): pass
             closed = False
             def settimeout(self, value): pass
             def recv(self, size): raise ConnectionError('private remote text')
@@ -232,6 +253,7 @@ class SourceTests(unittest.TestCase):
 
     def test_stop_during_connect_closes_new_socket_without_login(self):
         class Socket:
+            def setsockopt(self, *args): pass
             closed = False
             def close(self): self.closed = True
         sock = Socket()

@@ -35,6 +35,8 @@ class History:
 
     def spot(self, spot, profile=""):
         values = asdict(spot)
+        values.pop("comment", None)
+        values.pop("mode", None)
         for key in ("frequency_khz", "timestamp", "received"):
             values[key] = str(values[key])
         self.record("spot", profile=profile, **values)

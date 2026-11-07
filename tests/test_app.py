@@ -43,6 +43,19 @@ class AppTests(unittest.TestCase):
         now = datetime.now(UTC)
         return parse_line(f"DX de N0CALL: 7074 WB4IUY CQ {now:%H%M}Z", "cluster", now)
 
+    def test_spot_filter_picker_saves_choices_and_applies_them(self):
+        from dxtalker.filtering import MODES
+        self.app._spot_filter_picker('filter_modes', 'Modes', MODES)
+        dialog = [w for w in self.root.winfo_children() if w.winfo_class() == 'Toplevel'][-1]
+        from tkinter import ttk
+        for child in dialog.winfo_children():
+            if isinstance(child, ttk.Checkbutton) and child.cget('text') == 'FT8': child.invoke()
+        for child in dialog.winfo_children():
+            if isinstance(child, ttk.Button) and child.cget('text') == 'Apply selection': child.invoke()
+        self.app._apply()
+        self.assertEqual(self.app.settings.filter_modes, 'FT8')
+        self.assertFalse(self.app.engine.enabled)
+
     def test_settings_fields_acknowledgment_profiles_and_clear(self):
         from dataclasses import fields
         self.assertEqual(set(self.app.variables), {f.name for f in fields(Settings)})
