@@ -301,8 +301,9 @@ class MainActivity : Activity() {
         val panel = section("Announcement builder")
         panel.addView(label("Choose what to say and move the sections into your preferred order. Comments are never spoken.",14f,secondary))
         val current = prefs.getString("format","New DX on. {frequency} {unit}. {call}.").orEmpty()
-        val intro = edit(panel,"Intro phrase",current.substringBefore('{').trim().trimEnd('.').ifBlank { "New DX" }).apply { filters=arrayOf(android.text.InputFilter.LengthFilter(80)) }
-        val initialOrder = listOf("intro","frequency","callsign").sortedBy { key -> when(key) { "intro" -> 0; "frequency" -> current.indexOf("{frequency}").takeIf { it >= 0 } ?: Int.MAX_VALUE; else -> current.indexOf("{call}").takeIf { it >= 0 } ?: Int.MAX_VALUE } }
+        val layout=AnnouncementLayout.read(current)
+        val intro = edit(panel,"Intro phrase",layout.intro.ifBlank { "New DX" }).apply { filters=arrayOf(android.text.InputFilter.LengthFilter(80)) }
+        val initialOrder=layout.order
         val order = (drafts["Speech:order"] ?: initialOrder.joinToString(",")).split(',').toMutableList()
         val flags = mutableMapOf<String,CheckBox>()
         val rows = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }; panel.addView(rows)
@@ -310,14 +311,14 @@ class MainActivity : Activity() {
             rows.removeAllViews()
             order.forEachIndexed { index,key ->
                 val row = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-                val enabled = drafts["Speech:include_$key"]?.toBoolean() ?: when(key) { "intro" -> current.substringBefore('{').isNotBlank(); "frequency" -> current.contains("{frequency}"); else -> current.contains("{call}") }
+                val enabled = drafts["Speech:include_$key"]?.toBoolean() ?: (key in layout.included)
                 val check = CheckBox(this).apply { text=key.replaceFirstChar { it.uppercase() }; setTextColor(ink); isChecked=enabled; setOnCheckedChangeListener { _,checked -> drafts["Speech:include_$key"] = checked.toString() } }
                 flags[key]=check; row.addView(check,LinearLayout.LayoutParams(0,-2,1f))
                 row.addView(button("Up") { java.util.Collections.swap(order,index,index-1); drafts["Speech:order"]=order.joinToString(","); draw() }.apply { isEnabled=index>0; contentDescription="Move $key up" },LinearLayout.LayoutParams(dp(72),-2).apply { marginEnd=dp(4) })
                 row.addView(button("Down") { java.util.Collections.swap(order,index,index+1); drafts["Speech:order"]=order.joinToString(","); draw() }.apply { isEnabled=index<order.lastIndex; contentDescription="Move $key down" },LinearLayout.LayoutParams(dp(72),-2)); rows.addView(row)
             }
         }; draw()
-        val units = CheckBox(this).apply { text="Speak kHz or MHz"; setTextColor(ink); isChecked=drafts["Speech:units"]?.toBoolean() ?: current.contains("{unit}"); setOnCheckedChangeListener { _,checked -> drafts["Speech:units"]=checked.toString() } }; panel.addView(units)
+        val units = CheckBox(this).apply { text="Speak kHz or MHz"; setTextColor(ink); isChecked=drafts["Speech:units"]?.toBoolean() ?: layout.units; setOnCheckedChangeListener { _,checked -> drafts["Speech:units"]=checked.toString() } }; panel.addView(units)
         panel.addView(button("Save announcement") {
             val parts = order.filter { flags[it]?.isChecked == true }.map { when(it) { "intro" -> intro.text.toString().trim().replace("{","").replace("}",""); "callsign" -> "{call}"; else -> "{frequency}" + if(units.isChecked) " {unit}" else "" } }.filter { it.isNotBlank() }
             if(parts.isEmpty()) Toast.makeText(this,"Choose at least one announcement section",Toast.LENGTH_LONG).show()
