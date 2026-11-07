@@ -195,14 +195,15 @@ class SourceClient:
             # each framed line and the partial prompt, not only the packet tail.
             candidates = [(line, True) for line in lines] + ([(partial, False)] if partial else [])
             for line, complete in candidates:
+                is_dx = line.lstrip().upper().startswith("DX DE ")
                 if complete:
                     self._raw(line)
-                if re.search(r"(?:already (?:connected|logged\s*in)|duplicate (?:login|connection))", line, re.I):
+                if not is_dx and re.search(r"(?:already (?:connected|logged\s*in)|duplicate (?:login|connection))", line, re.I):
                     raise ClusterLoginError("Callsign is already connected. Close the other session or use a cluster supported SSID")
-                if re.search(r"(?:invalid password|login failed|access denied|authentication failed)", line, re.I):
+                if not is_dx and re.search(r"(?:invalid password|login failed|access denied|authentication failed)", line, re.I):
                     raise ClusterLoginError("Cluster rejected sign in. Check the callsign and required password")
-                prompt = re.search(r"(?:login|call\s*sign|callsign|call|user\s*name)\s*[:>]\s*$", line, re.I)
-                password = re.search(r"password\s*[:>]\s*$", line, re.I)
+                prompt = not is_dx and re.search(r"(?<![A-Z0-9])(?:login|call\s*sign|callsign|call|user\s*name)\s*[:>]\s*$", line, re.I)
+                password = not is_dx and re.search(r"(?<![A-Z0-9])password\s*[:>]\s*$", line, re.I)
                 if prompt and not sent_login:
                     if not complete:
                         self._raw(line)

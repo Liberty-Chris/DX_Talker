@@ -150,10 +150,11 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
             val decoder=TelnetText();val line=StringBuilder();var overflow=false;var loginSent=false;var passwordSent=false
             val input=connection.getInputStream();val output=connection.getOutputStream();val buffer=ByteArray(4096)
             fun inspect(text:String,complete:Boolean){
+                if(text.trimStart().startsWith("DX de ",true)) { if(complete)process(text,token);return }
                 if(Regex("already (connected|logged\\s*in)|duplicate (login|connection)",RegexOption.IGNORE_CASE).containsMatchIn(text))throw LoginFailure("Callsign already connected. Close the other session or use an allowed SSID.")
                 if(Regex("invalid password|login failed|access denied|authentication failed",RegexOption.IGNORE_CASE).containsMatchIn(text))throw LoginFailure("Cluster rejected sign in. Check callsign and password.")
-                val callPrompt=Regex("(?:login|call\\s*sign|callsign|call|user\\s*name)\\s*[:>]\\s*$",RegexOption.IGNORE_CASE).containsMatchIn(text)
-                val passPrompt=Regex("password\\s*[:>]\\s*$",RegexOption.IGNORE_CASE).containsMatchIn(text)
+                val callPrompt=ClusterPrompts.login(text)
+                val passPrompt=ClusterPrompts.password(text)
                 if(callPrompt&&!loginSent){val call=setting("call","");if(call.isNotBlank()){
                     require(call.length<=20&&call.all{it.isLetterOrDigit()||it in "/-"});output.write((call+"\r\n").toByteArray());output.flush();loginSent=true;if(!complete)line.setLength(0)
                 }else update("Cluster requests a callsign. Edit the profile and restart listening.")}
@@ -165,6 +166,7 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
             var lastData=android.os.SystemClock.elapsedRealtime();var quietReported=false
             while(active(token)){
                 val count=try{input.read(buffer)}catch(_:java.net.SocketTimeoutException){
+                    if(!overflow && line.isNotBlank())inspect(line.toString(),false)
                     if(!quietReported && android.os.SystemClock.elapsedRealtime()-lastData >= 90000) { update("Connected. No recent cluster data; the feed may be quiet.");quietReported=true }
                     continue
                 }
@@ -172,7 +174,7 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
                 if(count<0)throw java.io.EOFException()
                 for(c in decoder.feed(buffer,count){output.write(it);output.flush()}){
                     if(c=='\r'||c=='\n'){if(!overflow&&line.isNotBlank())inspect(line.toString(),true);line.setLength(0);overflow=false}
-                    else if(!overflow){if(line.length>=2048){line.setLength(0);overflow=true}else{line.append(c);inspect(line.toString(),false)}}
+                    else if(!overflow){if(line.length>=2048){line.setLength(0);overflow=true}else{line.append(c);if(c==':'||c=='>')inspect(line.toString(),false)}}
                 }
             }
         }finally{try{connection.close()}catch(_:Exception){};if(socket===connection)socket=null}

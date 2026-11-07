@@ -21,6 +21,7 @@ class NavigationTests {
     private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
     @Before fun reset() {
         context.stopService(Intent(context,ListenerService::class.java))
+        InstrumentationRegistry.getInstrumentation().runOnMainSync { ListenerService.muted=false;ListenerService.paused=false }
         context.getSharedPreferences("dx",Context.MODE_PRIVATE).edit().clear().putString("appearance","Dark").commit()
         if(android.os.Build.VERSION.SDK_INT>=33) InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand("pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS").close()
     }
@@ -76,16 +77,21 @@ class NavigationTests {
         val accepted=java.util.concurrent.CountDownLatch(1)
         val release=java.util.concurrent.CountDownLatch(1)
         val closed=java.util.concurrent.atomic.AtomicBoolean(false)
+        val received=java.util.concurrent.atomic.AtomicBoolean(false)
+        val probed=java.util.concurrent.CountDownLatch(1)
         val worker=Thread {
             try { server.accept().use { socket ->
-                socket.soTimeout=200;accepted.countDown()
+                socket.soTimeout=200
+                val stamp=java.time.format.DateTimeFormatter.ofPattern("HHmm'Z'").withZone(java.time.ZoneOffset.UTC).format(java.time.Instant.now())
+                socket.getOutputStream().write("DX de N0CALL: 14074 WB4IUY FT8 POTA $stamp\r\n".toByteArray());socket.getOutputStream().flush();accepted.countDown()
                 while(release.count>0) {
-                    try { if(socket.getInputStream().read()<0) { closed.set(true);break } }
-                    catch(_:java.net.SocketTimeoutException) {}
+                    try { if(socket.getInputStream().read()<0) { closed.set(true);break } else received.set(true);probed.countDown() }
+                    catch(_:java.net.SocketTimeoutException) { probed.countDown() }
                 }
             } } catch(_:Exception) { if(release.count>0)closed.set(true) }
         };worker.start()
-        context.getSharedPreferences("dx",Context.MODE_PRIVATE).edit().putString("host","127.0.0.1").putString("port",server.localPort.toString()).commit()
+        context.getSharedPreferences("dx",Context.MODE_PRIVATE).edit().putString("host","127.0.0.1").putString("port",server.localPort.toString()).putString("call","KF4DBX").commit()
+        InstrumentationRegistry.getInstrumentation().runOnMainSync { ListenerService.muted=true }
         try {
             ActivityScenario.launch(MainActivity::class.java).use {
                 onView(withText("Start listening")).perform(click())
@@ -96,6 +102,8 @@ class NavigationTests {
                 onView(withText("Save filters")).perform(scrollTo(),click())
                 assertTrue(ListenerService.listeningActive)
                 assertFalse("Navigation or filtering closed the original TCP session",closed.get())
+                assertTrue(probed.await(3,java.util.concurrent.TimeUnit.SECONDS))
+                assertFalse("A spotter callsign or spot comment triggered an unsolicited command",received.get())
                 androidx.test.espresso.Espresso.pressBack()
                 onView(withText("Listen")).perform(click())
                 onView(withText("Stop listening")).perform(click())

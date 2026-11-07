@@ -93,6 +93,22 @@ class SourceTests(unittest.TestCase):
         self.assertTrue(any(k == 'source_state' and 'feed may be quiet' in v for k, v in observed))
         self.assertFalse(any(k == 'source_lost' for k, v in observed))
 
+    def test_spotter_callsign_and_comment_cannot_be_mistaken_for_login(self):
+        sent=[]
+        class Socket:
+            def __init__(self): self.packets=[b'DX de N0CALL:', f' 14074 WB4IUY invalid password password: {datetime.now(UTC):%H%M}Z\r\n'.encode()]
+            def setsockopt(self,*args): pass
+            def settimeout(self,value): pass
+            def sendall(self,value): sent.append(value)
+            def recv(self,size):
+                if self.packets:return self.packets.pop(0)
+                client.cancel.set();raise socket.timeout()
+        events=[]
+        client=SourceClient(Settings(login='KF4DBX'),lambda *event:events.append(event),'private-test-secret',connector=lambda *a,**kw:Socket())
+        client._cluster()
+        self.assertFalse(sent)
+        self.assertEqual(len([v for k,v in events if k=='spot']),1)
+
     def test_manual_commands_are_bounded_single_lines(self):
         client = SourceClient(Settings(), lambda *args: None)
         client.sock = object()
