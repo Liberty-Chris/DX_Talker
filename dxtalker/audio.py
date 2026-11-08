@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from array import array
+from collections import deque
 from dataclasses import dataclass
 import json
 import math
@@ -27,13 +28,17 @@ class AudioPlaybackError(RuntimeError):
         'audio_finish_unconfirmed': 'Audio output stopped without confirming completion. Check the selected audio device and try a local preview again.',
         'audio_stream_fault': 'The audio device reported a playback fault. Check its connection and system sound settings before restarting output.',
         'audio_incomplete': 'Audio output ended before all samples were delivered. Check the selected audio device before restarting output.',
+        'audio_underflow_persistent': 'Audio delivery repeatedly fell behind. Output stopped. Check audio drivers, power settings and other running applications before restarting output.',
+        'audio_id_interrupted': 'Identification audio was interrupted. RF stopped. Check the audio device and restart RF when ready to send a complete ID.',
     }
 
-    def __init__(self, code, *, frames_queued, frames_expected, sample_rate, channels):
+    def __init__(self, code, *, frames_queued, frames_expected, sample_rate, channels, details=None):
         super().__init__(self.MESSAGES[code])
         self.code = code
         self.context = dict(frames_queued=frames_queued, frames_expected=frames_expected,
                             sample_rate=sample_rate, channels=channels)
+        if details:
+            self.context.update(details)
 
 
 @dataclass(frozen=True)
@@ -295,19 +300,54 @@ class AudioOutput:
         finished = __import__("threading").Event()
         audio_fault = []
         inactive_since = None
+        underruns = deque(maxlen=4)
+        underrun_count = 0
+        status_flags = set()
+        last_callback = None
+        max_callback_gap = 0
+        actual_latency = None
+
+        def report():
+            host = device.split(' :: ', 1)[0]
+            if host not in ('Windows WASAPI', 'MME', 'Windows DirectSound', 'Windows WDM-KS', 'ALSA', 'OSS', 'JACK', 'Core Audio'):
+                host = 'Other'
+            result = dict(status_flags=sorted(status_flags), output_underflows=underrun_count,
+                          max_callback_gap_ms=round(max_callback_gap * 1000, 1),
+                          host_api=host, requested_latency='high', requested_blocksize=0)
+            if actual_latency is not None:
+                result['latency_seconds'] = actual_latency
+            return result
 
         def failure(code):
             return AudioPlaybackError(code, frames_queued=offset//(clip.channels*2),
                                       frames_expected=total//(clip.channels*2),
-                                      sample_rate=clip.rate, channels=clip.channels)
+                                      sample_rate=clip.rate, channels=clip.channels, details=report())
 
         def callback(out, frames, timing, status):
-            nonlocal offset
-            if cancel.is_set() or time.monotonic() > deadline:
+            nonlocal offset, underrun_count, last_callback, max_callback_gap
+            now = time.monotonic()
+            if last_callback is not None:
+                max_callback_gap = max(max_callback_gap, now - last_callback)
+            last_callback = now
+            if cancel.is_set() or now > deadline:
                 raise sd.CallbackAbort
             if status:
-                audio_fault.append(True)
-                raise sd.CallbackAbort
+                flags = {name for name in ('input_underflow', 'input_overflow', 'output_underflow', 'output_overflow', 'priming_output')
+                         if getattr(status, name, False)}
+                status_flags.update(flags or {'unknown_status'})
+                if not flags or flags - {'output_underflow', 'priming_output'}:
+                    audio_fault.append('audio_stream_fault')
+                    raise sd.CallbackAbort
+                if 'output_underflow' in flags:
+                    underrun_count += 1
+                    while underruns and now - underruns[0] > 2:
+                        underruns.popleft()
+                    underruns.append(now)
+                    # A brief scheduling interruption may recover on this very
+                    # callback. Repeated breakup must not hold a silent carrier.
+                    if len(underruns) > 3 or underrun_count > 8:
+                        audio_fault.append('audio_underflow_persistent')
+                        raise sd.CallbackAbort
             size = frames * clip.channels * 2
             count = min(size, total - offset)
             out[:count] = pcm[offset:offset + count]
@@ -319,7 +359,10 @@ class AudioOutput:
 
         with sd.RawOutputStream(device=index, samplerate=clip.rate, channels=clip.channels,
                                 dtype="int16", callback=callback, finished_callback=finished.set,
-                                blocksize=1024) as stream:
+                                blocksize=0, latency='high') as stream:
+            latency = getattr(stream, 'latency', None)
+            if isinstance(latency, (int, float)) and math.isfinite(latency) and 0 <= latency <= 120:
+                actual_latency = round(latency, 4)
             while not finished.wait(0.02):
                 if cancel.is_set() or time.monotonic() > deadline:
                     stream.abort()
@@ -331,7 +374,7 @@ class AudioOutput:
                     if finished.is_set():
                         continue
                     if audio_fault:
-                        raise failure('audio_stream_fault')
+                        raise failure(audio_fault[0])
                     if offset < total:
                         raise failure('audio_stream_stopped')
                     now = time.monotonic()
@@ -346,9 +389,10 @@ class AudioOutput:
         if time.monotonic() > deadline:
             raise TimeoutError("Maximum playback duration reached")
         if audio_fault:
-            raise failure('audio_stream_fault')
+            raise failure(audio_fault[0])
         if offset < total:
             raise failure('audio_incomplete')
+        return report() if underrun_count else None
 
 
 def scale_clip(clip, percent):

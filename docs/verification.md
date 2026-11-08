@@ -141,3 +141,7 @@ The native audio and serial tests use simulated APIs. There is no physical XP, a
 ## Ubuntu package verification
 
 The reusable Ubuntu workflow builds on 22.04 and installs that package on 22.04 and 24.04. It checks the desktop entry and executable, synthetic native keyring round trip, eSpeak NG WAV rendering with measured pauses, verified public GitHub HTTPS, shared UI pages and retained performance budgets. It reinstalls and removes the package while preserving a user settings marker. Reports are uploaded as Ubuntu verification artifacts. No playback, serial access, public spotting or RF occurs. Physical Ubuntu and radio acceptance remains required.
+
+## Idle transition audio checks
+
+Fake PortAudio callbacks inject isolated and repeated output underruns, priming status, other flags, cancellation and deadlines. Coordinator tests verify that recovered spot audio preserves RF, PTT is released and interrupted required IDs disarm without advancing their schedule. Power tests verify thread scoped request/release, failed mode changes, worker exit and screensaver observation gaps. Windows runs additionally bind and briefly exercise the native idle request and release API. No simulated screen event establishes physical driver acceptance. Retest the original Windows 10 screensaver and audio endpoint combination.

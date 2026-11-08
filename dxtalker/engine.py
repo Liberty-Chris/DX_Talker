@@ -13,6 +13,7 @@ from .models import UTC
 from .speech import SpeechService
 from .ptt import create_ptt
 from .receiver import ReceiveMonitor, ReceiveCancel, ChannelBusy
+from .power import OutputPower
 
 
 @dataclass(frozen=True)
@@ -206,7 +207,17 @@ class Engine:
         if self.cancel.wait(seconds):
             raise Cancelled()
 
-    def _transmit(self, clip, s, volume=None):
+    def _play(self, clip, device, volume, cancel, deadline, operation, route):
+        report = self.audio.play(clip, device, volume, cancel, deadline)
+        if isinstance(report, dict) and report.get('output_underflows'):
+            if route == 'radio' and operation.startswith('id'):
+                raise AudioPlaybackError('audio_id_interrupted', frames_queued=len(clip.pcm)//(2*clip.channels),
+                                         frames_expected=len(clip.pcm)//(2*clip.channels), sample_rate=clip.rate,
+                                         channels=clip.channels, details=report)
+            self.emit('audio_recovery', dict(operation=operation, route=route, playback=report))
+            self.emit('journal', 'A brief audio underrun recovered. Output remains enabled.')
+
+    def _transmit(self, clip, s, volume=None, operation='radio'):
         duration = clip.duration if clip is not None else 2
         if duration + (s.lead_ms + s.tail_ms) / 1000 > s.max_tx_seconds:
             raise ValueError("Audio exceeds the configured maximum transmit duration. Shorten it or change the limit.")
@@ -252,7 +263,7 @@ class Engine:
             if clip is None:
                 if playback_cancel.wait(2): raise Cancelled()
             else:
-                self.audio.play(clip, s.radio_device, s.volume_percent if volume is None else volume, playback_cancel, deadline)
+                self._play(clip, s.radio_device, s.volume_percent if volume is None else volume, playback_cancel, deadline, operation, 'radio')
             if playback_cancel.wait(s.tail_ms / 1000): raise Cancelled()
         except Cancelled:
             if receive_cancel and not self.cancel.is_set():
@@ -269,7 +280,16 @@ class Engine:
             raise TimeoutError("Transmit watchdog stopped output")
 
     def _run(self):
+        with OutputPower(self.emit) as power:
+            try:
+                self._run_output(power)
+            finally:
+                if hasattr(self.speech, 'close'):
+                    self.speech.close()
+
+    def _run_output(self, power):
         while not self.quit.is_set():
+            power.set_active(self.enabled or self.local_enabled or self.busy, self.settings.keep_awake)
             self.wake.wait(0.1)
             self.wake.clear()
             kind, value = None, None
@@ -279,6 +299,7 @@ class Engine:
                 if task is None:
                     continue
                 kind, value, s = task
+                power.set_active(True, s.keep_awake)
                 if kind=="ptt_test":
                     self.emit('activity','PTT test. Waiting for channel clear' if s.receive_guard else 'PTT test')
                     while s.receive_guard and not self.monitor.ready():
@@ -318,14 +339,14 @@ class Engine:
                 if kind == "spot" and self.local_enabled:
                     if (datetime.now(UTC) - value.timestamp).total_seconds() > s.max_age_seconds:
                         continue
-                    self.audio.play(clip, s.preview_device, s.local_volume_percent, self.cancel, self.clock() + 120)
+                    self._play(clip, s.preview_device, s.local_volume_percent, self.cancel, self.clock() + 120, kind, 'local')
                     self.emit("announcement", {"dx_call": value.dx_call, "frequency_khz": str(value.frequency_khz), "route": "local"})
                     with self.lock:
                         self.seen[value.key] = self.clock()
                         self.next_spot = self.clock() + s.spacing_seconds
                 elif kind.startswith("preview_"):
                     self.emit("activity", "Local preview. No PTT.")
-                    self.audio.play(clip, s.preview_device, s.local_volume_percent, self.cancel, self.clock() + 120)
+                    self._play(clip, s.preview_device, s.local_volume_percent, self.cancel, self.clock() + 120, kind, 'local')
                 else:
                     with self.lock:
                         if not self.enabled:
@@ -348,7 +369,7 @@ class Engine:
                                     self.next_voice_id = self.clock()
                                 else:self.next_id = self.clock()
                                 continue
-                    self._transmit(clip, s, volume=100 if kind.startswith("id") else s.volume_percent)
+                    self._transmit(clip, s, volume=100 if kind.startswith("id") else s.volume_percent, operation=kind)
                     if kind == "spot":
                         self.emit("announcement", {"dx_call": value.dx_call, "frequency_khz": str(value.frequency_khz), "route": "radio"})
                     with self.lock:
@@ -391,9 +412,6 @@ class Engine:
                         self.monitor.close()
                 if kind is not None:
                     self.emit("activity", "Idle")
-
-        if hasattr(self.speech,'close'):
-            self.speech.close()
 
     def test_ptt(self, settings=None):
         import re

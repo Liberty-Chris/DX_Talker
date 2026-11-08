@@ -209,6 +209,7 @@ class Settings:
     voice_pack_root: str = ""
     voice_pack: str = ""
     supervised_ack: bool = False
+    keep_awake: str = 'Off'
     display_limit: int = 500
     logging_enabled: bool = True
     diagnostics_enabled: bool = bool(re.search(r"(a|b|rc)\d+$", __version__))
@@ -247,6 +248,7 @@ class Settings:
                               "speech_provider": ("Windows", "eSpeak NG", "Piper", "Recorded", "ElevenLabs"),
                               "frequency_unit": ("kHz", "MHz"),
                               "update_channel": ("Pilot", "Stable"),
+                              "keep_awake": ("Off", "Computer", "Computer and display"),
                               "voice_gender": ("Any", "Male", "Female"),
                               "id_mode": ("CW", "Voice", "Alternate", "Both", "Independent")}.items():
             if getattr(self, name) not in options:

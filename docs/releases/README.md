@@ -1,6 +1,6 @@
 # Pilot downloads
 
-Current source version: [0.2.0a20](https://github.com/Liberty-Chris/DX_Talker/releases/tag/v0.2.0a20). Its download becomes available after publication.
+Current source version: [0.2.0a21](https://github.com/Liberty-Chris/DX_Talker/releases/tag/v0.2.0a21). Its download becomes available after publication.
 
 Earlier published pilot versions below are ordered by version number. GitHub's release listing can differ. The app updater compares version components numerically.
 

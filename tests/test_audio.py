@@ -161,7 +161,8 @@ class AudioTests(unittest.TestCase):
             with self.assertRaises(AudioPlaybackError) as error:
                 audio.play(Clip(b'\0\0'*4),'chosen',100,threading.Event(),time.monotonic()+1)
         self.assertEqual(error.exception.code,'audio_stream_stopped')
-        self.assertEqual(error.exception.context,dict(frames_queued=1,frames_expected=4,sample_rate=22050,channels=1))
+        self.assertEqual({key:error.exception.context[key] for key in ('frames_queued','frames_expected','sample_rate','channels')},dict(frames_queued=1,frames_expected=4,sample_rate=22050,channels=1))
+        self.assertEqual(error.exception.context['status_flags'], [])
         self.assertEqual(closed,[True])
 
     def test_missing_finish_signal_is_bounded_and_cancellation_during_grace_still_stops(self):
@@ -191,3 +192,72 @@ class AudioTests(unittest.TestCase):
                     audio.play(Clip(b'\0\0'*2),'chosen',100,cancel,100)
             if cancelled:self.assertEqual(aborted,[True])
             else:self.assertEqual(error.exception.code,'audio_finish_unconfirmed')
+
+    def playback_scenario(self, flags, *, tick=.1, cancel=None, deadline=1000):
+        from dxtalker.audio import AudioPlaybackError
+        class Stop(Exception): pass
+        class Abort(Exception): pass
+        class Status:
+            def __init__(self, names):
+                for name in names: setattr(self, name, True)
+            def __bool__(self): return bool(vars(self))
+        captured=[]; settings=[]
+        class Stream:
+            active = False
+            latency = .2
+            def __init__(self, **kwargs): self.options=kwargs; settings.append(kwargs)
+            def __enter__(self):
+                for names in flags:
+                    output=bytearray(4)
+                    try: self.options['callback'](output,2,None,Status(names))
+                    except (Stop,Abort): break
+                    captured.append(bytes(output))
+                self.options['finished_callback']()
+                return self
+            def __exit__(self,*args): pass
+        fake=SimpleNamespace(RawOutputStream=Stream,CallbackStop=Stop,CallbackAbort=Abort)
+        audio=AudioOutput(); clock=[0]
+        def now():
+            clock[0]+=tick
+            return clock[0]
+        with patch.dict('sys.modules',{'sounddevice':fake}),patch.object(audio,'resolve',return_value=0),patch('dxtalker.audio.time.monotonic',side_effect=now):
+            report=audio.play(Clip(b'\x01\x00'*len(flags)*2),'Windows WASAPI :: PRIVATE DEVICE',100,cancel or threading.Event(),deadline)
+        return report,settings,captured
+
+    def test_screensaver_scheduling_glitch_recovers_with_adaptive_buffering(self):
+        report,settings,captured=self.playback_scenario([[],['output_underflow'],[],[]])
+        self.assertEqual(report['output_underflows'],1)
+        self.assertEqual(report['status_flags'],['output_underflow'])
+        self.assertEqual(report['latency_seconds'],.2)
+        self.assertEqual(report['max_callback_gap_ms'],100)
+        self.assertEqual(settings[0]['blocksize'],0)
+        self.assertEqual(settings[0]['latency'],'high')
+        self.assertNotIn('PRIVATE',str(report))
+        self.assertEqual(len(captured),3)
+
+    def test_priming_is_informational_and_does_not_disable_audio(self):
+        report,unused,unused=self.playback_scenario([['priming_output'],[]])
+        self.assertIsNone(report)
+
+    def test_persistent_or_repeated_underruns_still_stop(self):
+        from dxtalker.audio import AudioPlaybackError
+        for count,tick in [(4,.1),(9,3)]:
+            with self.assertRaises(AudioPlaybackError) as failure:
+                self.playback_scenario([['output_underflow']]*count,tick=tick)
+            self.assertEqual(failure.exception.code,'audio_underflow_persistent')
+            self.assertEqual(failure.exception.context['output_underflows'],count)
+            self.assertLess(failure.exception.context['frames_queued'],failure.exception.context['frames_expected'])
+
+    def test_other_audio_flags_are_not_misclassified_as_recoverable(self):
+        from dxtalker.audio import AudioPlaybackError
+        for flags in [['output_overflow'],['input_overflow','output_underflow']]:
+            with self.assertRaises(AudioPlaybackError) as failure:
+                self.playback_scenario([flags,[]])
+            self.assertEqual(failure.exception.code,'audio_stream_fault')
+            self.assertEqual(failure.exception.context['status_flags'],sorted(flags))
+
+    def test_underrun_recovery_never_overrides_cancel_or_deadline(self):
+        from dxtalker.audio import Cancelled
+        cancelled=threading.Event(); cancelled.set()
+        with self.assertRaises(Cancelled):self.playback_scenario([['output_underflow']],cancel=cancelled)
+        with self.assertRaises(TimeoutError):self.playback_scenario([['output_underflow']],deadline=0)

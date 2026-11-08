@@ -111,7 +111,11 @@ class Diagnostics:
         self.record('ui_dialog_wait' if dialog else 'ui_stall', seconds=round(delay), threads=stacks)
 
     def _watch(self):
-        while not self.closed.wait(2): self.sample_stall()
+        from .power import DesktopPowerObserver
+        power = DesktopPowerObserver(self.record, clock=self.clock)
+        while not self.closed.wait(2):
+            self.sample_stall()
+            power.sample()
 
     def enable_native_faults(self):
         if not self.handler: return

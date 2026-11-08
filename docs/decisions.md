@@ -238,3 +238,9 @@ Filter checkboxes and selectors save immediately without reconnecting the source
 ## November 8, 2026. Ubuntu desktop package
 
 Reuse the maintained desktop core rather than a separate Linux shell. Build the first amd64 Debian package on Ubuntu 22.04 with a private Python 3.12 runtime and verify installation on 22.04 and 24.04. System dependencies stay package managed. eSpeak NG supplies offline WAV rendering; Secret Service protects remembered credentials. Preserve shared filtering, output coordination and startup RF behavior. Linux serial paths and native CA certificates replace Windows platform choices. Package updates request administrator authentication after shared download verification. ARM, other distributions and actual radio acceptance remain separate work.
+
+## November 8, 2026. Idle transition audio resilience
+
+The operator witnessed screensaver activation during the a15 radio audio fault captured at 06:47:08 UTC. Use adaptive high latency callback buffering and bounded isolated underrun recovery instead of aborting every nonzero callback status. Stop on four underruns within two seconds or more than eight per clip and retain existing cancellation, deadline, completion and physical device fault handling. An interrupted required ID is not accepted as complete.
+
+Offer explicit Windows native idle requests with Off as the default rather than injecting keyboard input. Requests belong to the output worker and are cleared on stop and exit. Sample screensaver state on the existing diagnostic watchdog and record only transitions and timing gaps. These observations do not claim exact suspend/resume notifications or explain every driver fault. Physical screensaver/display sleep acceptance remains required.
