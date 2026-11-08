@@ -139,7 +139,7 @@ def describe_error(exc):
         return f"Update service returned HTTP {exc.code}. Try again or open Release page."
     reason = exc.reason if isinstance(exc, error.URLError) else exc
     if isinstance(reason, ssl.SSLCertVerificationError):
-        return "The secure update connection could not be verified. Check the Windows clock and HTTPS filtering, or open Release page."
+        return "The secure update connection could not be verified. Check the system clock and HTTPS filtering, or open Release page."
     if isinstance(reason, socket.gaierror):
         return "The update service hostname could not be resolved. Check the internet connection or open Release page."
     if isinstance(reason, TimeoutError):
