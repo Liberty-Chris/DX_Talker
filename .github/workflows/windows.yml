@@ -208,6 +208,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          python scripts/release_assets.py release > release-arguments.txt
+          mapfile -t assets < release-arguments.txt
+          python scripts/release_assets.py release --notes docs/releases/current.md --tag "$RELEASE_TAG" --output prepared-release-notes.md
           if [[ "$GITHUB_REF" == refs/heads/main ]]; then
             existing="$(git ls-remote origin "refs/tags/$RELEASE_TAG" | cut -f1)"
             python scripts/check_published_release.py --check-target "$RELEASE_TAG" "$GITHUB_SHA" "$existing"
@@ -224,7 +227,4 @@ jobs:
           fi
           extra=()
           if [[ "$RELEASE_TAG" =~ (a|b|rc)[0-9]+$ ]]; then extra+=(--prerelease); fi
-          python scripts/release_assets.py release > release-arguments.txt
-          mapfile -t assets < release-arguments.txt
-          python scripts/release_assets.py release --notes docs/releases/current.md --tag "$RELEASE_TAG" --output prepared-release-notes.md
           gh release create "$RELEASE_TAG" "${assets[@]}" --verify-tag --title "DX Talker $RELEASE_TAG" --notes-file prepared-release-notes.md "${extra[@]}"
