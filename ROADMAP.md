@@ -83,3 +83,8 @@ The 0.2.0a11 mobile followup adds a listener-focused navigation shell, persisten
 ## Personal DX assistant batch
 
 The 0.2.0a12 source batch expands local filters into license aware listening presets with separate reporting/DX geography and shared desktop/Android transfers. It adds current cluster spotting, an Android list focused layout, serial PTT testing, receive diagnostics, independent IDs/pauses and speech preparation improvements. The actual curated node list and selected distributable recorded packs remain owner supplied content. No public spot or physical RF transmission is part of automated verification. Foreign rule datasets, automatic location lookup and provider specific cluster acceptance adapters remain future work.
+
+
+## Next efficiency audit
+
+Review older PC performance in the next maintenance batch. Measure UI event work and redraw frequency, bounded spot burst handling, queue fairness, memory retained during long sessions, history/diagnostic disk writes and speech preparation or worker contention. Compare idle, connected, local listening and RF simulations with a recorded version baseline. Preserve cancellation, identification and source loss responsiveness while reducing resource use. Validate representative slower Windows hardware separately from hosted runner timing. Keep the automatic source/portable/installed performance budgets and deterministic rendering checks in release verification.

@@ -6,6 +6,7 @@ import tempfile
 import threading
 import traceback
 import subprocess
+import time
 
 
 def run(report_path):
@@ -56,9 +57,11 @@ def run(report_path):
             os.environ["LOCALAPPDATA"] = folder
             try:
                 save_settings(Settings(check_updates=False))
+                ui_started = time.perf_counter()
                 root = tk.Tk()
                 app = Application(root)
                 root.update()
+                ui_startup_ms = (time.perf_counter() - ui_started) * 1000
                 assert app.save_button.winfo_rooty() + app.save_button.winfo_height() <= root.winfo_rooty() + root.winfo_height()
                 assert set(app.variables) == {f.name for f in fields(Settings)}
                 assert not app.engine.enabled
@@ -99,6 +102,11 @@ def run(report_path):
                 root.geometry(normal_geometry)
                 app.notebook.select(0)
                 root.update()
+                from .performance import BUDGETS, measure, violations
+                report['performance'] = measure(app, ui_startup_ms)
+                report['performance_budgets'] = BUDGETS
+                report['performance_failures'] = violations(report['performance'])
+                assert not report['performance_failures'], 'Desktop performance budget exceeded'
                 assert (Path(folder) / "DXTalker/settings.json").exists()
                 root.lift()
                 root.update()

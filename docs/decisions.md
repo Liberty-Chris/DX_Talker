@@ -217,3 +217,8 @@ Use a separate desktop Mode column and label the operator's selected license fil
 Keep rounded desktop controls but use larger solid strips in image elements, explicit 32 pixel widget minima and shared Tk image instances. Tk tiles these images instead of stretching them. The original 32 pixel surface left a 12 pixel center, causing excessive draw calls on large cards. Cache the geometry separately from colors to avoid recomputing every antialiased corner for a newly visited state. Skip unchanged state control writes during the 75 ms event poll, while still rendering source, output, hover, focus and theme changes. Do not slow safety event polling to mask rendering cost.
 
 A comparison of the a12 and a14 tags reproduced slower tab switching under the same Linux dummy display with no public cluster, speech or RF activity. This establishes a rendering regression, not a confirmed diagnosis of the reporting PC. Windows packaged verification and operator testing remain distinct evidence.
+
+
+## Build-time desktop performance gate. November 8, 2026
+
+Use explicit synthetic self test measurements to block builds that exceed reviewed startup, navigation, scrolling or idle CPU budgets. Publish the measured evidence beside existing Windows verification reports, including failed checks. Pair wall clock budgets with deterministic drawing work checks instead of relying solely on fast hosted hardware. Keep profiling out of ordinary operation and leave the safety event poll unchanged. Node.js 24 belongs to GitHub action execution, not the Python/Tk desktop runtime. Track the wider older hardware resource audit as the next maintenance batch.
