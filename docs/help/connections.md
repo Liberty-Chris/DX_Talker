@@ -81,3 +81,7 @@ After 90 seconds without incoming cluster bytes, status explains that the feed m
 Automatic sign in ignores DX spot lines, including a packet split after a spotter callsign ending in CALL and comments mentioning passwords. These are spot metadata rather than authentication prompts. Android checks partial prompts at command delimiters or an idle read instead of scanning the growing line for every character.
 
 On Android, Scan desktop QR collection requests camera access when needed. Denial keeps the app and collected pages open and offers Android app settings. Import file remains available without a camera. Camera initialization or preview failure shows guidance inside the scanner with Close scanner; it does not clear the collection. Export diagnostics if the scanner still fails on your device. Camera use stops when you leave the scanner.
+
+## Ubuntu remembered passwords
+
+Ubuntu profiles use the desktop Secret Service keyring. Unlock it before saving a remembered secret, or leave Remember unchecked for session only credentials. Exported collections still exclude secrets. See [Ubuntu desktop](ubuntu.md) for platform paths and recovery.

@@ -113,7 +113,7 @@ class Target34(ast.NodeTransformer):
 
     def visit_Call(self, node):
         node = self.generic_visit(node)
-        if self.application_module('source') and isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name) and node.func.value.id == 'request' and node.func.attr == 'build_opener':
+        if self.application_module('source') and isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name) and node.func.value.id == 'request' and node.func.attr == 'build_opener' and not any(isinstance(arg, ast.Call) and isinstance(arg.func, ast.Attribute) and arg.func.attr == 'HTTPSHandler' for arg in node.args):
             node.args.append(ast.parse('request.HTTPSHandler(context=ssl.create_default_context())', mode='eval').body)
         if isinstance(node.func, ast.Attribute) and node.func.attr == 'isascii' and not node.args and not node.keywords:
             return ast.Call(func=ast.Name(id='_xp_isascii',ctx=ast.Load()),args=[node.func.value],keywords=[])

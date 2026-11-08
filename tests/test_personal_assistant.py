@@ -104,7 +104,7 @@ class VoiceTests(unittest.TestCase):
         with self.assertRaises(ValueError):voice_plan('Hello [pause 20s] again')
         with self.assertRaises(ValueError):voice_plan('[pause]')
         with patch('dxtalker.speech.WindowsSpeech') as provider:
-            SpeechService().render_configured('Hello <test> [pause] again',Settings(),threading.Event())
+            SpeechService().render_configured('Hello <test> [pause] again',Settings(speech_provider='Windows'),threading.Event())
             ssml=provider.return_value.render.call_args[0][0]
             self.assertIn('&lt;test&gt;',ssml);self.assertIn('1000ms',ssml);self.assertNotIn('[pause]',ssml)
 

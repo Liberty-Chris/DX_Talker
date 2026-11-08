@@ -2,7 +2,7 @@
 
 ## Current implementation
 
-The distribution target remains Windows 10 22H2 x64 and Windows 11 x64. Portable core tests also run on Linux. This does not establish a packaged Linux or macOS product. The Windows installer, System.Speech and DPAPI secret storage are Windows adapters.
+The distribution target remains Windows 10 22H2 x64 and Windows 11 x64. The a19 Ubuntu amd64 package reuses the maintained desktop core, with native eSpeak NG and Secret Service adapters. Hosted installation checks target Ubuntu 22.04 and 24.04. This does not establish physical radio, ARM or macOS compatibility. The Windows installer, System.Speech and DPAPI secret storage are Windows adapters.
 
 SpeechService consumes a validated Spot and immutable Settings and produces a Clip. A Clip is little endian signed PCM16 with explicit sample rate and channel count. Windows SSML and optional Piper both implement that boundary. The coordinator owns all output, playback cancellation, radio timing and PTT. Local listening uses the same coordinator with no serial adapter or ID schedule. New platform shells must not bypass it for RF.
 
@@ -29,7 +29,7 @@ The current Python 3.12 and Windows 10 installer floor are unchanged. Do not adv
 | Target | Next concrete gate | Current evidence |
 | :--- | :--- | :--- |
 | Windows x64 | Two successive release update and operator listening tests | CI core, packaging and installer checks |
-| Linux desktop | Native source launch with selected audio and Piper fixture, then real audio test | Portable core tests |
+| Ubuntu amd64 desktop | Native package installation checks, then actual audio and radio acceptance | Shared core, adapter and hosted package installation checks |
 | macOS desktop | Package, native speech adapter and secure vault | Design only |
 | iOS | VoiceOver accessible local cluster listening prototype | Contract and lifecycle plan |
 | Android | TalkBack accessible local cluster listening prototype | Contract and lifecycle plan |

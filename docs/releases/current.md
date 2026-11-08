@@ -1,7 +1,7 @@
-DX Talker 0.2.0a18 puts the Android pilot APK alongside the Windows and XP downloads.
+DX Talker 0.2.0a19 adds the Ubuntu desktop pilot alongside Windows, XP and Android.
 
-Use the Android phones and tablets download on this release page to install DXTalker-Android.apk directly. The APK is built from the same commit as the desktop installers. Publication waits for Android unit/build and emulator navigation checks as well as the Windows and XP checks. SHA256SUMS.txt includes the APK.
+Ubuntu 22.04 and 24.04 on 64 bit Intel and AMD computers get a Debian installer with its own Python runtime and an application menu entry. It uses the maintained desktop core for cluster profiles, local listening filters, collection QR export, announcements, received audio hold, audio/PTT controls, identification, diagnostics and update discovery. Ubuntu uses eSpeak NG for offline system speech and the desktop keyring for remembered passwords. Piper, Recorded and the configured ElevenLabs pilot service remain selectable.
 
-Windows 10 and 11 installers, Windows XP 32 bit and 64 bit pilot installers, portable Windows packages and the optional recorded voice pack remain on the same release page with clear labels. Existing Windows updater filenames are unchanged. Android remains a manually installed pilot APK; this does not add Play Store distribution or an automatic mobile updater.
+Choose DXTalker-Ubuntu-amd64.deb in the downloads. Raspberry Pi and other ARM devices need a separate build. This package does not establish physical Linux audio or radio compatibility; test local output and the selected radio interface before operating. The installer installs the system dependencies and preserves user settings during replacement or removal. Updates retain HTTPS verification and checksum checks before requesting administrator authentication.
 
-The shared filtering corrections and XP application work from a17 are retained. No listening, radio or filter behavior changes in this followup.
+Windows, XP and Android downloads retain their established names and shared features. The release workflow now waits for Ubuntu package checks as well. No additional voice pack or Raspberry Pi installer is included.

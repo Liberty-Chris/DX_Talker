@@ -48,3 +48,7 @@ Selecting the optional ElevenLabs provider sends announcement or speech ID text 
 Version 0.2.0a10 adds fixed playback failure codes and numeric queued/expected frame counts, sample rate, channel count and local/radio route. These distinguish known local playback failures without logging exception values, audio content, device names or credentials. Earlier reports contain only an exception type and code locations for these failures.
 
 XP builds look for the matching XP installer when checking releases. They never select the Windows 10 and 11 setup. HTTPS uses a bundled CA certificate file with certificate and hostname checks enabled. Keep the Windows clock correct. A certificate error stops the request and does not trigger an insecure connection. If no compatible newer XP package exists, the release is not offered as an XP update.
+
+## Ubuntu updates
+
+Ubuntu selects its own Debian installer, retains HTTPS and checksum verification and requests administrator authentication for installation. Settings survive package replacement and removal. See [Ubuntu desktop](ubuntu.md) for the complete flow and installation log location.

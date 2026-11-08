@@ -7,6 +7,7 @@ from decimal import Decimal, InvalidOperation
 import json
 import math
 import os
+import sys
 from pathlib import Path
 import re
 from urllib.parse import urlsplit
@@ -194,7 +195,7 @@ class Settings:
     character_pause_ms: int = 0
     group_pause_ms: int = 450
     voice_gender: str = "Any"
-    speech_provider: str = "Windows"
+    speech_provider: str = "eSpeak NG" if sys.platform.startswith("linux") else "Windows"
     eleven_voice: str = ""
     frequency_unit: str = "kHz"
     announcement_order: str = "intro,frequency,callsign"
@@ -243,7 +244,7 @@ class Settings:
         for name, options in {"source_type": ("TCP/Telnet", "HTTPS JSON"),
                               "ptt_method": ("VOX", "RTS", "DTR", "RTS+DTR"),
                               "voice_mode": ("Speech", "WAV"),
-                              "speech_provider": ("Windows", "Piper", "Recorded", "ElevenLabs"),
+                              "speech_provider": ("Windows", "eSpeak NG", "Piper", "Recorded", "ElevenLabs"),
                               "frequency_unit": ("kHz", "MHz"),
                               "update_channel": ("Pilot", "Stable"),
                               "voice_gender": ("Any", "Male", "Female"),
@@ -301,8 +302,10 @@ class Settings:
             raise ValueError("Choose a receive audio input or turn off receive monitoring")
         if not self.radio_device:
             raise ValueError("Choose a radio audio device")
-        if self.ptt_method != "VOX" and not re.fullmatch(r"COM[1-9]\d{0,2}", self.serial_port, re.I):
-            raise ValueError("Choose a serial COM port for PTT")
+        if self.ptt_method != "VOX":
+            windows_port = re.fullmatch(r"COM[1-9]\d{0,2}", self.serial_port, re.I)
+            linux_port = sys.platform.startswith('linux') and re.fullmatch(r'/dev/(?:tty(?:USB|ACM|S)\d+|rfcomm\d+|serial/by-id/[A-Za-z0-9_.:+-]+)', self.serial_port)
+            if not (windows_port or linux_port): raise ValueError("Choose a serial port for PTT")
         if self.id_mode in ("CW", "Both", "Alternate", "Independent"):
             from .audio import validate_morse
             validate_morse(self.cw_text)
@@ -314,6 +317,8 @@ class Settings:
 
 
 def settings_path() -> Path:
+    if sys.platform.startswith('linux') and not os.environ.get('LOCALAPPDATA'):
+        return Path(os.environ.get('XDG_CONFIG_HOME', Path.home()/'.config')) / 'dxtalker/settings.json'
     return Path(os.environ.get("LOCALAPPDATA", Path.home() / ".local/share")) / "DXTalker" / "settings.json"
 
 
@@ -325,7 +330,9 @@ def load_settings(path: Path | None = None) -> Settings:
     if not isinstance(data, dict) or data.get("schema_version") != 1:
         raise ValueError("Unsupported settings version. Move settings.json aside to use defaults.")
     names = {f.name for f in fields(Settings)}
-    return Settings(**{k: v for k, v in data.items() if k in names}).validate()
+    values = {k: v for k, v in data.items() if k in names}
+    if sys.platform.startswith('linux') and values.get('speech_provider') == 'Windows': values['speech_provider'] = 'eSpeak NG'
+    return Settings(**values).validate()
 
 
 def save_settings(settings: Settings, path: Path | None = None):

@@ -9,14 +9,15 @@ REPOSITORY = 'Liberty-Chris/DX_Talker'
 ROLES = {
     'DXTalker-Setup-Windows-x64.exe': (0, 'Windows 10 and 11', '64 bit installer. Recommended for most PCs'),
     'DXTalker-Setup-Windows-x86.exe': (1, 'Windows 10 and 11', '32 bit installer. Not for XP'),
-    'DXTalker-Windows-x64.zip': (5, 'Windows 10 and 11', '64 bit portable ZIP. No installer'),
-    'DXTalker-Windows-x86.zip': (6, 'Windows 10 and 11', '32 bit portable ZIP. Not for XP'),
+    'DXTalker-Windows-x64.zip': (6, 'Windows 10 and 11', '64 bit portable ZIP. No installer'),
+    'DXTalker-Windows-x86.zip': (7, 'Windows 10 and 11', '32 bit portable ZIP. Not for XP'),
     'DXTalker-Setup-Windows-XP-32bit.exe': (2, 'Windows XP SP3', '32 bit application installer. XP acceptance testing'),
     'DXTalker-Setup-Windows-XP-64bit.exe': (3, 'Windows XP x64 SP2', '64 bit application installer. XP acceptance testing'),
-    'DXTalker-XP-source-test-kit.zip': (8, 'Developers only', 'Limited XP listener source. Not an installer or full application'),
-    'DXTalker-VoicePack-LJ-high.zip': (7, 'Optional voice pack', 'Recorded English LJ voice. ZIP'),
+    'DXTalker-XP-source-test-kit.zip': (9, 'Developers only', 'Limited XP listener source. Not an installer or full application'),
+    'DXTalker-VoicePack-LJ-high.zip': (8, 'Optional voice pack', 'Recorded English LJ voice. ZIP'),
     'DXTalker-Android.apk': (4, 'Android phones and tablets', 'Pilot APK for manual installation'),
-    'SHA256SUMS.txt': (9, 'Download verification', 'SHA256 checksums'),
+    'DXTalker-Ubuntu-amd64.deb': (5, 'Ubuntu 22.04 and 24.04', '64 bit Intel/AMD desktop installer. Not for Raspberry Pi'),
+    'SHA256SUMS.txt': (10, 'Download verification', 'SHA256 checksums'),
 }
 # Original modern releases were x64 only. Preserve their existing filenames.
 ROLES['DXTalker-Setup-Windows.exe'] = ROLES['DXTalker-Setup-Windows-x64.exe']

@@ -12,6 +12,8 @@ The first Windows pilot is now implemented in source. It includes cluster connec
 
 [Pilot downloads in version order](docs/releases/README.md).
 
+The Ubuntu desktop pilot is being packaged for Ubuntu 22.04 and 24.04 on Intel and AMD computers using the same desktop core. See [Ubuntu setup and verification limits](docs/help/ubuntu.md). Raspberry Pi needs a separate ARM build.
+
 ## The modern application
 
 The Windows application will connect to an internet DX source, read spots aloud and send audio to a radio through a USB interface. A compatible interface will also handle push to talk (PTT), so the application can key the radio for announcements.

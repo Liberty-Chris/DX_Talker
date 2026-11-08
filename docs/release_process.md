@@ -62,3 +62,7 @@ The Windows pilot workflow includes a reusable XP x86/x64 job. Publication depen
 Modern updater filenames stay unchanged. XP builds select only their separately named XP installer. The checksum file covers all prepared installers and ZIP files. Publication adds descriptive GitHub asset labels and a managed download table to the version specific notes. Release prose corrections retain that table and skip archived source versions that have never been published. Existing limited XP source kits remain labelled as developer material. New releases use the application installers instead.
 
 The Android publication dependency runs for an actual tagged or manually requested publication. Ordinary PR checks keep using the existing Android APK workflow, avoiding a duplicate Android emulator run for the same PR. This change retains the pilot debug APK signing/build process. It does not establish a production signing identity, guaranteed replacement of an APK signed with a different debug key, Play Store delivery or automatic mobile updates. Those are separate release preparations.
+
+## Ubuntu package publication
+
+Starting with a19, publication also requires the Ubuntu desktop build and installation matrix. The release receives DXTalker-Ubuntu-amd64.deb and a corresponding SHA256SUMS.txt entry, labelled for Intel/AMD Ubuntu 22.04 and 24.04. This is separate from ordinary Linux core test jobs and is not an ARM build. Ubuntu uses the shared verified update feed with its own installer selection. See [Ubuntu operator help](help/ubuntu.md).

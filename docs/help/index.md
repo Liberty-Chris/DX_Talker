@@ -13,3 +13,5 @@ Additional topics cover Listening and accessibility, History and updates and Clu
 [Listening filters and operating privileges](listening_filters.md)
 
 [Share a DX spot](spotting.md)
+
+[Ubuntu installation, speech, credentials and radio setup](ubuntu.md)

@@ -1,0 +1,56 @@
+name: Ubuntu desktop
+on:
+  workflow_call:
+    secrets:
+      DXTALKER_SPEECH_CONFIG:
+        required: false
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.12.10'
+      - run: sudo apt-get update && sudo apt-get install -y libportaudio2 espeak-ng libsecret-tools gnome-keyring dbus-x11 xvfb desktop-file-utils
+      - run: python -m pip install -r requirements-build.txt
+      - name: Configure the shared pilot speech endpoint
+        env:
+          DXTALKER_SPEECH_CONFIG: ${{ secrets.DXTALKER_SPEECH_CONFIG }}
+        run: python scripts/configure_speech_build.py
+      - name: Core checks with Linux UI
+        run: xvfb-run -a python -m unittest discover -s tests -v
+      - name: Build Ubuntu package with private runtime
+        run: python platforms/linux/build.py
+      - run: dpkg-deb --info dist/DXTalker-Ubuntu-amd64.deb
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: DXTalker-Ubuntu-amd64
+          path: dist/DXTalker-Ubuntu-amd64.deb
+          if-no-files-found: error
+  install:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: DXTalker-Ubuntu-amd64
+          path: dist
+      - run: sudo apt-get update && sudo apt-get install -y xvfb dbus-x11 gnome-keyring desktop-file-utils
+      - name: Install, launch, upgrade and remove without audio or PTT
+        run: bash platforms/linux/check_install.sh
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: Ubuntu-verification-${{ matrix.os }}
+          path: ubuntu-*-smoke.json

@@ -77,11 +77,11 @@ class SharedSpeech:
             messages={401:'Shared speech access has expired. Contact the pilot administrator for an updated build.',
                       403:('This ElevenLabs voice or model is no longer enabled for the pilot. Refresh the voice list.' if voice_denied else
                            'The speech website blocked access (HTTP 403). Contact the pilot administrator to check website security filtering.'),
-                      429:'Shared speech is busy or has reached its testing limit. Try later or choose Windows or Recorded speech.',
+                      429:'Shared speech is busy or has reached its testing limit. Try later or choose system or Recorded speech.',
                       503:'Shared speech has not been configured or is temporarily unavailable. Contact the pilot administrator.'}
-            raise ValueError(messages.get(exc.code,'The shared speech service could not generate audio. Try later or choose Windows or Recorded speech.')) from None
+            raise ValueError(messages.get(exc.code,'The shared speech service could not generate audio. Try later or choose system or Recorded speech.')) from None
         except (error.URLError,OSError,TimeoutError):
-            raise ValueError('Shared speech could not be reached securely or timed out. Check your connection or choose Windows or Recorded speech.') from None
+            raise ValueError('Shared speech could not be reached securely or timed out. Check your connection or choose system or Recorded speech.') from None
 
     def catalog(self,cancel):
         raw=self._request(cancel)

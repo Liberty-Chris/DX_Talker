@@ -50,3 +50,7 @@ These installers are for XP acceptance testing. Hosted verification does not est
 ## Android pilot download
 
 From a18, Android phones and tablets appears beside the Windows and XP downloads on the GitHub Release page. Download DXTalker-Android.apk and open it on the Android device to install the pilot. Android may ask permission to install an app from your browser or file manager. This is manual pilot distribution; Play Store installation and automatic mobile updates are not provided by this download change. Development APKs signed with different keys cannot replace one another directly. Export your profile collection before replacing an existing test installation.
+
+## Ubuntu installation
+
+Ubuntu desktop pilots use the Debian package and native offline speech. See [Ubuntu desktop](ubuntu.md) for installation, updates, system keyring and serial access. The Windows setup instructions above apply only to Windows.

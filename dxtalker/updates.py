@@ -8,6 +8,7 @@ import socket
 import ssl
 import sys
 import struct
+import platform
 import threading
 from urllib import request, error
 from urllib.parse import urlsplit
@@ -17,6 +18,8 @@ from . import __version__
 REPOSITORY = "Liberty-Chris/DX_Talker"
 API = f"https://api.github.com/repos/{REPOSITORY}/releases?per_page=30"
 INSTALLER = "DXTalker-Setup-Windows-" + ("x86" if struct.calcsize("P") == 4 else "x64") + ".exe"
+if sys.platform.startswith('linux'):
+    INSTALLER = 'DXTalker-Ubuntu-amd64.deb' if platform.machine().lower() in ('x86_64', 'amd64') else ''
 CHECKSUMS = "SHA256SUMS.txt"
 MAX_INSTALLER = 300 * 1024 * 1024
 
@@ -84,6 +87,8 @@ def update_ssl_context():
     if sys.platform == "win32":
         import truststore
         return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    if sys.platform.startswith('linux'):
+        return ssl.create_default_context(cafile='/etc/ssl/certs/ca-certificates.crt')
     return ssl.create_default_context()
 
 
@@ -134,7 +139,7 @@ def describe_error(exc):
         return f"Update service returned HTTP {exc.code}. Try again or open Release page."
     reason = exc.reason if isinstance(exc, error.URLError) else exc
     if isinstance(reason, ssl.SSLCertVerificationError):
-        return "The secure update connection could not be verified. Check the Windows clock and HTTPS filtering, or open Release page."
+        return "The secure update connection could not be verified. Check the system clock and HTTPS filtering, or open Release page."
     if isinstance(reason, socket.gaierror):
         return "The update service hostname could not be resolved. Check the internet connection or open Release page."
     if isinstance(reason, TimeoutError):

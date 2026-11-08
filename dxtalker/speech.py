@@ -10,6 +10,7 @@ import tempfile
 import time
 
 from .audio import Cancelled, Clip, WindowsSpeech, wav_clip
+from .linux_speech import EspeakSpeech
 
 
 def spot_plan(spot, settings):
@@ -120,8 +121,8 @@ class SpeechService:
                 if len(self.packs)>=4:self.packs.pop(next(iter(self.packs)))
                 self.packs[key]=VoicePack(Path(settings.voice_pack_root)/settings.voice_pack)
             return self.packs[key].render(plan,settings,cancel)
-        if settings.speech_provider == "Windows":
-            if self.windows is None:self.windows=WindowsSpeech()
+        if settings.speech_provider in ("Windows", "eSpeak NG"):
+            if self.windows is None:self.windows=EspeakSpeech() if settings.speech_provider == "eSpeak NG" else WindowsSpeech()
             clip=self.windows.render(plan_ssml(plan) if structured else plan[0][0],settings.voice,settings.speech_rate,cancel,settings.voice_gender,ssml=structured)
             self.resolved_voice=getattr(self.windows,'last_voice','')
             return clip
