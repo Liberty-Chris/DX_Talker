@@ -34,7 +34,11 @@ if sys.platform == 'win32' and not os.environ.get('LOCALAPPDATA'):
 import tkinter
 if not hasattr(tkinter.Variable, 'trace_add'):
     def trace_add(self, mode, callback):
-        name = self._register(callback)
-        self._tk.call('trace', 'add', 'variable', self._name, mode, (name,))
-        return name
+        modes = (mode,) if isinstance(mode, str) else tuple(mode)
+        names = {'read': 'r', 'write': 'w', 'unset': 'u'}
+        short = ''.join(names[item] for item in modes)
+        full = {'r': 'read', 'w': 'write', 'u': 'unset'}
+        def changed(name, index, operation):
+            return callback(name, index, full[operation])
+        return self.trace_variable(short, changed)
     tkinter.Variable.trace_add = trace_add
