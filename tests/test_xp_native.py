@@ -1,9 +1,11 @@
 """XP APIs are simulated here. No native audio endpoint or serial port is opened."""
 import ctypes as C
+import tempfile
 import threading
 import time
 import unittest
 from platforms.xp.support import winmm, serial, sapi
+from platforms.xp.support.pathlib import Path as XPPath
 from dxtalker.audio import Clip, Cancelled
 
 class MM:
@@ -53,6 +55,18 @@ class Kernel:
     def CloseHandle(self,handle): self.calls.append('close'); return 1
 
 class XPNativeTests(unittest.TestCase):
+    def test_path_string_normalization_and_atomic_file_replace(self):
+        path = XPPath(r'C:\Users\Operator\DXTalker')
+        self.assertEqual(path.replace('\\', '/'), 'C:/Users/Operator/DXTalker')
+        self.assertEqual(path.replace('Operator', 'Dad', 1), str(path).replace('Operator', 'Dad', 1))
+        with tempfile.TemporaryDirectory() as folder:
+            source = XPPath(folder) / 'pending.json'
+            destination = XPPath(folder) / 'settings.json'
+            source.write_text('synthetic settings', encoding='utf-8')
+            self.assertEqual(source.replace(destination), destination)
+            self.assertFalse(source.exists())
+            self.assertEqual(destination.read_text(encoding='utf-8'), 'synthetic settings')
+
     def tearDown(self): winmm._quarantined[:]=[]
     def test_pcm_completion_cancellation_deadline_and_cleanup(self):
         for scenario in ('complete','cancel','deadline'):

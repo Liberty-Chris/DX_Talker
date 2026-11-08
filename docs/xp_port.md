@@ -11,3 +11,5 @@ Installers must bundle a private runtime. They must not require an operator to i
 Build verification must execute the transformed code using the actual bundled interpreter, verify native binary architecture and required runtime libraries, exercise shared policy fixtures, test adapters with simulated hardware and verify install, shortcuts, launch, reinstall and removal. No automated test may key a radio or submit a public spot. Hosted modern Windows checks do not establish XP acceptance. Each XP architecture still requires a named physical machine or VM test before its runtime and hardware behavior can be claimed verified.
 
 The work is in progress. No complete XP installer or feature parity claim is made by this design record.
+
+The private x86 and x64 interpreters now stage successfully in hosted Windows checks. The first actual interpreter run exposed a Windows path normalization conflict in the compatibility layer. A regression fixture covers both internal string normalization and atomic settings replacement. Installer compilation and shared interpreter checks remain mandatory before any installer artifact is offered.

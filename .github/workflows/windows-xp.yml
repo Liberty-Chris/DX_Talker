@@ -22,6 +22,8 @@ jobs:
           python-version: '3.12'
       - name: Stage official private XP runtime and shared application
         run: python platforms/xp/prepare.py --architecture ${{ matrix.architecture }} --out build/xp-${{ matrix.architecture }}
+      - name: Compile native XP launcher and installer
+        run: python platforms/xp/build_installer.py --architecture ${{ matrix.architecture }} --stage build/xp-${{ matrix.architecture }}
       - name: Run shared behavioral checks with the bundled Python 3.4
         run: |
           $app = "$PWD/build/xp-${{ matrix.architecture }}"
@@ -40,3 +42,8 @@ jobs:
           path: |
             xp-*-smoke.json
             build/*-msi-image.log
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: Windows-XP-installer-${{ matrix.architecture }}
+          path: dist/DXTalker-Setup-Windows-XP-*.exe
+          if-no-files-found: error

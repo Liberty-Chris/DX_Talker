@@ -20,7 +20,7 @@ def run(destination):
         context = create_default_context()
         import ssl
         assert context.verify_mode == ssl.CERT_REQUIRED and context.check_hostname
-        report['verified_tls'] = True
+        report['tls_validation_enabled'] = True
         with WindowsSpeech() as speech:
             voices = speech.voices(threading.Event())
             assert voices

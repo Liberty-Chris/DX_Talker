@@ -74,7 +74,14 @@ class Path(str):
         try: os.unlink(self)
         except FileNotFoundError:
             if not missing_ok: raise
-    def replace(self, other): os.replace(self, str(other)); return type(self)(other)
+    def replace(self, *args, **kwargs):
+        # ntpath in Python 3.4 calls str.replace on path objects internally.
+        # Preserve that contract while supporting Path.replace(destination).
+        if len(args) != 1 or kwargs:
+            return str.replace(self, *args, **kwargs)
+        other = args[0]
+        os.replace(str(self), str(other))
+        return type(self)(other)
     def rename(self, other): os.rename(self, str(other)); return type(self)(other)
     def iterdir(self): return (self / name for name in os.listdir(self))
     def glob(self, pattern): return (type(self)(name) for name in glob.glob(os.path.join(glob.escape(str(self)),pattern)))
