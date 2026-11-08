@@ -8,7 +8,7 @@ Choose Preview sample speech to hear a portable callsign and decimal frequency w
 
 ## Optional neural voices
 
-Piper is an optional local neural speech provider. Windows speech remains available without installing it. DX Talker does not bundle a neural runtime or voice model and does not send text to a cloud service.
+Piper is an optional local neural speech provider. Windows speech remains available without installing it. DX Talker does not bundle a Piper runtime or voice model. Piper synthesis runs locally; ElevenLabs is the separate online option described below.
 
 Install a Piper CLI separately from the [Piper project](https://github.com/OHF-Voice/piper1-gpl/blob/main/docs/CLI.md). For example, in a separate Python environment install piper-tts and use its voice downloader to obtain an English voice. Select the resulting piper.exe and a local .onnx model using Browse. Keep the matching .onnx.json file beside that model. Review the runtime and voice licenses when selecting a model; they are separate from the DX Talker license.
 
@@ -18,15 +18,15 @@ Piper output must be mono PCM16 WAV. DX Talker normalizes its sample rate to 220
 
 ## Live local listening
 
-Choose your speakers or headphones as Local preview output in Audio / PTT. Connect a source, receive valid spots and choose Listen locally or press F8. The control changes to Listening with the appearance accent. Hovering or keyboard focusing it offers Stop listening in red. Click it again or press F8 again to stop local audio while the cluster remains connected and the live view continues receiving spots. Future eligible spots are announced locally using the same age, frequency, duplicate and spacing policies as radio announcements. Existing rows are not replayed. Local listening never constructs a serial PTT adapter or schedules station identification.
+Choose your speakers or headphones as Local preview output in Audio / PTT. Connect a source and choose Listen locally or press F8, including before the first spot arrives. The control changes to Listening with the appearance accent. Hovering or keyboard focusing it offers Stop listening in red. Click it again or press F8 again to stop local audio while the cluster remains connected and the live view continues receiving spots. Future eligible spots are announced locally using the same age, frequency, duplicate and spacing policies as radio announcements. Existing rows are not replayed. Local listening never constructs a serial PTT adapter or schedules station identification.
 
 Local listening and RF transmission are mutually exclusive. Disconnect, source failure, settings edits and Escape stop output. Neither mode resumes automatically after restart or reconnect. An output device shared with a VOX radio can still reach and key that radio; the app asks before using a shared device.
 
 ## Navigation and visibility
 
-F6 previews the selected spot while output is stopped. F8 toggles local listening. Escape stops all output. Alt+C focuses the Live spots command input. Ctrl+Tab and Ctrl+Shift+Tab move between pages. Tab and Shift+Tab move through controls. Enter sends a command from its input field.
+F6 previews the selected spot while output is stopped. F8 toggles local listening. Escape stops all output. Alt+C focuses a visible command input. At compact window heights, Cluster commands or Alt+C opens Source and scrolls to its command field. Ctrl+Tab and Ctrl+Shift+Tab move between pages. Tab and Shift+Tab move through controls. Enter sends a command from its input field.
 
-Choose High contrast in Appearance for white text on a dark background. Speech also contains Interface text size, from 10 to 18 points. Save to apply. Settings pages scroll vertically. At small window heights the Live spots activity panel is hidden to preserve table space. Enlarge the window to see it. Larger text can require a wider window.
+Choose High contrast in Appearance for white text on a dark background. Speech also contains Interface text size, from 10 to 18 points. Save to apply. Settings pages scroll vertically. At small window heights the header shrinks and the Live spots activity panel, filter summary and duplicate command bar are hidden to preserve table space. Cluster commands remains available above the table controls. Enlarge the window to see it. Larger text can require a wider window.
 
 These controls improve keyboard and listening access. Tkinter screen reader support varies. NVDA, Windows Narrator, keyboard focus order and enlarged text need acceptance testing with visually impaired operators before claiming complete assistive technology support.
 
@@ -118,3 +118,15 @@ Android uses permanent Listen, Clusters and Settings navigation. The audio contr
 Android Back returns through detail pages and then to Listen. Form drafts and the current page survive activity recreation and remain in memory until the activity is discarded. Save profile stores a profile without selecting or connecting it; Use this cluster selects it. Remove asks for confirmation. Existing QR collection and file imports are under Clusters, with reviewed complete collection import and credential exclusion preserved.
 
 Settings includes System, Light, Dark and High contrast appearance, local diagnostics and a visual announcement builder. Choose intro, callsign and frequency sections, move them up or down and optionally speak units. Save announcement applies to future speech and cancels pending speech without reconnecting. Test saved announcement uses Android system speech. Android engine and voice installation choices are available through Open speech settings. This mobile batch does not add paid online speech or radio transmission.
+
+## Preparation time and installed packs
+
+Windows speech now reuses one System.Speech process for consecutive announcements, removing repeated PowerShell and synthesizer startup. The first render can still take longer. Cancellation, failure and application shutdown close the process. The actual resolved Windows voice name appears after preview or playback, even when the Voice field is blank. A Male/Female preference is a selection hint, not a voice name or guarantee of identical voices on two computers.
+
+Recorded playback retains a bounded cache of verified WAV assets. It avoids both system synthesis and online requests at playback time. DX Talker discovers installed packs in its own voices folder, a selected custom folder and the bundled assets/voices folder. Advanced storage options reveal paths when needed. No new voice packs are bundled in this update; selected packs can be included in a later verified build.
+
+Generate ElevenLabs recorded voice chooses an application managed destination automatically. Refresh/choose an allowed voice, review the label and intro, then Generate. The status reports progress and Use this voice selects the finished pack. Save and apply, then preview. Advanced storage options are optional. Interrupted generation can resume using the same settings; completed packs are not overwritten. Generating a pack uses the shared service allowance. No key is requested from testers.
+
+Local Windows generation and recorded playback are useful for busy feeds. Online ElevenLabs includes service/network/provider latency and cannot guarantee contest rate throughput. See [Keeping up](listening_filters.md) for queue age, preparation timing, zero additional gap and catch up controls. Filtering reduces the number of announcements; no speech engine can speak an unlimited incoming feed in real time.
+
+Voice ID pause controls and independent CW/voice schedules are described under [Station identification](identification.md).

@@ -51,7 +51,17 @@
       "id": "cluster_customization",
       "title": "Cluster customization",
       "path": "cluster_customization.md"
+    },
+    {
+      "id": "listening_filters",
+      "title": "Listening filters and operating privileges",
+      "path": "listening_filters.md"
+    },
+    {
+      "id": "spotting",
+      "title": "Share a DX spot",
+      "path": "spotting.md"
     }
   ],
-  "version": "0.2.0a11"
+  "version": "0.2.0a12"
 }

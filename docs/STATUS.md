@@ -1,6 +1,6 @@
 # Project status
 
-Updated November 6, 2026.
+Updated November 7, 2026.
 
 ## Where things stand
 
@@ -195,3 +195,16 @@ Local verification: 153 Python tests pass without skips under a Linux dummy X di
 ### PR 23 Windows test cleanup followup
 
 A duplicate push run on b97a03d5b30f63dee6cb1d6a96b8cae313667823 failed while deleting a temporary diagnostic log, although the PR run passed. The UI test harness joined the output worker, cancelled the scheduled Tk shutdown callback and deleted the temporary folder before Diagnostics.close had released its Windows file handle. Tests now continue the normal shutdown event loop with a bounded timeout, verify worker/diagnostic completion and join the diagnostics watcher before removing fixtures. A regression forces deferred shutdown and verifies that the log can be renamed after completion. The local full suite passes 154 tests under a dummy X display without skips. Windows verification for this test harness correction is pending. Application and Android runtime code are unchanged by this followup.
+
+
+## 0.2.0a12 personal DX assistant
+
+Implemented in source: a staged desktop listening panel, mobile interest selectors and named presets; exact decimal FCC frequency/emission rules for five license classes and FCC operating regions; explicit unknown policy; independent reporting station/DX location filters using supplied metadata or operator known locations; matched desktop rows with optional All received and rejection explanations; version 3 collection transfer preserving these choices and presets while retaining v1/v2 imports.
+
+The corrected rule data separates legal frequency/emission authorizations from customary mode frequencies, handles the 2026 60m allocation/channel distinction and excludes the 220 to 222 MHz gap. Help includes the regulatory sources and location/bandwidth limitations. No automatic location lookup, foreign license rules, RF frequency control or permission to transmit is claimed.
+
+The Android main page dedicates flexible scrolling space to recent spots, reserves system insets and moves filters and spotting to separate pages. Both platforms offer reviewed frequency/callsign/comment submissions to the monitored TCP cluster only, with delivery distinct from acceptance, a ten second submission bound and no replay after session loss. Android now supports the curated directory schema with active/retired entries; the actual reviewed list is still awaiting Dad's entries.
+
+Radio/speech work adds a two second coordinator owned serial PTT test independent of source/ID/audio setup, receive fault reason codes and no placeholder level, separate CW and voice deadlines and operator inserted voice pauses. Runtime output errors use a dismissible notice. Dialog waits are classified separately from UI stalls in diagnostics. Windows speech reuses a bounded cancellable child process, Recorded retains a bounded verified asset cache, queue/preparation metrics expose delays and zero additional gap/catch up preserve feed connections. Generation storage is managed by default and user/bundled recorded packs are discovered together. No new voice assets were generated or bundled.
+
+Local verification: 176 Python tests pass with no skips under a Linux dummy X display. The Android app builds and its 20 JVM tests pass; the instrumentation APK compiles. Shared reviewed license cases and generated Kotlin table checks cover cross platform frequency rules. Desktop layouts were inspected locally. These are simulated/core checks, not new physical RF, live public spotting, paid provider, real Windows timing or phone accessibility acceptance. Windows packaged speech reuse and emulator layout/navigation checks are required in CI. Dad reports over 24 hours of stable operation after the prior update; his supplied 0.2.0a8 export is retained as evidence consistent with the already corrected completion path, not proof of a new current crash.

@@ -29,6 +29,7 @@ class SourceClient:
         settings.validate_connection()
         self.settings, self.secret = settings, session_secret
         self.ready = threading.Event()
+        self.signed_in = threading.Event()
         self.connected = threading.Event()
 
         def notify(kind, value):
@@ -38,6 +39,7 @@ class SourceClient:
                 self.ready.set()
             elif kind == "source_lost" or (kind == "source_state" and value == "Disconnected"):
                 self.ready.clear()
+                self.signed_in.clear()
                 self.connected.clear()
             emit(kind, value)
 
@@ -47,6 +49,7 @@ class SourceClient:
         self.commands = queue.Queue(maxsize=8)
         self.redaction_lock = threading.Lock()
         self.redactions = [session_secret] if session_secret else []
+        self.last_spot_sent = None
         self.sock = None
         self.socket_lock = threading.Lock()
         self.thread = threading.Thread(target=self._run, daemon=True, name="DX source")
@@ -56,11 +59,14 @@ class SourceClient:
 
     def stop(self):
         self.ready.clear()
+        self.signed_in.clear()
         self.cancel.set()
         self._close_socket()
 
     def _close_socket(self):
         self.connected.clear()
+        self.ready.clear()
+        self.signed_in.clear()
         with self.socket_lock:
             sock, self.sock = self.sock, None
         if sock:
@@ -82,6 +88,20 @@ class SourceClient:
             self.commands.put_nowait(text)
         except queue.Full:
             raise ValueError("Wait for the previous cluster command") from None
+
+    def submit_spot(self,text):
+        from .spotting import SpotCommand,command
+        if not (self.ready.is_set() or self.signed_in.is_set()) or not self.connected.is_set() or self.cancel.is_set() or self.settings.source_type!='TCP/Telnet':
+            raise ValueError('Sign in to the current TCP/Telnet cluster first')
+        parts=text.split(' ',3)
+        if len(parts)<3 or parts[0]!='DX' or command(parts[2],parts[1],comment=parts[3] if len(parts)>3 else '')!=text:
+            raise ValueError('Review a valid spot before submitting')
+        now=time.monotonic()
+        if self.last_spot_sent is not None and now-self.last_spot_sent<10:raise ValueError('Wait 10 seconds before submitting another spot')
+        try:self.commands.put_nowait(SpotCommand(text))
+        except queue.Full:raise ValueError('Wait for the previous cluster command') from None
+        self.last_spot_sent=now
+        with self.redaction_lock:self.redactions=(self.redactions+[text])[-128:]
 
     def _raw(self, line):
         # Console is session only. Scrub known credentials and all manual echoes.
@@ -172,7 +192,14 @@ class SourceClient:
         while not self.cancel.is_set():
             try:
                 while True:
-                    sock.sendall((self.commands.get_nowait() + "\r\n").encode("ascii"))
+                    item=self.commands.get_nowait()
+                    from .spotting import SpotCommand
+                    if isinstance(item,SpotCommand):
+                        if not (self.ready.is_set() or self.signed_in.is_set()):
+                            self.emit('spot_sent','Spot was not sent because cluster sign in was lost.');continue
+                        sock.sendall((item.command+'\r\n').encode('ascii'))
+                        self.emit('spot_sent','Spot command sent to the current cluster. Acceptance is unconfirmed; review its response in Source activity.')
+                    else:sock.sendall((item+'\r\n').encode('ascii'))
             except queue.Empty:
                 pass
             try:
@@ -236,6 +263,7 @@ class SourceClient:
                         r"\(?" + re.escape(s.login) + r"\)?\s+de\s+[A-Z0-9/\-]+\s+.*>\s*", line, re.I):
                     if not complete:
                         self._raw(line)
+                    self.signed_in.set()
                     self.emit("source_state", "Signed in to cluster. Waiting for the first valid DX spot.")
         # Do not carry manual responses across connection boundaries.
         while not self.commands.empty():

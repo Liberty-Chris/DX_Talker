@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0a12. Unreleased
+
+Add a single listening filter editor with saved presets, FCC license/emission eligibility, separate reporting/DX geography, explicit unknown handling and version 3 QR transfer. Make the Android spot list the main scrolling area above system navigation and move setup/spotting to separate pages. Add reviewed spotting to the current cluster only and curated directory browsing on Android.
+
+Add a bounded serial PTT test, independent CW/voice schedules and voice pause controls. Clarify receive input health versus quiet level, recover transient input overflow through a new quiet interval and use nonblocking runtime notices. Reuse the Windows speech process and verified recorded clips, expose queue/preparation timing, allow zero additional gap and add catch up controls. Simplify recorded voice generation and discover bundled/user packs without requiring path setup. No new recorded packs or reviewed cluster entries are supplied in this update.
+
 ## 0.2.0a11
 
 Android gains persistent navigation and audio controls, predictable Back behavior, draft restoration, appearance choices and a visual announcement builder. Shared band, mode and activity filters transfer through version 2 QR/files. TCP keepalive and quiet-feed messaging improve connection diagnosis without sending arbitrary cluster commands.

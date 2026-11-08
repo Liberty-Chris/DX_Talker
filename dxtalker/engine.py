@@ -37,6 +37,10 @@ class Engine:
         self.enabled = self.busy = False
         self.local_enabled = False
         self.next_id, self.next_spot, self.alternate = 0, 0, 0
+        self.next_voice_id = 0
+        self.pending_voice_clip = None
+        self.expired_spots = 0
+        self.preparation_seconds = 0
         self.worker = threading.Thread(target=self._run, daemon=True, name="DX transmission")
         self.worker.start()
 
@@ -45,6 +49,7 @@ class Engine:
             if self.enabled or self.local_enabled or self.busy:
                 raise ValueError("Stop output and wait for Idle before applying settings")
             self.settings = settings
+            self.pending_voice_clip = None
             self.items.clear()
             self.seen.clear()
 
@@ -62,12 +67,15 @@ class Engine:
             self.items.clear()
             self.seen.clear()
             self.enabled, self.next_id, self.next_spot, self.alternate = True, self.clock(), 0, 0
+            self.next_voice_id = self.clock()
+            self.pending_voice_clip = None
         self.emit("output", "RF enabled. Identification due before announcements.")
         self.wake.set()
 
     def stop(self, message="RF disabled. Output stopped."):
         with self.lock:
             self.enabled = self.local_enabled = False
+            self.pending_voice_clip = None
             self.cancel.set()
             self.items.clear()
         if not self.busy:
@@ -120,11 +128,15 @@ class Engine:
             if not self.enabled:
                 raise ValueError("Enable RF first or use a local ID preview")
             self.next_id = self.clock()
+            self.next_voice_id = self.clock()
         self.wake.set()
 
     def _select(self):
         with self.lock:
             now = self.clock()
+            fresh=deque((kind,value) for kind,value in self.items if kind!='spot' or (datetime.now(UTC)-value.timestamp).total_seconds()<=self.settings.max_age_seconds)
+            self.expired_spots += len(self.items)-len(fresh)
+            self.items.clear(); self.items.extend(fresh)
             if self.enabled and self.settings.receive_guard:
                 ready = self.monitor.ready()
                 if ready != self.gate_state:
@@ -134,7 +146,10 @@ class Engine:
                     return None
             if self.enabled and now >= self.next_id:
                 self.busy = True
-                return "id", None, self.settings
+                return ("id_cw" if self.settings.id_mode=="Independent" else "id"), None, self.settings
+            if self.enabled and self.settings.id_mode=="Independent" and now>=self.next_voice_id:
+                self.busy = True
+                return "id_voice", None, self.settings
             if self.items:
                 kind, value = self.items[0]
                 if kind == "spot" and (not (self.enabled or self.local_enabled) or now < self.next_spot):
@@ -143,7 +158,7 @@ class Engine:
                     return None
                 self.items.popleft()
                 self.busy = True
-                if kind.startswith("preview_") and isinstance(value, PreviewRequest):
+                if (kind.startswith("preview_") or kind=="ptt_test") and isinstance(value, PreviewRequest):
                     return kind, value.value, value.settings
                 return kind, value, self.settings
         return None
@@ -192,12 +207,14 @@ class Engine:
             raise Cancelled()
 
     def _transmit(self, clip, s, volume=None):
-        if clip.duration + (s.lead_ms + s.tail_ms) / 1000 > s.max_tx_seconds:
+        duration = clip.duration if clip is not None else 2
+        if duration + (s.lead_ms + s.tail_ms) / 1000 > s.max_tx_seconds:
             raise ValueError("Audio exceeds the configured maximum transmit duration. Shorten it or change the limit.")
         if self.cancel.is_set():
             raise Cancelled()
         # Resolve the exact audio device before keying, then resolve again at playback.
-        self.audio.resolve(s.radio_device, clip.channels)
+        if clip is not None:
+            self.audio.resolve(s.radio_device, clip.channels)
         if s.receive_guard and not self.monitor.ready():
             raise ChannelBusy()
         receive_cancel = ReceiveCancel(self.cancel, self.monitor) if s.receive_guard else None
@@ -232,7 +249,10 @@ class Engine:
             ptt.set(True)
             self.emit("activity", "Transmitting")
             if playback_cancel.wait(s.lead_ms / 1000): raise Cancelled()
-            self.audio.play(clip, s.radio_device, s.volume_percent if volume is None else volume, playback_cancel, deadline)
+            if clip is None:
+                if playback_cancel.wait(2): raise Cancelled()
+            else:
+                self.audio.play(clip, s.radio_device, s.volume_percent if volume is None else volume, playback_cancel, deadline)
             if playback_cancel.wait(s.tail_ms / 1000): raise Cancelled()
         except Cancelled:
             if receive_cancel and not self.cancel.is_set():
@@ -253,11 +273,20 @@ class Engine:
             self.wake.wait(0.1)
             self.wake.clear()
             kind, value = None, None
+            s = self.settings
             try:
                 task = self._select()
                 if task is None:
                     continue
                 kind, value, s = task
+                if kind=="ptt_test":
+                    self.emit('activity','PTT test. Waiting for channel clear' if s.receive_guard else 'PTT test')
+                    while s.receive_guard and not self.monitor.ready():
+                        if self.cancel.wait(.05):raise Cancelled()
+                    self._transmit(None,s)
+                    self.emit('journal','PTT test finished. RF remains disabled.')
+                    continue
+                preparation_started=time.monotonic()
                 self.emit("activity", "Preparing audio")
                 if kind == "spot":
                     if (datetime.now(UTC) - value.timestamp).total_seconds() > s.max_age_seconds:
@@ -269,10 +298,23 @@ class Engine:
                     clip = self._voice(s)
                 elif kind == "preview_cw":
                     clip = scale_clip(morse_clip(s.cw_text, s.cw_wpm, s.cw_hz), s.cw_volume_percent)
+                elif kind=='id_cw':
+                    clip = scale_clip(morse_clip(s.cw_text,s.cw_wpm,s.cw_hz),s.cw_volume_percent)
+                elif kind=='id_voice':
+                    clip = self.pending_voice_clip or self._voice(s)
                 else:
                     clip = self._id(s)
+                self.preparation_seconds=round(time.monotonic()-preparation_started,3)
+                if isinstance(getattr(self.speech,'resolved_voice',None),str) and self.speech.resolved_voice:
+                    self.emit('speech_voice',self.speech.resolved_voice)
+                self.emit('performance',dict(operation=kind,preparation_seconds=self.preparation_seconds,audio_seconds=round(clip.duration,3),provider=s.speech_provider))
                 if self.cancel.is_set():
                     raise Cancelled()
+                if kind=='spot':
+                    from .filtering import matches
+                    if not matches(value,self.settings):continue
+                if kind=='id_voice' and clip.duration+(s.lead_ms+s.tail_ms)/1000>=s.id_minutes*60:
+                    raise ValueError('Voice ID is longer than the CW interval. Shorten the message or increase the interval.')
                 if kind == "spot" and self.local_enabled:
                     if (datetime.now(UTC) - value.timestamp).total_seconds() > s.max_age_seconds:
                         continue
@@ -288,28 +330,42 @@ class Engine:
                     with self.lock:
                         if not self.enabled:
                             raise Cancelled()
+                        # Preserve prepared voice audio if a CW deadline needs priority.
+                        if kind=='id_voice' and self.clock()+clip.duration+(s.lead_ms+s.tail_ms)/1000>=self.next_id:
+                            self.pending_voice_clip=clip
+                            self.next_id=self.clock()
+                            continue
                         # Recheck expiry after synthesis and do not overrun the next ID.
                         if kind == "spot":
                             if (datetime.now(UTC) - value.timestamp).total_seconds() > s.max_age_seconds:
                                 continue
                             if clip.duration + (s.lead_ms + s.tail_ms) / 1000 >= s.id_minutes * 60:
                                 raise ValueError("Announcement is longer than the ID interval")
-                            if self.clock() + clip.duration + (s.lead_ms + s.tail_ms) / 1000 >= self.next_id:
+                            deadline=min(self.next_id,self.next_voice_id) if s.id_mode=="Independent" else self.next_id
+                            if self.clock() + clip.duration + (s.lead_ms + s.tail_ms) / 1000 >= deadline:
                                 self.items.appendleft((kind, value))
-                                self.next_id = self.clock()
+                                if s.id_mode=="Independent" and self.next_voice_id<self.next_id:
+                                    self.next_voice_id = self.clock()
+                                else:self.next_id = self.clock()
                                 continue
-                    self._transmit(clip, s, volume=100 if kind == "id" else s.volume_percent)
+                    self._transmit(clip, s, volume=100 if kind.startswith("id") else s.volume_percent)
                     if kind == "spot":
                         self.emit("announcement", {"dx_call": value.dx_call, "frequency_khz": str(value.frequency_khz), "route": "radio"})
                     with self.lock:
-                        if kind == "id":
+                        if kind == "id_voice":
+                            self.pending_voice_clip=None
+                            self.next_voice_id = self.clock() + s.voice_id_minutes * 60
+                        elif kind in ("id", "id_cw"):
                             self.next_id = self.clock() + s.id_minutes * 60
                             self.alternate += 1
                         else:
                             self.seen[value.key] = self.clock()
                             self.next_spot = self.clock() + s.spacing_seconds
             except ChannelBusy:
+                if kind=="ptt_test":
+                    self.emit("journal","PTT test interrupted by receive audio. PTT released; run the test again when clear.")
                 with self.lock:
+                    if self.enabled and kind=='id_voice':self.pending_voice_clip=clip
                     if self.enabled and kind == 'spot':
                         self.items.appendleft((kind, value))
                 self.emit('activity', 'RF waiting for receive audio to clear')
@@ -317,6 +373,8 @@ class Engine:
                 self.stop("Output cancelled. RF disabled.")
             except Exception as exc:
                 evidence = dict(error_type=type(exc).__name__, frames=Diagnostics.frames(exc.__traceback__))
+                if isinstance(exc, ValueError) and s.receive_guard:
+                    evidence['receive_code']=getattr(self.monitor,'fault_code',None)
                 if isinstance(exc, AudioPlaybackError):
                     evidence.update(code=exc.code, playback=exc.context, operation=kind,
                                     route='local' if kind.startswith('preview_') or self.local_enabled else 'radio')
@@ -333,3 +391,42 @@ class Engine:
                         self.monitor.close()
                 if kind is not None:
                     self.emit("activity", "Idle")
+
+        if hasattr(self.speech,'close'):
+            self.speech.close()
+
+    def test_ptt(self, settings=None):
+        import re
+        from dataclasses import replace
+        s=replace(settings or self.settings,lead_ms=0,tail_ms=0)
+        s.validate()
+        if s.ptt_method=='VOX':raise ValueError('VOX needs an audio test. Use a monitored radio ID test after setup.')
+        if not re.fullmatch(r'COM[1-9]\d{0,2}',s.serial_port,re.I):raise ValueError('Choose the serial COM port to test')
+        with self.lock:
+            if self.enabled or self.local_enabled or self.busy or self.items:raise ValueError('Stop output and wait for Idle before testing PTT')
+            self.monitor.close()
+            if s.receive_guard:self.monitor.start(s)
+            self.cancel.clear()
+            self.items.append(('ptt_test',PreviewRequest(None,s)))
+        self.wake.set()
+
+    def queue_status(self):
+        with self.lock:
+            spots=[v for k,v in self.items if k=='spot']
+            age=max(((datetime.now(UTC)-v.timestamp).total_seconds() for v in spots),default=0)
+            return len(spots),max(0,round(age)),self.expired_spots
+
+    def catch_up(self):
+        with self.lock:
+            retained=[(k,v) for k,v in self.items if k!='spot']
+            self.items.clear();self.items.extend(retained)
+        self.emit('journal','Pending spots cleared. Listening for new spots; current audio and IDs are preserved.')
+
+    def update_listening(self, settings):
+        from dataclasses import replace
+        from .listening import FIELDS
+        with self.lock:
+            self.settings=replace(self.settings,**{k:getattr(settings,k) for k in (*FIELDS,'listening_presets')})
+            retained=[(k,v) for k,v in self.items if k!='spot']
+            self.items.clear();self.items.extend(retained);self.seen.clear()
+        self.wake.set()

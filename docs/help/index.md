@@ -9,3 +9,7 @@ RF starts disabled. STOP ALL OUTPUT is always available at the top of the window
 This manual is bundled with the application and is available without internet access. Physical interface compatibility is established through bench testing. The pilot supports serial RTS and DTR and an operator selected VOX mode. CM108 HID and CAT remain future options.
 
 Additional topics cover Listening and accessibility, History and updates and Cluster customization.
+
+[Listening filters and operating privileges](listening_filters.md)
+
+[Share a DX spot](spotting.md)

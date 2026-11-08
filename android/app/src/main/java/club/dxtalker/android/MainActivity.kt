@@ -28,6 +28,8 @@ class MainActivity : Activity() {
     private lateinit var muteButton: Button
     private lateinit var pauseButton: Button
     private lateinit var spotsView: LinearLayout
+    private lateinit var queueLabel: TextView
+    private lateinit var spotResult: TextView
     private lateinit var root: LinearLayout
     private val prefs by lazy { getSharedPreferences("dx", MODE_PRIVATE) }
     private val uiHandler = android.os.Handler(android.os.Looper.getMainLooper())
@@ -144,10 +146,11 @@ class MainActivity : Activity() {
         heading.addView(label(if(page == "Listen") "DX Talker" else page, 24f).apply { setTypeface(null,Typeface.BOLD) })
         shell.addView(heading)
         root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16),dp(8),dp(16),dp(8)) }
-        shell.addView(ScrollView(this).apply { isFillViewport = true; addView(root) }, LinearLayout.LayoutParams(-1,0,1f))
-        when(page) { "Listen" -> homeContent(); "Clusters" -> profilesContent(); "Edit cluster" -> profileContent(); "Speech" -> speechContent(); "Filters" -> filterContent(); else -> settingsContent() }
+        if(page=="Listen")shell.addView(root,LinearLayout.LayoutParams(-1,0,1f))
+        else shell.addView(ScrollView(this).apply { isFillViewport = true; addView(root) }, LinearLayout.LayoutParams(-1,0,1f))
+        when(page) { "Listen" -> homeContent(); "Clusters" -> profilesContent(); "Edit cluster" -> profileContent(); "Speech" -> speechContent(); "Filters" -> filterContent(); "Spot" -> spotContent(); "Directory" -> directoryContent(); else -> settingsContent() }
         val player = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12),dp(4),dp(12),dp(4)); setBackgroundColor(surface) }
-        status = label("",13f,secondary).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
+        status = label("",13f,secondary).apply { maxLines=2;ellipsize=android.text.TextUtils.TruncateAt.END;accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         player.addView(status)
         val controls = LinearLayout(this)
         listenButton = button("Listen") { command(if(ListenerService.listeningActive) "stop" else "start") }
@@ -162,7 +165,7 @@ class MainActivity : Activity() {
             background=rounded(if(isSelected) { if(ink==Color.WHITE) Color.rgb(6,65,83) else Color.rgb(211,231,240) } else Color.TRANSPARENT,12f)
             contentDescription = if(isSelected) "$tab, selected" else tab
         },LinearLayout.LayoutParams(0,-2,1f))
-        shell.addView(nav); setContentView(shell)
+        shell.addView(nav); setContentView(shell);shell.requestApplyInsets()
         if(Build.VERSION.SDK_INT>=30) {
             val light=android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
             window.insetsController?.setSystemBarsAppearance(if(ink==Color.WHITE)0 else light,light)
@@ -173,14 +176,40 @@ class MainActivity : Activity() {
         refresh()
     }
     private fun homeContent() {
-        val cluster = section("Cluster")
-        cluster.addView(label(prefs.getString("profile_name", prefs.getString("host","w4mr.ddns.net")).orEmpty(),18f))
-        val row = LinearLayout(this)
-        row.addView(button("Change cluster") { go("Clusters",true) },LinearLayout.LayoutParams(0,-2,1f))
-        row.addView(button("Filters") { go("Filters") },LinearLayout.LayoutParams(0,-2,1f)); cluster.addView(row)
-        cluster.addView(label(SpotFilters.summary { key -> prefs.getString(key,"").orEmpty() },13f,secondary))
-        val live = section("Recent spots")
-        spotsView = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }; live.addView(spotsView)
+        val toolbar=LinearLayout(this).apply { gravity=Gravity.CENTER_VERTICAL }
+        toolbar.addView(button(prefs.getString("profile_name","Choose cluster").orEmpty()) { go("Clusters",true) }.apply { maxLines=1;ellipsize=android.text.TextUtils.TruncateAt.END;contentDescription="Change cluster" },LinearLayout.LayoutParams(0,-2,1f))
+        toolbar.addView(button("Filters") { go("Filters") },LinearLayout.LayoutParams(dp(84),-2))
+        toolbar.addView(button("Spot") { go("Spot") },LinearLayout.LayoutParams(dp(70),-2));root.addView(toolbar)
+        root.addView(label(SpotFilters.summary { key -> prefs.getString(key,"").orEmpty() },12f,secondary).apply { maxLines=2;ellipsize=android.text.TextUtils.TruncateAt.END })
+        val heading=LinearLayout(this).apply { gravity=Gravity.CENTER_VERTICAL }
+        heading.addView(label("Recent spots",16f).apply { setTypeface(null,Typeface.BOLD) },LinearLayout.LayoutParams(0,-2,1f))
+        heading.addView(button("Why hidden?") { val counts=synchronized(ListenerService.hidden){ListenerService.hidden.toMap()};AlertDialog.Builder(this).setTitle("Filtered reports").setMessage(if(counts.isEmpty())"No reports have been hidden in this session."else counts.entries.joinToString("\n"){it.key+": "+it.value}).setPositiveButton("Close",null).show() },LinearLayout.LayoutParams(dp(118),-2))
+        root.addView(heading)
+        spotsView=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(dp(8),0,dp(8),0);background=rounded(surface) }
+        root.addView(ScrollView(this).apply { isFillViewport=true;addView(spotsView) },LinearLayout.LayoutParams(-1,0,1f))
+        val queueRow=LinearLayout(this).apply { gravity=Gravity.CENTER_VERTICAL }
+        queueLabel=label("",12f,secondary);queueRow.addView(queueLabel,LinearLayout.LayoutParams(0,-2,1f))
+        queueRow.addView(button("Live now") { command("catch_up") }.apply { contentDescription="Clear pending spots and catch up to live" },LinearLayout.LayoutParams(dp(100),-2));root.addView(queueRow)
+    }
+    private fun spotContent() {
+        val panel=section("Share a DX spot")
+        val call=edit(panel,"Station callsign",ListenerService.activeCall.ifBlank { prefs.getString("call","").orEmpty() })
+        panel.addView(button("Use my callsign") { call.setText(ListenerService.activeCall) })
+        val frequency=edit(panel,"Frequency","").apply { inputType=InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL }
+        val unit=spinner(panel,"Units",listOf("kHz","MHz"),prefs.getString("frequency_unit","kHz").orEmpty())
+        val comment=edit(panel,"Comment (optional)","").apply { filters=arrayOf(android.text.InputFilter.LengthFilter(100)) }
+        spotResult=label(ListenerService.spotStatus,14f,secondary).apply { accessibilityLiveRegion=View.ACCESSIBILITY_LIVE_REGION_POLITE };panel.addView(spotResult)
+        panel.addView(label("Sends only to the TCP cluster you are monitoring. Cluster policy determines acceptance and propagation. A sent command is not confirmation of acceptance.",14f,secondary))
+        panel.addView(button("Review spot") {
+            try {
+                require(ListenerService.listeningActive && ListenerService.connected) { "Connect and sign in to a TCP cluster first" }
+                val text=SpotSubmission.command(call.text.toString(),frequency.text.toString(),unit.selectedItem.toString(),comment.text.toString())
+                val token=ListenerService.connectionToken
+                AlertDialog.Builder(this).setTitle("Send this spot?").setMessage(text).setNegativeButton("Cancel",null).setPositiveButton("Send to current cluster") { _,_ ->
+                    startService(Intent(this,ListenerService::class.java).setAction("submit_spot").putExtra("session",token).putExtra("call",call.text.toString()).putExtra("frequency",frequency.text.toString()).putExtra("unit",unit.selectedItem.toString()).putExtra("comment",comment.text.toString()))
+                }.show()
+            } catch(error:Exception) { spotResult.text=error.message ?: "Check the callsign and frequency" }
+        })
     }
     private fun refreshControls() {
         if(!::status.isInitialized)return
@@ -192,7 +221,9 @@ class MainActivity : Activity() {
     }
     private fun refresh() {
         refreshControls()
+        if(page=="Spot" && ::spotResult.isInitialized)spotResult.text=ListenerService.spotStatus
         if(page != "Listen" || !::spotsView.isInitialized)return
+        queueLabel.text="${ListenerService.queued} pending · oldest ${ListenerService.oldestSeconds}s · ${ListenerService.expired} expired"
         val items = synchronized(ListenerService.spots) { ListenerService.spots.toList() }
         if(spotsView.tag == items)return
         spotsView.tag = items; spotsView.removeAllViews()
@@ -212,6 +243,8 @@ class MainActivity : Activity() {
         tools.addView(button("Scan desktop QR collection") { scanQr() })
         if(qrCollection.scanned > 0) { tools.addView(label("${qrCollection.scanned} of ${qrCollection.total} QR pages collected",14f)); tools.addView(button("Reset scan") { qrCollection.reset(); render() }) }
         tools.addView(button("Import profile file") { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE),201) })
+        tools.addView(button("Browse recommended clusters") { go("Directory") })
+        tools.addView(button("Load cluster directory file") { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE),203) })
         tools.addView(button("Add cluster") { editProfile(null) })
         val entries = profiles()
         if(entries.length() == 0) root.addView(label("Add a cluster or scan your desktop collection to get started.",15f,secondary))
@@ -233,6 +266,27 @@ class MainActivity : Activity() {
                     }.show()
             },LinearLayout.LayoutParams(0,-2,1f)); row.addView(actions)
         }
+    }
+    private fun directoryContent() {
+        val panel=section("Recommended clusters")
+        panel.addView(label("Choose a reviewed node to save its connection details. Nothing connects automatically. Retired entries cannot be added. Remove saved profiles from Clusters.",14f,secondary))
+        try {
+            val raw=prefs.getString("cluster_directory",null) ?: assets.open("catalog/clusters.json").bufferedReader().use { it.readText() }
+            val entries=ClusterDirectory.read(raw)
+            if(entries.length()==0)panel.addView(label("No recommended entries are installed. Add a cluster yourself, import a profile collection or load a reviewed directory file.",14f,secondary))
+            for(i in 0 until entries.length()) {
+                val entry=entries.getJSONObject(i);val card=section(entry.getString("name"));val c=entry.getJSONObject("connection")
+                card.addView(label(entry.getString("description")+"\n"+entry.getString("status")+" · checked "+entry.getString("checked"),14f,secondary))
+                card.addView(button("Add to my clusters") {
+                    val current=profiles();val name=entry.getString("name")
+                    if((0 until current.length()).any { current.getJSONObject(it).optString("name")==name })Toast.makeText(this,"A profile with this name is already saved",Toast.LENGTH_LONG).show()
+                    else {
+                        current.put(JSONObject().put("name",name).put("host",c.getString("host")).put("port",c.getInt("port").toString()).put("call",c.getString("login").ifBlank { prefs.getString("call","").orEmpty() }).put("password","").put("source_type",c.getString("source_type")).put("feed_url",c.getString("feed_url")).put("poll_seconds",c.getInt("poll_seconds").toString()))
+                        prefs.edit().putString("profiles",current.toString()).apply();Toast.makeText(this,"Cluster saved. Choose it in Clusters when ready.",Toast.LENGTH_LONG).show()
+                    }
+                }.apply { isEnabled=entry.getString("status")=="active" })
+            }
+        }catch(_:Exception) { panel.addView(label("The directory could not be read. Load a valid reviewed directory file.",14f,secondary)) }
     }
     private fun editProfile(index: Int?) {
         if(editIndex != index) drafts.keys.filter { it.startsWith("Edit cluster:") }.toList().forEach { drafts.remove(it) }
@@ -287,7 +341,7 @@ class MainActivity : Activity() {
     }
     private fun settingsContent() {
         val sound = section("Make it sound right")
-        sound.addView(button("Voice and announcement") { go("Speech") }); sound.addView(button("Bands, modes and activities") { go("Filters") })
+        sound.addView(button("Voice and announcement") { go("Speech") }); sound.addView(button("What do you want to hear?") { go("Filters") })
         val appearance = section("Appearance")
         val picker = spinner(appearance,"Theme",listOf("System","Light","Dark","High contrast"),prefs.getString("appearance","System").orEmpty())
         appearance.addView(button("Apply appearance") { prefs.edit().putString("appearance",picker.selectedItem.toString()).apply(); recreate() })
@@ -332,33 +386,68 @@ class MainActivity : Activity() {
     private fun chooseFilter(key: String,title: String,values: List<String>) {
         val selected = (drafts["Filters:$key"] ?: prefs.getString(key,"").orEmpty()).split(',').toSet()
         val checks = BooleanArray(values.size) { values[it] in selected }
-        AlertDialog.Builder(this).setTitle(title).setMultiChoiceItems(values.toTypedArray(),checks) { _,index,checked -> checks[index]=checked }
+        AlertDialog.Builder(this).setTitle(title).setMultiChoiceItems(values.map { if(it=="General")"No activity tag"else if(it=="Unknown")"Unknown / not supplied"else it }.toTypedArray(),checks) { _,index,checked -> checks[index]=checked }
             .setNeutralButton("All") { _,_ -> drafts["Filters:$key"]=""; render() }.setNegativeButton("Cancel",null)
-            .setPositiveButton("Use selection") { _,_ -> drafts["Filters:$key"]=values.filterIndexed { i,_ -> checks[i] }.joinToString(","); render() }.show()
+            .setPositiveButton("Use selection") { _,_ -> if(checks.none { it })Toast.makeText(this,"Select an option or choose All",Toast.LENGTH_SHORT).show()else{drafts["Filters:$key"]=values.filterIndexed { i,_ -> checks[i] }.joinToString(","); render()} }.show()
     }
     private fun filterContent() {
-        val panel = section("Only hear what interests you")
-        for((key,title,values) in listOf(Triple("filter_bands","Bands",SpotFilters.bands.keys.toList()+"Other"),Triple("filter_modes","Modes",SpotFilters.modes),Triple("filter_activities","Activities",SpotFilters.activities))) {
-            panel.addView(button(title+": "+(drafts["Filters:$key"] ?: prefs.getString(key,"").orEmpty()).ifBlank { "All" }) { chooseFilter(key,title,values) })
-        }
-        panel.addView(button("How matching works") {
-            AlertDialog.Builder(this).setTitle("Spot matching").setMessage("Modes and activities are independent. Unknown means the spot did not identify a single mode. General means no recognized activity tag. Empty selections accept all. Band ranges describe filters, not transmitting permissions. Untagged activations cannot be identified reliably.").setPositiveButton("Got it",null).show()
+        val panel = section("What do you want to hear?")
+        fun staged(key:String)=drafts["Filters:$key"] ?: prefs.getString(key,ListeningSettings.defaults[key] ?: "").orEmpty()
+        panel.addView(label(SpotFilters.summary { staged(it) },14f,secondary))
+        val saved=section("Listening presets").apply { visibility=if(drafts["Filters:presets_open"]=="true")View.VISIBLE else View.GONE }
+        panel.addView(button("Listening presets") { drafts["Filters:presets_open"]=(drafts["Filters:presets_open"]!="true").toString();render() })
+        val presets=runCatching { JSONObject(prefs.getString("listening_presets","{}").orEmpty()) }.getOrDefault(JSONObject())
+        val preset=spinner(saved,"Saved listening preset",listOf("Choose preset")+presets.keys().asSequence().toList(),"Choose preset")
+        saved.addView(button("Load preset") {
+            presets.optJSONObject(preset.selectedItem.toString())?.let { values ->
+                for((key,default) in ListeningSettings.defaults)drafts["Filters:$key"]=values.opt(key)?.toString() ?: default
+                render()
+            }
         })
-        val units = spinner(panel,"Frequency units",listOf("kHz","MHz"),prefs.getString("frequency_unit","kHz").orEmpty())
-        panel.addView(button("Timing and frequency limits") { drafts["Filters:advanced"] = (!(drafts["Filters:advanced"]?.toBoolean() ?: false)).toString();render() })
-        val advanced = section("Timing and frequency limits").apply { visibility=if(drafts["Filters:advanced"]?.toBoolean()==true) View.VISIBLE else View.GONE }
-        val specs = listOf(Triple("min_khz","Minimum frequency (kHz)","1"),Triple("max_khz","Maximum frequency (kHz)","10000000"),Triple("max_age_seconds","Maximum spot age (seconds)","180"),Triple("repeat_seconds","Repeat suppression (seconds)","300"),Triple("spacing_seconds","Gap between announcements (seconds)","5"))
-        val fields = specs.associate { (key,title,default) -> key to edit(advanced,title,prefs.getString(key,default).orEmpty(),key=key).apply { inputType=InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL } }
-        panel.addView(button("Save filters") {
+        saved.addView(button("Save current choices as preset") {
+            val name=EditText(this).apply { setSingleLine();hint="For example Portable POTA" }
+            AlertDialog.Builder(this).setTitle("Name this listening preset").setView(name).setNegativeButton("Cancel",null).setPositiveButton("Save") { _,_ ->
+                try {
+                    val title=name.text.toString().trim();require(title.isNotBlank() && title.length<=60 && title.none { it.code<32 })
+                    val values=ListeningSettings.json { staged(it) };ListeningSettings.validate(values)
+                    presets.put(title,values);require(presets.length()<=30)
+                    prefs.edit().putString("listening_presets",presets.toString()).apply();render()
+                } catch(_:Exception) { Toast.makeText(this,"Check the name and current filter choices",Toast.LENGTH_LONG).show() }
+            }.show()
+        })
+        saved.addView(button("Remove selected preset") { presets.remove(preset.selectedItem.toString());prefs.edit().putString("listening_presets",presets.toString()).apply();render() })
+        for((key,title,values) in listOf(Triple("filter_bands","Bands",SpotFilters.bands.keys.toList()+"Other"),Triple("filter_modes","Modes",SpotFilters.modes),Triple("filter_activities","Activities",SpotFilters.activities))) {
+            panel.addView(button(title+": "+staged(key).replace("General","No activity tag").ifBlank { "All" }) { chooseFilter(key,title,values) })
+        }
+        panel.addView(label("Choose POTA, 20m and SSB to require all three. Selecting several bands accepts any of those bands. Mode and activity tags must be present in the spot.",14f,secondary))
+        val license=section("My operating privileges (optional)")
+        spinner(license,"FCC license class",UsPrivileges.classes,staged("license_class")).apply {
+            onItemSelectedListener=object:AdapterView.OnItemSelectedListener { override fun onNothingSelected(p:AdapterView<*>?){};override fun onItemSelected(p:AdapterView<*>?,v:View?,position:Int,id:Long){drafts["Filters:license_class"]=UsPrivileges.classes[position]} }
+        }
+        spinner(license,"Operating region",UsPrivileges.regions,staged("license_region")).apply {
+            onItemSelectedListener=object:AdapterView.OnItemSelectedListener { override fun onNothingSelected(p:AdapterView<*>?){};override fun onItemSelected(p:AdapterView<*>?,v:View?,position:Int,id:Long){drafts["Filters:license_region"]=UsPrivileges.regions[position]} }
+        }
+        license.addView(CheckBox(this).apply { text="Include unverified license eligibility";setTextColor(ink);isChecked=staged("license_unknown")=="true";setOnCheckedChangeListener { _,checked -> drafts["Filters:license_unknown"]=checked.toString() } })
+        panel.addView(button("Location, timing and frequency limits") { drafts["Filters:advanced"] = (!(drafts["Filters:advanced"]?.toBoolean() ?: false)).toString();render() })
+        val advanced=section("Location and advanced filters").apply { visibility=if(drafts["Filters:advanced"]?.toBoolean()==true)View.VISIBLE else View.GONE }
+        for((key,title) in listOf("filter_spotter_countries" to "Reporting station countries (US,CA)","filter_spotter_continents" to "Reporting station continents (NA,EU)","filter_spotter_regions" to "Reporting station regions (NC,SC,GA)","filter_dx_countries" to "DX station countries (US,JP)","filter_dx_continents" to "DX station continents (NA,EU)","location_overrides" to "Known station locations (CALL=US,NA,NC)"))edit(advanced,title,staged(key),key=key)
+        advanced.addView(CheckBox(this).apply { text="Include unknown locations";setTextColor(ink);isChecked=staged("geography_unknown")=="true";setOnCheckedChangeListener { _,checked->drafts["Filters:geography_unknown"]=checked.toString() } })
+        advanced.addView(label("Location requires feed metadata or your known station list. Callsigns alone do not establish current locations. Separate known stations with a semicolon. Leave location fields blank to accept all.",14f,secondary))
+        val units=spinner(advanced,"Frequency units",listOf("kHz","MHz"),staged("frequency_unit"))
+        for((key,title) in listOf("min_khz" to "Minimum frequency (kHz)","max_khz" to "Maximum frequency (kHz)","max_age_seconds" to "Maximum spot age (30 to 600 seconds)","repeat_seconds" to "Repeat suppression (30 to 3600 seconds)","spacing_seconds" to "Additional gap (0 to 120 seconds)"))edit(advanced,title,staged(key),key=key).apply { inputType=InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL }
+        root.addView(button("Save filters") {
             try {
-                val low=fields.getValue("min_khz").text.toString().toDouble(); val high=fields.getValue("max_khz").text.toString().toDouble()
-                require(low.isFinite() && high.isFinite() && low>=1 && high>=low && high<=10000000)
-                require(fields.getValue("max_age_seconds").text.toString().toInt() in 30..600 && fields.getValue("repeat_seconds").text.toString().toInt() in 30..3600 && fields.getValue("spacing_seconds").text.toString().toInt() in 1..120)
-                val editor = prefs.edit(); for((key,field) in fields)editor.putString(key,field.text.toString())
-                for(key in listOf("filter_bands","filter_modes","filter_activities"))editor.putString(key,drafts["Filters:$key"] ?: prefs.getString(key,"").orEmpty())
-                editor.putString("frequency_unit",units.selectedItem.toString()).apply(); if(ListenerService.listeningActive)command("apply")
+                drafts["Filters:frequency_unit"]=units.selectedItem.toString()
+                val values=ListeningSettings.json { staged(it) };ListeningSettings.validate(values)
+                val editor=prefs.edit();for(key in ListeningSettings.defaults.keys)editor.putString(key,values.get(key).toString());editor.apply()
+                if(ListenerService.listeningActive)command("apply")
                 Toast.makeText(this,"Filters applied. The cluster connection stays open.",Toast.LENGTH_SHORT).show()
-            } catch(_:Exception) { Toast.makeText(this,"Check frequency limits and timing ranges: age 30 to 600, repeats 30 to 3600 and gap 1 to 120 seconds.",Toast.LENGTH_LONG).show() }
+                go("Listen",true)
+            }catch(_:Exception) { Toast.makeText(this,"Check locations, frequency limits and timing ranges. See Help for examples.",Toast.LENGTH_LONG).show() }
+        })
+        root.addView(button("Filter help and FCC sources") {
+            AlertDialog.Builder(this).setTitle("Listening filters").setMessage("Unknown mode means no single mode was supplied. No activity tag means no POTA, SOTA or FOTA tag was recognized. License filtering checks reported frequency and mode, not occupied bandwidth, split frequency or every location and station condition. It does not grant permission to transmit. Sources and current limitations are in the maintained Help page.")
+                .setPositiveButton("Open Help") { _,_->startActivity(Intent(Intent.ACTION_VIEW,android.net.Uri.parse("https://github.com/Liberty-Chris/DX_Talker/blob/main/docs/help/listening_filters.md"))) }.setNegativeButton("Close",null).show()
         })
     }
     private fun reviewImport(text: String) {
@@ -413,14 +502,18 @@ class MainActivity : Activity() {
                 dir.listFiles()?.filter{it.name.startsWith("events.jsonl")&&it.length()<=1024*1024}?.forEach{file->zip.putNextEntry(java.util.zip.ZipEntry(file.name));file.inputStream().use{it.copyTo(zip)};zip.closeEntry()}
             }}}catch(_:Exception){Toast.makeText(this,"Could not export diagnostics",Toast.LENGTH_LONG).show()};return
         }
-        if (requestCode == 201 && resultCode == RESULT_OK) {
+        if (requestCode in listOf(201,203) && resultCode == RESULT_OK) {
             try {
                 val uri = data?.data ?: return
                 contentResolver.openInputStream(uri)?.use { input ->
                     val output = java.io.ByteArrayOutputStream()
                     val buffer = ByteArray(4096)
                     while (true) { val n=input.read(buffer); if(n<0) break; output.write(buffer,0,n); require(output.size()<=65536) }
-                    reviewImport(output.toString("UTF-8"))
+                    val text=output.toString("UTF-8")
+                    if(requestCode==203) {
+                        val entries=ClusterDirectory.read(text)
+                        AlertDialog.Builder(this).setTitle("Load cluster directory?").setMessage("${entries.length()} reviewed entries. This replaces the directory only. Saved profiles and filters stay as they are.").setNegativeButton("Cancel",null).setPositiveButton("Load") { _,_->prefs.edit().putString("cluster_directory",text).apply();go("Directory") }.show()
+                    }else reviewImport(text)
                 }
             } catch (_: Exception) { Toast.makeText(this,"Cannot read transfer file (maximum 64 KiB)",Toast.LENGTH_LONG).show() }
         }

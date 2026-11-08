@@ -37,9 +37,31 @@ def choices(value, allowed):
     return set(values)
 
 
-def matches(spot, settings):
+def rejection(spot, settings):
     bands = choices(settings.filter_bands, (*BANDS, 'Other'))
     modes = choices(settings.filter_modes, MODES)
     activities = choices(settings.filter_activities, ACTIVITIES)
-    band = next((name for name, (low, high) in BANDS.items() if low <= spot.frequency_khz <= high), 'Other')
-    return (not bands or band in bands) and (not modes or mode_of(spot.comment, spot.mode) in modes) and (not activities or bool(activities & activities_of(spot.comment)))
+    band = next((name for name, (low, high) in BANDS.items() if low <= spot.frequency_khz < high), 'Other')
+    if not settings.min_khz <= spot.frequency_khz <= settings.max_khz:return 'Frequency range'
+    if bands and band not in bands:return 'Band'
+    mode=mode_of(spot.comment, spot.mode)
+    if modes and mode not in modes:return 'Mode unknown' if mode=='Unknown' else 'Mode'
+    if activities and not activities & activities_of(spot.comment):return 'Activity tag'
+    from .privileges import eligibility
+    eligible=eligibility(spot.frequency_khz,mode,settings.license_class,settings.license_region)
+    if eligible=='outside':return 'Outside selected license segments'
+    if eligible=='unknown' and not settings.license_unknown:return 'License eligibility unverified'
+    from .geography import rejection as location_rejection
+    return location_rejection(spot,settings)
+
+
+def matches(spot,settings):return not rejection(spot,settings)
+
+
+def summary(settings):
+    parts=[settings.license_class+' class'] if settings.license_class!='Off' else []
+    for key,default in (('filter_bands','All bands'),('filter_modes','All modes'),('filter_activities','All activities')):
+        parts.append(getattr(settings,key).replace('General','No activity tag') or default)
+    for key,title in (('filter_spotter_countries','Reported from'),('filter_spotter_continents','Reporting continents'),('filter_spotter_regions','Reporting regions'),('filter_dx_countries','DX countries'),('filter_dx_continents','DX continents')):
+        if getattr(settings,key):parts.append(title+': '+getattr(settings,key))
+    return ' · '.join(parts)

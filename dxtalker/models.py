@@ -36,6 +36,11 @@ class Spot:
     source: str
     comment: str = ""
     mode: str = ""
+    dx_country: str = ""
+    dx_continent: str = ""
+    spotter_country: str = ""
+    spotter_continent: str = ""
+    spotter_region: str = ""
 
     @property
     def key(self) -> tuple:
@@ -78,7 +83,7 @@ class Spot:
 
 
 def make_spot(dx: str, freq: str, spotter: str, stamp: datetime,
-              source: str, now: datetime, comment: str = "", mode: str = "") -> Spot:
+              source: str, now: datetime, comment: str = "", mode: str = "", **location) -> Spot:
     dx, spotter = dx.upper(), spotter.upper()
     if not valid_call(dx) or not valid_call(spotter):
         raise ValueError("Invalid callsign")
@@ -91,7 +96,8 @@ def make_spot(dx: str, freq: str, spotter: str, stamp: datetime,
     if stamp > now + timedelta(minutes=2):
         raise ValueError("Timestamp is in the future")
     from .filtering import clean_comment
-    return Spot(dx, value, spotter, stamp, now, source, clean_comment(comment), clean_comment(mode))
+    from .geography import clean_location
+    return Spot(dx, value, spotter, stamp, now, source, clean_comment(comment), clean_comment(mode), **clean_location(location))
 
 
 def parse_line(line: str, source: str, now: datetime | None = None) -> Spot | None:
@@ -124,7 +130,8 @@ def parse_json_feed(payload: bytes, source: str, now: datetime | None = None) ->
             if not isinstance(item, dict):
                 continue
             result.append(make_spot(str(item["dx_call"]), str(item["frequency_khz"]), str(item["spotter"]),
-                                    datetime.fromisoformat(str(item["time"]).replace("Z", "+00:00")), source, now, item.get("comment", ""), item.get("mode", "")))
+                                    datetime.fromisoformat(str(item["time"]).replace("Z", "+00:00")), source, now, item.get("comment", ""), item.get("mode", ""),
+                                    **{k:item.get(k, '') for k in ('dx_country','dx_continent','spotter_country','spotter_continent','spotter_region')}))
         except (KeyError, ValueError, InvalidOperation, TypeError, OverflowError):
             continue
     return result
@@ -160,12 +167,24 @@ class Settings:
     cw_hz: int = 700
     id_mode: str = "CW"
     id_minutes: int = 10
+    voice_id_minutes: int = 30
     max_age_seconds: int = 180
     repeat_seconds: int = 300
     spacing_seconds: int = 5
     filter_bands: str = ""
     filter_modes: str = ""
     filter_activities: str = ""
+    license_class: str = "Off"
+    license_region: str = "US Region 2"
+    license_unknown: bool = False
+    filter_dx_countries: str = ""
+    filter_dx_continents: str = ""
+    filter_spotter_countries: str = ""
+    filter_spotter_continents: str = ""
+    filter_spotter_regions: str = ""
+    geography_unknown: bool = False
+    location_overrides: str = ""
+    listening_presets: str = "{}"
     min_khz: float = 1.0
     max_khz: float = 10000000.0
     volume_percent: int = 70
@@ -207,13 +226,13 @@ class Settings:
                 if type(default) is float and type(value) in (float, int):
                     continue
                 raise ValueError(f"Invalid value for {f.name}")
-            if isinstance(value, str) and (len(value) > 2048 or any(ord(c) < 32 for c in value)):
+            if isinstance(value, str) and (len(value) > (32768 if f.name=="listening_presets" else 8192 if f.name=="location_overrides" else 2048) or any(ord(c) < 32 for c in value)):
                 raise ValueError(f"Invalid text in {f.name}")
         bounds = {"port": (1, 65535), "poll_seconds": (15, 3600), "lead_ms": (0, 5000),
                   "tail_ms": (0, 5000), "max_tx_seconds": (5, 120), "speech_rate": (-10, 10),
-                  "cw_wpm": (5, 50), "cw_hz": (300, 1500), "id_minutes": (1, 30),
+                  "cw_wpm": (5, 50), "cw_hz": (300, 1500), "id_minutes": (1, 30), "voice_id_minutes": (1, 120),
                   "max_age_seconds": (30, 600), "repeat_seconds": (30, 3600),
-                  "spacing_seconds": (1, 120), "volume_percent": (0, 100),
+                  "spacing_seconds": (0, 120), "volume_percent": (0, 100),
                   "cw_volume_percent": (0, 100), "voice_id_volume_percent": (0, 100),
                   "local_volume_percent": (0, 100), "character_pause_ms": (0, 1000),
                   "group_pause_ms": (0, 3000), "display_limit": (50, 5000),
@@ -228,7 +247,7 @@ class Settings:
                               "frequency_unit": ("kHz", "MHz"),
                               "update_channel": ("Pilot", "Stable"),
                               "voice_gender": ("Any", "Male", "Female"),
-                              "id_mode": ("CW", "Voice", "Alternate", "Both")}.items():
+                              "id_mode": ("CW", "Voice", "Alternate", "Both", "Independent")}.items():
             if getattr(self, name) not in options:
                 raise ValueError(f"Choose a valid {name.replace('_', ' ')}")
         if not all(math.isfinite(v) for v in (self.min_khz, self.max_khz)) or not 1 <= self.min_khz <= self.max_khz <= 10000000:
@@ -237,6 +256,12 @@ class Settings:
         choices(self.filter_bands, (*BANDS, "Other"))
         choices(self.filter_modes, MODES)
         choices(self.filter_activities, ACTIVITIES)
+        from .privileges import validate_license
+        from .geography import validate_geography
+        validate_license(self)
+        validate_geography(self)
+        from .listening import validate_presets
+        validate_presets(self.listening_presets)
         self.validate_format()
         if self.log_directory and not Path(self.log_directory).is_absolute():
             raise ValueError("Choose an absolute history folder path")
@@ -278,10 +303,10 @@ class Settings:
             raise ValueError("Choose a radio audio device")
         if self.ptt_method != "VOX" and not re.fullmatch(r"COM[1-9]\d{0,2}", self.serial_port, re.I):
             raise ValueError("Choose a serial COM port for PTT")
-        if self.id_mode in ("CW", "Both", "Alternate"):
+        if self.id_mode in ("CW", "Both", "Alternate", "Independent"):
             from .audio import validate_morse
             validate_morse(self.cw_text)
-        if self.id_mode in ("Voice", "Both", "Alternate"):
+        if self.id_mode in ("Voice", "Both", "Alternate", "Independent"):
             if self.voice_mode == "Speech" and not self.voice_text.strip():
                 raise ValueError("Enter voice ID text")
             if self.voice_mode == "WAV" and not Path(self.voice_wav).is_file():

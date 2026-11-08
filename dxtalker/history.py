@@ -37,6 +37,8 @@ class History:
         values = asdict(spot)
         values.pop("comment", None)
         values.pop("mode", None)
+        from .geography import LOCATION_FIELDS
+        for key in LOCATION_FIELDS:values.pop(key,None)
         for key in ("frequency_khz", "timestamp", "received"):
             values[key] = str(values[key])
         self.record("spot", profile=profile, **values)

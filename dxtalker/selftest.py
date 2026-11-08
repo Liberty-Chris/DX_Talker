@@ -31,12 +31,21 @@ def run(report_path):
         voices = speech.voices(threading.Event())
         clip = speech.render("DX Talker. Kilo Foxtrot four Delta Bravo Xray.", "", 0, threading.Event())
         assert clip.duration > 0
+        process_id=speech.process.pid
+        again=speech.render('Second render. Same speech process.', '', 0, threading.Event())
+        assert again.duration>0 and speech.process.pid==process_id
+        report['persistent_windows_speech']=True
+        report['resolved_windows_voice']=speech.last_voice
+        speech.close()
+        assert speech.process is None
         secret = protect_secret("synthetic-test-secret")
         assert "synthetic-test-secret" not in secret
         assert protect_secret(secret, decrypt=True) == "synthetic-test-secret"
         now = datetime.now(UTC)
         spot = parse_line(f"DX de N0CALL: 14025.5 WB4IUY/P {now:%H%M}Z", "test", now)
-        paced = SpeechService().render_spot(spot, Settings(character_pause_ms=50, group_pause_ms=450), threading.Event())
+        service=SpeechService()
+        try:paced = service.render_spot(spot, Settings(character_pause_ms=50, group_pause_ms=450), threading.Event())
+        finally:service.close()
         assert paced.duration > 0
         report["ssml_speech_seconds"] = paced.duration
         report["protected_secret_roundtrip"] = True
@@ -76,6 +85,16 @@ def run(report_path):
                         assert control.winfo_ismapped()
                         assert control.winfo_rooty() + control.winfo_height() <= root.winfo_rooty() + root.winfo_height()
                         assert control.winfo_rootx() + control.winfo_width() <= root.winfo_rootx() + root.winfo_width()
+                app.notebook.select(0);root.update()
+                assert app.tree.winfo_height()>=90
+                assert app.catch_up_button.winfo_rooty()+app.catch_up_button.winfo_height()<=app.tabs['Live spots'].winfo_rooty()+app.tabs['Live spots'].winfo_height()
+                assert app.compact_commands_button.winfo_ismapped()
+                app._focus_command(source=True);root.update()
+                assert app.command_buttons[1].winfo_ismapped()
+                source_canvas=next(c for f,c in app.scroll_tabs if f is app.tabs['Source'])
+                command_button=app.command_buttons[1]
+                assert source_canvas.winfo_rooty()<=command_button.winfo_rooty()
+                assert command_button.winfo_rooty()+command_button.winfo_height()<=source_canvas.winfo_rooty()+source_canvas.winfo_height()
                 report["small_window_controls"] = True
                 root.geometry(normal_geometry)
                 app.notebook.select(0)

@@ -52,6 +52,7 @@ class Application:
         self.source_generation = 0
         self.source_ready = False
         self.spots = {}
+        self.spot_reasons = {}
         self.log_lines = 0
         self.closing = False
         self.initializing = True
@@ -90,12 +91,16 @@ class Application:
         self.engine = Engine(self.settings, self.emit)
         self.engine.source_available = lambda: self.source is not None and self.source.connected.is_set()
         self.variables = {}
+        for f in fields(Settings):
+            value=getattr(self.settings,f.name)
+            self.variables[f.name]=tk.BooleanVar(value=value) if type(value) is bool else tk.StringVar(value=str(value))
         self.combos = {}
         self.field_widgets = {}
         self.theme = tk.StringVar(value=load_appearance())
         brand = resource_root() / "assets/brand"
         self.logos = {name: tk.PhotoImage(file=str(brand / f"logo-{'light' if name == 'Light' else 'dark'}.png")).subsample(2)
                       for name in PALETTES}
+        self.compact_logos={name:logo.subsample(2) for name,logo in self.logos.items()}
         self.icon = tk.PhotoImage(file=str(brand / "icon.png"))
         root.iconphoto(True, self.icon)
         if sys.platform == "win32":
@@ -111,7 +116,7 @@ class Application:
         self.root.bind("<Escape>", lambda event: self._stop())
         self.root.bind("<F6>", lambda event: self.guard(self._preview_spot)())
         self.root.bind("<F8>", lambda event: self.guard(self._listen)())
-        self.root.bind("<Alt-c>", lambda event: self.command_entries[0].focus_set())
+        self.root.bind("<Alt-c>", lambda event: self._focus_command())
         self.notebook.enable_traversal()
         self.root.bind("<Configure>", self._responsive_layout, add="+")
         root.after_idle(self._responsive_layout)
@@ -170,7 +175,7 @@ class Application:
 
     def _paint_widgets(self):
         p = PALETTES[self.theme.get()]
-        self.brand_label.configure(image=self.logos[self.theme.get()])
+        self.brand_label.configure(image=(self.compact_logos if getattr(self,"compact_mode",False) else self.logos)[self.theme.get()])
         self.accent_line.configure(background=p["accent"])
         for text in (self.log, self.help_text, self.raw_console, self.release_notes):
             text.configure(background=p["panel"], foreground=p["ink"], insertbackground=p["ink"],
@@ -232,6 +237,10 @@ class Application:
             card.grid(row=0, column=column, sticky="nsew", padx=(0 if column == 0 else 4, 0))
             ttk.Label(card, text=title, style="Eyebrow.TLabel", padding=(14, 0)).pack(anchor="w")
             ttk.Label(card, textvariable=variable, style="Status.TLabel", wraplength=280).pack(anchor="w")
+        self.error_notice=tk.StringVar()
+        self.error_frame=ttk.Frame(self.root,padding=(18,6))
+        ttk.Label(self.error_frame,textvariable=self.error_notice,wraplength=850).pack(side='left')
+        ttk.Button(self.error_frame,text='Dismiss',command=self.error_frame.pack_forget).pack(side='right')
         notebook = ttk.Notebook(self.root)
         self.notebook = notebook
         notebook.pack(fill="both", expand=True, padx=18, pady=(0, 8))
@@ -293,7 +302,7 @@ class Application:
     def _callback_exception(self, exc_type, exc_value, tb):
         self.diagnostics.exception('ui_exception', exc_type, tb)
         self.engine.stop('An interface error stopped output. See diagnostic logs.')
-        messagebox.showerror('DX Talker', 'An unexpected interface error occurred. Output stopped. Export diagnostic logs from History / Updates.')
+        self._show_notice('An unexpected interface error stopped output. Export diagnostic logs from History / Updates.')
 
     def _export_diagnostics(self):
         path = filedialog.asksaveasfilename(title='Export diagnostic report', defaultextension='.zip', filetypes=[('ZIP report', '*.zip')])
@@ -325,7 +334,7 @@ class Application:
             widget = ttk.Combobox(parent, textvariable=var, values=choices, state="readonly", width=45)
             self.combos[name] = widget
         elif type(value) is int:
-            limits = {"port": (1, 65535), "poll_seconds": (15, 3600), "lead_ms": (0, 5000), "tail_ms": (0, 5000), "max_tx_seconds": (5, 120), "cw_wpm": (5, 50), "cw_hz": (300, 1500), "id_minutes": (1, 30), "speech_rate": (-10, 10), "character_pause_ms": (0, 1000), "group_pause_ms": (0, 3000),
+            limits = {"port": (1, 65535), "poll_seconds": (15, 3600), "lead_ms": (0, 5000), "tail_ms": (0, 5000), "max_tx_seconds": (5, 120), "cw_wpm": (5, 50), "cw_hz": (300, 1500), "id_minutes": (1, 30), "voice_id_minutes": (1,120), "speech_rate": (-10, 10), "character_pause_ms": (0, 1000), "group_pause_ms": (0, 3000),
                       "volume_percent": (0, 100), "cw_volume_percent": (0, 100), "voice_id_volume_percent": (0, 100),
                       "local_volume_percent": (0, 100), "text_size": (10, 18), "receive_threshold_db": (-60, -5), "receive_quiet_seconds": (5, 10)}
             low, high = limits.get(name, (0, 10000000))
@@ -342,6 +351,47 @@ class Application:
         elif note:
             ttk.Label(parent, text=note, wraplength=260).grid(row=row, column=2, padx=12, sticky="w")
         var.trace_add("write", self._setting_changed)
+
+    def _show_notice(self,text):
+        self.error_notice.set(text)
+        self.error_frame.pack(fill='x',before=self.notebook)
+
+    def _open_filters(self):
+        from .filter_ui import open_filters
+        open_filters(self)
+
+    def _apply_listening(self,settings):
+        from .listening import FIELDS
+        updated=replace(self.settings,**{key:getattr(settings,key) for key in (*FIELDS,'listening_presets')}).validate()
+        save_settings(updated)
+        self.settings=updated
+        self.engine.update_listening(updated)
+        self.initializing=True
+        try:
+            for key in (*FIELDS,'listening_presets'):self.variables[key].set(getattr(updated,key))
+        finally:self.initializing=False
+        self._refresh_filtered_view()
+        self._journal('Listening filters applied. Source connection preserved.')
+
+    def _refresh_filtered_view(self):
+        from .filtering import rejection
+        for item,spot in reversed(list(self.spots.items())):
+            reason=rejection(spot,self.settings);self.spot_reasons[item]=reason
+            if self.show_all.get() or not reason:self.tree.move(item,'','end')
+            else:self.tree.detach(item)
+
+    def _why_hidden(self):
+        from collections import Counter
+        from .filtering import rejection
+        counts=Counter(rejection(v,self.settings) or 'Matching' for v in self.spots.values())
+        window=tk.Toplevel(self.root);window.title('Why spots are hidden');window.transient(self.root)
+        ttk.Label(window,text='Counts describe the retained reports, before age and repeat suppression.',wraplength=500).pack(padx=16,pady=12)
+        for reason,count in counts.most_common():ttk.Label(window,text=f'{reason}: {count}').pack(anchor='w',padx=16,pady=4)
+        ttk.Button(window,text='Close',command=window.destroy).pack(pady=12)
+
+    def _spot_dialog(self,myself=False):
+        from .spotting import open_spot_dialog
+        open_spot_dialog(self,myself)
 
     def _setting_changed(self, *args):
         if not self.initializing and (self.engine.enabled or self.engine.local_enabled):
@@ -374,7 +424,16 @@ class Application:
                        self._state_control(toolbar, "rf") if action == self._enable else
                        ttk.Button(toolbar, text=text, command=self.guard(action)))
             control.grid(row=index // 4, column=index % 4, sticky="ew", padx=(0, 6), pady=(0, 6))
-        self.live_hint = ttk.Label(frame, text="Spots appear here before RF is enabled. Select one to preview it locally.")
+        filters=ttk.Frame(toolbar)
+        filters.grid(row=2,column=0,columnspan=4,sticky='w')
+        ttk.Button(filters,text='What do you want to hear?',command=self._open_filters).pack(side='left',padx=(0,8))
+        ttk.Button(filters,text='Spot a station',command=lambda:self._spot_dialog(False)).pack(side='left',padx=(0,8))
+        ttk.Button(filters,text='Spot myself',command=lambda:self._spot_dialog(True)).pack(side='left')
+        self.filter_summary=tk.StringVar()
+        self.show_all=tk.BooleanVar(value=False)
+        ttk.Checkbutton(filters,text='All received',variable=self.show_all,command=self._refresh_filtered_view).pack(side='left',padx=8)
+        ttk.Button(filters,text='Why hidden?',command=self._why_hidden).pack(side='left')
+        self.live_hint = ttk.Label(frame, textvariable=self.filter_summary, text="Spots appear here before RF is enabled. Select one to preview it locally.")
         self.live_hint.grid(row=2, column=0, sticky="w", pady=(0, 8))
         columns = ("time", "dx", "frequency", "spotter", "source")
         table = ttk.Frame(frame)
@@ -387,12 +446,17 @@ class Application:
         self.tree.configure(yscrollcommand=scroll.set)
         scroll.pack(side="right", fill="y")
         self.tree.pack(side="left", fill="both", expand=True)
-        self._command_bar(frame, 4)
+        self.queue_summary=tk.StringVar()
+        queue_row=ttk.Frame(frame);queue_row.grid(row=4,column=0,sticky='ew')
+        ttk.Label(queue_row,textvariable=self.queue_summary).pack(side='left')
+        self.catch_up_button=ttk.Button(queue_row,text='Catch up to live',command=self.engine.catch_up);self.catch_up_button.pack(side='right')
+        self.compact_commands_button=ttk.Button(queue_row,text='Cluster commands',command=lambda:self._focus_command(source=True))
+        self.live_command_bar=self._command_bar(frame, 5)
         # The activity journal contains application events, never raw cluster text.
         self.activity_label = ttk.Label(frame, text="Activity")
-        self.activity_label.grid(row=5, column=0, sticky="w", pady=(8, 4))
+        self.activity_label.grid(row=6, column=0, sticky="w", pady=(8, 4))
         self.log = tk.Text(frame, height=3, wrap="word", state="disabled", font=("Consolas", 9), relief="flat")
-        self.log.grid(row=6, column=0, sticky="ew")
+        self.log.grid(row=7, column=0, sticky="ew")
 
     def _profile_qr(self):
         from .sharing_ui import show_profile_qr
@@ -535,6 +599,7 @@ class Application:
         self._field(self.serial_ptt_fields, 1, "Active high", "active_high", note="Unchecked means active low", compact=True)
         self.ptt_hint = tk.StringVar()
         ttk.Label(ptt, textvariable=self.ptt_hint, wraplength=610).grid(row=2, column=0, columnspan=3, sticky="w", pady=(8, 0))
+        ttk.Button(ptt,text='Test PTT for 2 seconds',command=self.guard(self._test_ptt)).grid(row=3,column=0,columnspan=2,sticky='w',pady=8)
         timing = ttk.LabelFrame(frame, text="Transmit timing", padding=12)
         timing.grid(row=2, column=0, sticky="w", pady=(0, 12))
         self._field(timing, 0, "Lead time (ms)", "lead_ms", note="0 to 5000 ms", compact=True)
@@ -562,6 +627,14 @@ class Application:
         self.variables["ptt_method"].trace_add("write", lambda *args: self._ptt_method_changed())
         self._ptt_method_changed()
 
+    def _test_ptt(self):
+        keys=('ptt_method','serial_port','active_high','receive_guard','receive_device','receive_threshold_db','receive_quiet_seconds','max_tx_seconds')
+        values={}
+        for key in keys:
+            try:values[key]=type(getattr(Settings(),key))(self.variables[key].get())
+            except (ValueError,tk.TclError):raise ValueError('Check '+key.replace('_',' ')) from None
+        self.engine.test_ptt(replace(self.settings,**values))
+
     def _test_receive(self):
         if self.engine.enabled or self.engine.local_enabled or self.engine.busy:
             raise ValueError('Stop output before testing the receive input')
@@ -574,19 +647,23 @@ class Application:
             self.engine.monitor.start(settings)
 
     def _receive_meter(self):
-        state, level, remaining = self.engine.monitor.snapshot()
-        descriptions = {'off': 'Receive monitor off', 'fault': 'Receive input fault. RF cannot transmit.',
-                        'starting': 'Waiting for receive input', 'busy': 'Receiving audio. RF waiting.',
-                        'waiting': f'Quiet delay. {remaining:.1f} seconds remaining.', 'clear': 'Receive input quiet. RF permitted.'}
-        self.receive_status.set(descriptions[state] + (f' Level {level:.0f} dBFS' if state != 'off' else ''))
-        self.receive_test_button.configure(state='disabled' if self.engine.enabled or self.engine.local_enabled or self.engine.busy else 'normal',
-                                           text='Stop receive test' if state != 'off' else 'Test receive input')
+        monitor=self.engine.monitor
+        state,level,remaining=monitor.snapshot()
+        descriptions={'off':'Receive monitor off','fault':'Input unavailable. '+monitor.fault_message(),
+                      'starting':'Waiting for the first input samples','busy':'Audio above threshold. RF waiting.',
+                      'waiting':f'Quiet delay. {remaining:.1f} seconds remaining.','clear':'Channel clear.'}
+        measured=f' Measured {level:.0f} dBFS.' if state not in ('off','starting','fault') and level is not None else ' No current measurement.' if state!='off' else ''
+        self.receive_status.set(descriptions[state]+measured)
+        if state=='fault' and getattr(self,'last_receive_fault',None)!=monitor.fault_code:
+            self.diagnostics.record('receive_input_fault',code=monitor.fault_code)
+        self.last_receive_fault=monitor.fault_code if state=='fault' else None
+        self.receive_test_button.configure(state='disabled' if self.engine.enabled or self.engine.local_enabled or self.engine.busy else 'normal',text='Stop receive test' if state!='off' else 'Test receive input')
 
     def _ptt_method_changed(self):
         vox = self.variables["ptt_method"].get() == "VOX"
         self.serial_ptt_fields.grid_remove() if vox else self.serial_ptt_fields.grid()
         self.ptt_hint.set("VOX needs a radio or interface already set up for VOX; the app sends audio without controlling a PTT line." if vox else
-                          "Select a compatible serial interface and its polarity. CM108 HID and CAT are not supported in this pilot.")
+                          "RTS/DTR control lines do not send CAT commands. No baud setting is needed for this method. Choose the compatible interface and polarity.")
 
     def _id_tab(self):
         frame = self.tabs["Identification"]
@@ -607,6 +684,15 @@ class Application:
         self.voice_id_speech_fields.columnconfigure(0, minsize=120)
         self._field(self.voice_id_speech_fields, 0, "ID text", "voice_text", compact=True)
         self.field_widgets["voice_text"].configure(width=38)
+        pause_controls=ttk.Frame(self.voice_id_speech_fields);pause_controls.grid(row=1,column=0,columnspan=3,sticky='w',pady=6)
+        ttk.Label(pause_controls,text='Pause (seconds)').pack(side='left',padx=(0,8))
+        pause_seconds=tk.IntVar(value=1)
+        ttk.Spinbox(pause_controls,from_=1,to=10,width=4,textvariable=pause_seconds).pack(side='left')
+        def insert_pause():
+            seconds=pause_seconds.get()
+            if not 1<=seconds<=10:raise ValueError('Choose a pause from one to ten seconds')
+            entry=self.field_widgets['voice_text'];entry.insert(tk.INSERT,f' [pause {seconds}s] ');entry.focus_set()
+        ttk.Button(pause_controls,text='Insert pause',command=self.guard(insert_pause)).pack(side='left',padx=8)
         self.voice_id_wav_fields = ttk.Frame(voice)
         self.voice_id_wav_fields.grid(row=2, column=0, columnspan=3, sticky="w")
         self.voice_id_wav_fields.columnconfigure(0, minsize=120)
@@ -619,9 +705,15 @@ class Application:
         self._voice_id_source_changed()
         schedule = ttk.LabelFrame(frame, text="ID schedule", padding=12)
         schedule.grid(row=2, column=0, sticky="w", pady=(0, 12))
-        self._field(schedule, 0, "Policy", "id_mode", ["CW", "Voice", "Alternate", "Both"], compact=True)
+        self._field(schedule, 0, "Policy", "id_mode", ["CW", "Voice", "Alternate", "Both", "Independent"], compact=True)
         self._field(schedule, 1, "Interval (minutes)", "id_minutes", note="1 to 30 minutes", compact=True)
-        ttk.Label(frame, text="RF starts with an ID. IDs take priority over spots. Both sends CW followed by voice.\nFor Both, a recorded voice ID must be mono 22050 Hz PCM16.",
+        self._field(schedule,2,'Voice interval (minutes)','voice_id_minutes',note='Independent policy only. 1 to 120 minutes.',compact=True)
+        self.independent_id_widgets=list(schedule.grid_slaves(row=2))
+        def id_policy_changed(*args):
+            for widget in self.independent_id_widgets:
+                widget.grid() if self.variables['id_mode'].get()=='Independent' else widget.grid_remove()
+        self.variables['id_mode'].trace_add('write',id_policy_changed);id_policy_changed()
+        ttk.Label(frame, text="Independent gives CW and voice separate schedules. Audio never overlaps.\nRF starts with an ID. IDs take priority over spots. Both sends CW followed by voice.\nFor Both, a recorded voice ID must be mono 22050 Hz PCM16.",
                   wraplength=650).grid(row=3, column=0, sticky="w")
 
     def _voice_id_source_changed(self):
@@ -640,20 +732,13 @@ class Application:
             self.field_widgets[name].configure(width=14)
         ttk.Label(frequency, text="Filter limits use kHz, including when speech and display use MHz.",
                   wraplength=550).grid(row=2, column=0, columnspan=2, sticky="w", pady=(8, 0))
-        from .filtering import BANDS, MODES, ACTIVITIES
-        for row, (key, title, values) in enumerate((
-                ('filter_bands', 'Bands', [*BANDS, 'Other']),
-                ('filter_modes', 'Modes', MODES),
-                ('filter_activities', 'Activities', ACTIVITIES)), start=3):
-            self.variables[key] = tk.StringVar(value=getattr(self.settings, key))
-            ttk.Button(frequency, text="Choose " + title.lower(), command=lambda k=key, t=title, v=values: self._spot_filter_picker(k, t, v)).grid(row=row, column=0, sticky="w", pady=3)
-            ttk.Label(frequency, textvariable=self.variables[key], wraplength=400).grid(row=row, column=1, sticky="w")
-        ttk.Label(frequency, text="An empty selection accepts all. Unknown mode remains selectable. Filters affect announcements; Live spots retains received reports.", wraplength=550).grid(row=6, column=0, columnspan=2, sticky="w", pady=6)
+        ttk.Button(frequency,text='What do you want to hear?',command=self._open_filters).grid(row=3,column=0,columnspan=2,sticky='w',pady=8)
+        ttk.Label(frequency,text='Bands, modes, activities, license class and location in one listening panel.',wraplength=550).grid(row=4,column=0,columnspan=2,sticky='w')
         timing = ttk.LabelFrame(frame, text="Timing and repeats", padding=12)
         timing.grid(row=2, column=0, sticky="w", pady=(0, 12))
         self._field(timing, 0, "Maximum spot age (s)", "max_age_seconds", note="30 to 600 seconds", compact=True)
         self._field(timing, 1, "Repeat suppression (s)", "repeat_seconds", note="30 to 3600 seconds", compact=True)
-        self._field(timing, 2, "Gap between spots (s)", "spacing_seconds", note="1 to 120 seconds", compact=True)
+        self._field(timing, 2, "Gap between spots (s)", "spacing_seconds", note="0 to 120 seconds. Zero adds no pause.", compact=True)
         supervision = ttk.LabelFrame(frame, text="RF supervision", padding=12)
         supervision.grid(row=3, column=0, sticky="w", pady=(0, 12))
         self.variables["supervised_ack"] = tk.BooleanVar(value=self.settings.supervised_ack)
@@ -870,12 +955,25 @@ class Application:
             values[2] = spot.frequency_text(self.settings.frequency_unit)
             self.tree.item(item, values=values)
 
+    def _focus_command(self,source=False):
+        if not source and self.command_entries[0].winfo_ismapped():
+            self.notebook.select(0);self.command_entries[0].focus_set();return
+        self.notebook.select(1)
+        def focus():
+            next(canvas for frame,canvas in self.scroll_tabs if frame is self.tabs['Source']).yview_moveto(1)
+            self.command_entries[1].focus_set()
+        self.root.after_idle(focus)
+
     def _responsive_layout(self, event=None):
         if event is not None and event.widget is not self.root:
             return
         compact = self.root.winfo_height() < 720
-        for widget in (self.log, self.activity_label, self.live_hint):
+        self.compact_mode=compact
+        self.brand_label.configure(image=(self.compact_logos if compact else self.logos)[self.theme.get()])
+        for widget in (self.log, self.activity_label, self.live_hint,self.live_command_bar):
             widget.grid_remove() if compact else widget.grid()
+        if compact:self.compact_commands_button.pack(side='right',padx=8)
+        else:self.compact_commands_button.pack_forget()
 
     def _command_bar(self, frame, row):
         bar = ttk.LabelFrame(frame, text="Manual response or cluster command", padding=8)
@@ -888,6 +986,7 @@ class Application:
         send = ttk.Button(bar, text="Send", command=self.guard(self._send))
         send.grid(row=0, column=1, padx=(8, 0))
         self.command_buttons.append(send)
+        return bar
 
     def _set_secret_visible(self, visible):
         self.secret_visible = visible
@@ -933,15 +1032,17 @@ class Application:
         self.raw_console.configure(state="disabled")
 
     def _clear_spots(self):
-        for row in self.tree.get_children():
+        for row in list(self.spots):
             self.tree.delete(row)
         self.spots.clear()
+        self.spot_reasons.clear()
 
     def _trim_spots(self):
-        rows = self.tree.get_children()
-        for row in rows[self.settings.display_limit:]:
+        rows = list(self.spots)
+        for row in rows[:-self.settings.display_limit]:
             self.tree.delete(row)
             self.spots.pop(row, None)
+            self.spot_reasons.pop(row,None)
 
     def _refresh_profiles(self):
         names = sorted((p["name"] for p in self.profile_store.profiles), key=str.casefold) if self.profile_store else []
@@ -1048,6 +1149,8 @@ class Application:
         self.windows_speech_fields = ttk.LabelFrame(frame, text="Windows voice", padding=12)
         self.windows_speech_fields.grid(row=2, column=0, sticky="w", pady=(0, 12))
         self._field(self.windows_speech_fields, 0, "Voice", "voice", [""], compact=True)
+        self.resolved_voice=tk.StringVar(value="Preview to identify the actual Windows voice.")
+        ttk.Label(self.windows_speech_fields,textvariable=self.resolved_voice,wraplength=610).grid(row=2,column=0,columnspan=3,sticky="w",pady=8)
         self._field(self.windows_speech_fields, 1, "Gender preference", "voice_gender", ["Any", "Male", "Female"],
                     note="Used when Voice is blank. Installed voices determine availability.", compact=True)
         self.piper_speech_fields = ttk.LabelFrame(frame, text="Piper voice", padding=12)
@@ -1069,8 +1172,12 @@ class Application:
         self.pack_display = tk.StringVar()
         self.pack_ids = {}
         self.field_widgets['voice_pack'].configure(width=36, textvariable=self.pack_display)
-        self.combos['voice_pack'].bind('<<ComboboxSelected>>', lambda event: self.variables['voice_pack'].set(self.pack_ids[self.pack_display.get()]))
+        self.combos['voice_pack'].bind('<<ComboboxSelected>>', self._choose_recorded_pack)
         ttk.Label(self.recorded_speech_fields,text='Local pre-generated WAVs. No inference at playback. Custom intro words must exist in the chosen pack.',wraplength=600).grid(row=2,column=0,columnspan=3,pady=8)
+        self.pack_storage_widgets=list(self.recorded_speech_fields.grid_slaves(row=0))
+        for widget in self.pack_storage_widgets:widget.grid_remove()
+        self.pack_storage_visible=tk.BooleanVar(value=False)
+        ttk.Checkbutton(self.recorded_speech_fields,text='Advanced storage options',variable=self.pack_storage_visible,command=lambda:[w.grid() if self.pack_storage_visible.get() else w.grid_remove() for w in self.pack_storage_widgets]).grid(row=3,column=0,columnspan=3,sticky='w')
         self._refresh_voice_packs()
         ttk.Button(frame, text='Generate ElevenLabs recorded voice', command=self._elevenlabs_dialog).grid(row=5,column=0,sticky='w',pady=(0,12))
         self.eleven_speech_fields = ttk.LabelFrame(frame, text='ElevenLabs shared pilot voice', padding=12)
@@ -1119,13 +1226,24 @@ class Application:
             except Exception as exc:self.emit('shared_voices_error',str(exc) if isinstance(exc,ValueError) else 'Shared voices are unavailable. Contact the pilot administrator.')
         threading.Thread(target=task,daemon=True,name='Shared speech voices').start()
 
+    def _choose_recorded_pack(self,event=None):
+        label=self.pack_display.get()
+        if label in self.pack_ids:
+            self.variables['voice_pack_root'].set(self.pack_roots[label])
+            self.variables['voice_pack'].set(self.pack_ids[label])
+
     def _refresh_voice_packs(self):
         from .voicepacks import installed
-        packs=installed(self.variables['voice_pack_root'].get())
-        self.pack_ids={label+' ('+identity+')':identity for identity,label in packs.items()}
+        roots=[self.variables['voice_pack_root'].get(),str(settings_path().parent/'voices'),str(resource_root()/'assets/voices')]
+        self.pack_ids={};self.pack_roots={}
+        for root in dict.fromkeys(roots):
+            for identity,label in installed(root).items():
+                display=label+' ('+identity+')'
+                if display in self.pack_ids:display+=' · '+Path(root).name
+                self.pack_ids[display]=identity;self.pack_roots[display]=root
         self.combos['voice_pack'].configure(values=list(self.pack_ids))
-        selected=self.variables['voice_pack'].get()
-        self.pack_display.set(next((label for label,identity in self.pack_ids.items() if identity==selected),''))
+        selected=self.variables['voice_pack'].get();root=self.variables['voice_pack_root'].get()
+        self.pack_display.set(next((label for label,identity in self.pack_ids.items() if identity==selected and self.pack_roots[label]==root),''))
 
     def _speech_help(self):
         self.notebook.select(self.tabs["Help and Info"])
@@ -1324,6 +1442,12 @@ class Application:
         # The canonical Markdown is displayed locally. Topic navigation is provided
         # by the selector, avoiding any remote content or embedded browser dependency.
         self.help_text.insert("1.0", text)
+        import re
+        for index,match in enumerate(re.finditer(r'https://[^\s)]+',text)):
+            tag='help_link_'+str(index);url=match.group()
+            self.help_text.tag_add(tag,f'1.0+{match.start()}c',f'1.0+{match.end()}c')
+            self.help_text.tag_configure(tag,foreground=PALETTES[self.theme.get()]['accent'],underline=True)
+            self.help_text.tag_bind(tag,'<Button-1>',lambda event,link=url:webbrowser.open(link))
         self.help_text.configure(state="disabled")
 
     def _read_settings(self):
@@ -1355,6 +1479,7 @@ class Application:
             self._configure_history()
         self._trim_spots()
         self._refresh_spot_units()
+        self._refresh_filtered_view()
         self._style()
         self.help_text.configure(font=("Segoe UI", self.settings.text_size + 1))
         self._paint_widgets()
@@ -1423,6 +1548,9 @@ class Application:
                                                 spot.frequency_text(self.settings.frequency_unit), spot.spotter, spot.source),
                                 tags=("alternate",) if len(self.spots) % 2 else ())
         self.spots[item] = spot
+        from .filtering import rejection
+        self.spot_reasons[item]=rejection(spot,self.settings)
+        if not self.show_all.get() and self.spot_reasons[item]:self.tree.detach(item)
         self._trim_spots()
 
     def _preview_spot(self):
@@ -1514,6 +1642,10 @@ class Application:
                         continue
                     if kind == "source_lost":
                         self.diagnostics.record("source_failure", code=str(value).split(". Retrying")[0])
+                    if kind == 'spot_sent':
+                        if hasattr(self,'spot_status'):self.spot_status.set(value)
+                        self._journal(value)
+                        continue
                     if kind == "raw":
                         self._append_raw(value)
                         continue
@@ -1533,6 +1665,12 @@ class Application:
                     self.source_status.set("Source: " + value)
                 elif kind == "diagnostic":
                     self.diagnostics.record('output_failure', **value)
+                    continue
+                elif kind == 'performance':
+                    self.diagnostics.record('speech_timing',**value)
+                    continue
+                elif kind == 'speech_voice':
+                    self.resolved_voice.set('Speaking voice: '+value)
                     continue
                 elif kind == "announcement":
                     self._history_record("announcement", profile=self.connected_profile, **value)
@@ -1583,10 +1721,15 @@ class Application:
                     self.update_status.set("Download verified. Choose Install update when ready.")
                     continue
                 elif kind == "error":
-                    messagebox.showerror("Output stopped", value)
+                    self._show_notice("Output stopped. " + value)
                 self._journal(str(value))
         self._render_connections()
         self._receive_meter()
+        count,age,expired=self.engine.queue_status()
+        self.queue_summary.set(f'{count} pending. Oldest {age}s. Expired {expired}. Last preparation {self.engine.preparation_seconds:.2f}s.')
+        from .filtering import summary
+        visible=sum(not reason for reason in self.spot_reasons.values())
+        self.filter_summary.set(summary(self.settings)+f' · {visible} matching / {len(self.spots)} retained')
         self.root.after(75, self._poll)
 
     def _journal(self, text):
