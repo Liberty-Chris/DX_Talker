@@ -23,7 +23,7 @@ class AssistantTests {
         assertEquals("Location unknown",SpotFilters.rejection(missing) { selected[it].orEmpty() })
         assertTrue(SpotFilters.matches(missing) { if(it=="location_overrides")"WB4IUY=US,NA,NC"else selected[it].orEmpty() })
         assertFalse(SpotFilters.matches(spot.copy(mode="",comment="POTA")) { selected[it].orEmpty() })
-        assertTrue(SpotFilters.matches(spot.copy(mode="",comment="POTA")) { when(it){"license_unknown"->"true";"filter_modes"->"";else->selected[it].orEmpty()} })
+        assertTrue(SpotFilters.matches(spot.copy(mode="",comment="POTA")) { when(it){"license_unknown"->"true";"filter_modes"->"Unknown";else->selected[it].orEmpty()} })
     }
     @Test fun v3TransfersCarryPresetsAndRejectUnsafeFieldsAndInvalidTypes() {
         val filters=ListeningSettings.json { when(it) { "license_class"->"General";"spacing_seconds"->"0";"filter_bands"->"20m";else->"" } }

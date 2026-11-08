@@ -8,7 +8,7 @@ object SpotPresentation {
     data class Decision(val reason:String, val row:String="", val speech:String="")
     fun row(spot:DxSpot,unit:String):String {
         val details=mutableListOf<String>()
-        SpotFilters.mode(spot.comment,spot.mode).takeIf { it!="Unknown" }?.let { details.add(it) }
+        SpotFilters.mode(spot.comment,spot.mode,spot.frequency).takeIf { it!="Unknown" }?.let { details.add(it) }
         details.addAll(SpotFilters.tags(spot.comment).filter { it!="General" }.sorted())
         details.add(DateTimeFormatter.ofPattern("HH:mm 'UTC'").withZone(ZoneOffset.UTC).format(spot.time))
         return spot.call+"  "+spot.frequency(unit)+" "+unit+"\n"+details.joinToString(" · ")

@@ -15,10 +15,26 @@ class SpotFilterTests(unittest.TestCase):
             with self.subTest(case=case):
                 spot = parse_line(case['line'], 'fixture', datetime(2026,11,6,12,34,tzinfo=UTC))
                 self.assertIsNotNone(spot)
-                self.assertEqual(filtering.mode_of(spot.comment), case['mode'])
+                self.assertEqual(filtering.mode_of(spot.comment,spot.mode,spot.frequency_khz), case['mode'])
                 self.assertEqual(sorted(filtering.activities_of(spot.comment)), case['activities'])
                 self.assertEqual(filtering.matches(spot, replace(Settings(), **case['filters'])), case['match'])
                 self.assertNotIn('POTA', spot.speech)
+
+    def test_android_and_desktop_use_identical_segments_and_fixtures(self):
+        import re
+        root=Path(__file__).resolve().parent.parent
+        android=(root/'android/app/src/main/java/club/dxtalker/android/SpotFilters.kt').read_text()
+        spans=[(int(lo),int(hi),mode) for lo,hi,mode in re.findall(r'Triple\((\d+),(\d+),"([A-Z0-9]+)"\)',android)]
+        self.assertEqual(spans,list(filtering.MODE_SEGMENTS))
+        self.assertEqual((root/'tests/fixtures/spot_filters.json').read_bytes(),(root/'android/app/src/test/resources/spot_filters.json').read_bytes())
+
+    def test_none_survives_settings_and_transfer_roundtrip(self):
+        settings=Settings(filter_bands='None',filter_modes='None',filter_activities='None').validate()
+        profiles=[dict(name='Test',connection={key:getattr(settings,key) for key in transfer.SOURCE_FIELDS})]
+        data=transfer.decode(transfer.encode(transfer.document(profiles,settings)))
+        for key in ('filter_bands','filter_modes','filter_activities'):
+            self.assertEqual(data['filters'][key],'None')
+            with self.assertRaises(ValueError):replace(Settings(),**{key:'None,CW'}).validate()
 
     def test_explicit_mode_wins_and_bad_metadata_is_bounded(self):
         now=datetime.now(UTC)
