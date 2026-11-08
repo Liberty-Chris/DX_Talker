@@ -2,7 +2,7 @@
 
 ## 0.2.0a15. Unreleased
 
-Bundle six recommended nodes from the supplied validated operator list: W1NR, DX Spots, N2WQ, WB3FFV, W3LPL and W4MYA. Show preconfigured addresses in the choosers and reuse the operator's entered callsign when saving a node. Preserve existing profiles and explicit connection. Record physical phone confirmation that a14 QR scanning and import work.
+Bundle six recommended nodes from the supplied validated operator list: W1NR, DX Spots, N2WQ, WB3FFV, W3LPL and W4MYA. Show preconfigured addresses in the choosers and reuse the operator's entered callsign when saving a node. Preserve existing profiles and explicit connection. Embed the listening filter editor directly on Source in responsive columns; keep independent filter application and include pending filter edits in the main save action. Move frequency limits into its advanced controls. Record physical phone confirmation that a14 QR scanning and import work.
 
 ## 0.2.0a14. November 8, 2026
 

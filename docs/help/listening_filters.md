@@ -1,6 +1,6 @@
 # What do you want to hear?
 
-Open What do you want to hear? from Live spots or the top of Announcements on desktop, or Filters from Listen on Android. Choose bands, modes and activities without learning cluster commands. Apply listening filters on desktop or Save filters on Android preserves the current cluster connection. Pending announcements are cleared so the new choices take effect; current playback can finish. The main spot list shows matching reports. Desktop All received temporarily includes hidden reports for inspection.
+On desktop, What do you want to hear? is embedded directly on Source beside connection settings. Narrow windows place it below those settings with the normal page scrollbar. The Live spots shortcut opens Source and scrolls to the editor. On Android, open Filters from Listen. Choose bands, modes and activities without learning cluster commands. Apply listening filters on desktop or Save filters on Android preserves the current cluster connection. Pending announcements are cleared so the new choices take effect; current playback can finish. The main spot list shows matching reports. Desktop All received temporarily includes hidden reports for inspection.
 
 ## Combine interests
 
@@ -57,3 +57,5 @@ Version 3 profile/QR collections include the current filters, license choices, k
 ## Keeping up
 
 The additional gap accepts zero to 120 seconds. Zero adds no configured pause, but speech still takes time to prepare and play. The queue remains bounded and expires old spots. Pending count, oldest queued spot age, expired count and desktop preparation time help identify delays. Catch up to live on desktop or Live now on Android discards pending spots. It preserves the connection and does not interrupt the current announcement or cancel required IDs.
+
+Desktop filter edits stay pending until Apply listening filters or Save and apply settings. Apply listening filters changes only listening choices and preserves the feed and pending radio/connection edits. Reset changes restores the applied filter choices. Preset loading also stays pending until applied. Frequency limits are in the Source editor under Location and advanced filters.

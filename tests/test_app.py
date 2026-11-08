@@ -53,17 +53,59 @@ class AppTests(unittest.TestCase):
             self.env.stop()
             self.folder.cleanup()
 
-    def test_announcements_panels_align_and_filter_shortcut_is_outside_frequency(self):
+    def test_announcements_panels_align_and_filters_live_on_source(self):
         self.root.deiconify();self.root.geometry('1000x700')
         self.app.notebook.select(4);self.root.update()
         page=self.app.tabs['Announcements'];body=page.winfo_children()[0]
         panels=[w for w in body.winfo_children() if w.winfo_class()=='TLabelframe']
-        self.assertEqual(len(panels),4)
+        self.assertEqual(len(panels),3)
         self.assertEqual(len({w.winfo_width() for w in panels}),1)
         self.assertEqual(len({w.winfo_rootx() for w in panels}),1)
-        frequency=next(w for w in panels if w.cget('text')=='Frequency range')
-        self.assertFalse(any(w.winfo_class()=='TButton' and w.cget('text')=='What do you want to hear?' for w in frequency.winfo_children()))
+        self.assertNotIn('Frequency range',[w.cget('text') for w in panels])
+        self.assertEqual(self.app.filter_editor.frame.master,self.app.tabs['Source'])
         self.assertLess(body.winfo_width(),1000)
+
+    def test_source_filters_are_inline_and_reflow_without_a_new_window(self):
+        self.root.maxsize(3000,2000);self.root.deiconify();self.root.geometry('1800x1000');self.app.notebook.select(1);self.root.update()
+        panel=self.app.filter_editor.frame;left=self.app.source_connection_panel
+        self.assertEqual(self.app.source_column_layout,'wide')
+        next(w for w in panel.winfo_children() if w.winfo_class()=='TButton' and w.cget('text')=='Location and advanced filters').invoke();self.root.update()
+        self.assertEqual(panel.pack_slaves()[-1].winfo_class(),'TFrame')
+        self.assertGreaterEqual(panel.winfo_rootx(),left.winfo_rootx()+left.winfo_width())
+        self.assertEqual(panel.winfo_rooty(),left.winfo_rooty())
+        self.root.geometry('900x650');self.root.update()
+        self.assertEqual(self.app.source_column_layout,'stacked')
+        self.assertGreaterEqual(panel.winfo_y(),left.winfo_y()+left.winfo_height())
+        before=set(self.root.winfo_children())
+        self.app._open_filters();self.root.update()
+        self.assertEqual(self.app.notebook.index('current'),1)
+        self.assertEqual(set(self.root.winfo_children()),before)
+
+    def test_inline_filters_stage_apply_and_reset_without_reconnecting(self):
+        from types import SimpleNamespace
+        self.app.variables['host'].set('pending.invalid')
+        source=SimpleNamespace();self.app.source=source;self.app.engine.local_enabled=True
+        try:
+            panel=self.app.filter_editor
+            panel.variables['filter_bands'].set('20m')
+            self.assertEqual(self.app.settings.filter_bands,'')
+            self.assertTrue(self.app.engine.local_enabled)
+            saved=next(w for w in panel.frame.winfo_children() if w.winfo_class()=='TLabelframe' and w.cget('text')=='Listening presets')
+            next(w for w in saved.winfo_children() if w.winfo_class()=='TCombobox').set('Portable 20m')
+            next(w for w in saved.winfo_children() if w.winfo_class()=='TButton' and w.cget('text')=='Save').invoke()
+            panel.apply()
+            import json
+            self.assertEqual(json.loads(self.app.settings.listening_presets)['Portable 20m']['filter_bands'],'20m')
+            self.assertEqual(self.app.settings.filter_bands,'20m')
+            self.assertNotEqual(self.app.settings.host,'pending.invalid')
+            self.assertIs(self.app.source,source);self.assertTrue(self.app.engine.local_enabled)
+            panel.variables['filter_bands'].set('40m');panel.reset()
+            self.assertEqual(panel.variables['filter_bands'].get(),'20m')
+        finally:self.app.source=None;self.app.engine.local_enabled=False
+        panel.variables['filter_bands'].set('40m')
+        self.app._apply()
+        self.assertEqual(self.app.settings.filter_bands,'40m')
+        self.assertEqual(self.app.variables['filter_bands'].get(),'40m')
 
     def test_direct_spot_send_validates_and_preserves_session(self):
         from types import SimpleNamespace

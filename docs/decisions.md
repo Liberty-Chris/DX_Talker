@@ -200,3 +200,8 @@ Reuse Windows synthesis initialization and verified recorded PCM assets instead 
 ## Release version ownership and prose corrections. November 7, 2026
 
 Keep published installers tied to their original version and tested commit. Workflow changes that need a newly distributed package receive a new application version; rerunning a workflow does not increment it. Check conflicts before packaging and again at publication. Store corrections to published descriptions in version named archive files and synchronize only the release body through a separate workflow. This resolves copied descriptions without replacing installed users' downloads or moving tags.
+
+
+## Embedded Source listening editor. November 8, 2026
+
+Place the full listening editor alongside connection settings on wide desktop windows and below them on narrower windows. Use the existing Source scrollbar and route the Live spots shortcut to this section. Keep filter changes staged and preserve the independent Apply listening filters action, which must not apply pending connection or radio edits. The main settings save merges pending filter fields too, so visible edits are not silently omitted. This replaces a detached window while preserving independent connection and output controls.
