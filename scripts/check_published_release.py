@@ -15,6 +15,15 @@ class PublicationError(ValueError):
     pass
 
 
+def check_target(tag, commit, existing):
+    if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+(?:(?:a|b|rc)[0-9]+)?', tag):
+        raise PublicationError('Invalid release tag')
+    if not re.fullmatch(r'[0-9a-f]{40}', commit) or (existing and not re.fullmatch(r'[0-9a-f]{40}', existing)):
+        raise PublicationError('Invalid release commit')
+    if existing and existing != commit:
+        raise PublicationError(f'{tag} already belongs to another commit. Increase the application version and aligned release metadata before publishing new changes. Existing downloads were preserved.')
+
+
 def inspect_release(tag, directory, repository, run=subprocess.run):
     if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+(?:(?:a|b|rc)[0-9]+)?',tag):
         raise PublicationError('Invalid release tag')
@@ -43,6 +52,8 @@ def inspect_release(tag, directory, repository, run=subprocess.run):
 
 def main():
     try:
+        if len(sys.argv)==5 and sys.argv[1]=='--check-target':
+            check_target(*sys.argv[2:]);return 0
         if len(sys.argv)!=3:raise PublicationError('Expected release tag and prepared asset folder')
         url=inspect_release(sys.argv[1],sys.argv[2],os.environ.get('GITHUB_REPOSITORY',''))
         if url is None:return 3

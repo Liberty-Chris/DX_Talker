@@ -44,3 +44,11 @@ class PublicationTests(unittest.TestCase):
     def test_non_json_failure_is_not_treated_as_missing_release(self):
         with self.assertRaises(publication.PublicationError):
             publication.inspect_release('v0.2.0a12',self.path,'Liberty-Chris/DX_Talker',Mock(return_value=SimpleNamespace(returncode=1,stdout='')))
+
+    def test_new_or_exact_commit_target_is_allowed(self):
+        for existing in ('', 'a'*40):
+            publication.check_target('v0.2.0a13', 'a'*40, existing)
+
+    def test_another_commit_requires_a_new_version(self):
+        with self.assertRaisesRegex(publication.PublicationError, 'Increase the application version'):
+            publication.check_target('v0.2.0a12', 'a'*40, 'b'*40)
