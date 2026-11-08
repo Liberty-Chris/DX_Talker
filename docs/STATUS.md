@@ -286,3 +286,7 @@ The integrated XP check initially failed because the new cross platform mode com
 ## Android download consolidation
 
 The a18 publication graph calls the existing Android build and emulator workflow from the same release commit and requires its success before uploading DXTalker-Android.apk. Android remains available as a candidate Actions artifact and now has a labelled release asset and checksum. No application behavior, APK signing process, Play Store integration or automatic mobile updater changes. Publication and live release asset acceptance remain pending the owner's merge and publish action.
+
+## 0.2.0a19. Ubuntu desktop pilot
+
+A new amd64 Debian package shares the maintained desktop core, with native eSpeak NG WAV rendering, Secret Service credentials, Linux serial paths and Ubuntu CA certificates. The release workflow includes its clearly labelled package and checksum after build and installer verification. Application menu integration and private Python runtime packaging are implemented. Six initial adapter tests and the existing shared suite pass locally; real native Ubuntu build and installer checks are in progress in PR 33. No physical Linux audio, radio, ARM or Raspberry Pi acceptance is claimed.

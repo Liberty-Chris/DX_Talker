@@ -72,3 +72,45 @@ class LinuxTests(unittest.TestCase):
             self.assertIsNone(updates.select_release([release]))
             assets.append(dict(name=updates.INSTALLER,browser_download_url=base+updates.INSTALLER,size=100))
             self.assertTrue(updates.select_release([release]).installer_url.endswith('.deb'))
+
+    def test_running_speech_is_killed_on_cancel_or_deadline(self):
+        from subprocess import TimeoutExpired
+        for cancellation in (True, False):
+            cancel = threading.Event()
+            class Process:
+                returncode = None
+                killed = False
+                def __enter__(self): return self
+                def __exit__(self, *args): pass
+                def kill(self): self.killed = True
+                def communicate(self, value=None, timeout=None):
+                    if self.killed: return b'', b''
+                    if cancellation: cancel.set()
+                    raise TimeoutExpired('synthetic', timeout)
+            process = Process()
+            with patch('dxtalker.linux_speech.subprocess.Popen', return_value=process), patch('dxtalker.linux_speech.time.monotonic', side_effect=[0, 0, 31]):
+                with self.assertRaises(Cancelled if cancellation else TimeoutError):
+                    EspeakSpeech('/fake')._run([], 'synthetic', cancel)
+            self.assertTrue(process.killed)
+
+    def test_install_update_uses_explicit_package_and_authentication_without_shell(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder)/'package with spaces.deb'; path.touch()
+            settings = Path(folder)/'settings.json'
+            with patch('dxtalker.models.settings_path', return_value=settings), patch('dxtalker.linux_desktop.Path.is_file', return_value=True), patch('dxtalker.linux_desktop.subprocess.Popen') as launched:
+                linux_desktop.install_update(path)
+                args, options = launched.call_args
+                self.assertEqual(args[0], ['/usr/bin/pkexec','/usr/bin/apt-get','-y','install',str(path)])
+                self.assertNotIn('shell', options)
+                self.assertTrue(options['start_new_session'])
+            with self.assertRaises(ValueError): linux_desktop.install_update(Path(folder)/'not-a-package.exe')
+
+    def test_profile_replacement_and_removal_clear_old_keyring_entries(self):
+        from dxtalker.profiles import ProfileStore
+        with tempfile.TemporaryDirectory() as folder, patch('dxtalker.profiles.sys.platform', 'linux'), patch('dxtalker.linux_desktop.protect_secret', side_effect=['secret-service:'+'1'*32, 'secret-service:'+'2'*32]), patch('dxtalker.linux_desktop.forget_secret') as forget:
+            store = ProfileStore(Path(folder)/'profiles.json')
+            item = store.save('synthetic', models.Settings(), 'first', True)
+            store.save('synthetic', models.Settings(), 'second', True, item['id'])
+            forget.assert_called_with('secret-service:'+'1'*32)
+            store.delete(item['id'])
+            forget.assert_called_with('secret-service:'+'2'*32)

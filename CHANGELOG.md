@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0a19. Unreleased
+
+Add an Ubuntu amd64 desktop installer with native offline speech, protected keyring credentials, Linux serial paths, system CA verification and interactive package updates. Reuse the desktop core and retain its performance guards. Verify build and package installation on Ubuntu 22.04 and 24.04 and include the labelled Debian package alongside the existing release downloads. Physical radio and ARM acceptance remain open.
+
 ## 0.2.0a16. Unreleased
 
 Add automatic startup, navigation, scrolling and idle CPU budgets to explicit Windows self tests. Include measured values, limits and failures in the existing verification artifacts and fail the source, portable or installed checks on a breach. Keep benchmark work outside normal application use. Retain deterministic rendering regression tests and record the broader efficiency audit as the next maintenance batch.

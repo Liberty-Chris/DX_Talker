@@ -1,4 +1,4 @@
-"""Windows desktop interface. All Tk calls stay on the main thread."""
+"""Shared desktop interface. All Tk calls stay on the main thread."""
 from __future__ import annotations
 
 from dataclasses import fields, replace
@@ -616,7 +616,7 @@ class Application:
         for name in ("preview_device", "radio_device"):
             self.field_widgets[name].configure(width=48)
         ttk.Button(outputs, text="Refresh devices", command=self._refresh_devices).grid(row=2, column=1, sticky="w", pady=(8, 0))
-        ttk.Label(outputs, text="Choose exact output names. Prefer Windows WASAPI when available. Keep local and radio outputs separate for listening tests.",
+        ttk.Label(outputs, text="Choose exact output names. Keep local and radio outputs separate for listening tests.",
                   wraplength=610).grid(row=3, column=0, columnspan=3, sticky="w", pady=(8, 0))
         ptt = ttk.LabelFrame(frame, text="Push to talk", padding=12)
         ptt.grid(row=1, column=0, sticky="w", pady=(0, 12))
@@ -1112,7 +1112,7 @@ class Application:
         self._refresh_profiles()
         if credential_unavailable:
             messagebox.showwarning("Profile password or token unavailable",
-                                   "The connection details were loaded, but Windows could not unlock the saved password or token. "
+                                   "The connection details were loaded, but This account could not unlock the saved password or token. "
                                    "Enter it again and choose whether to remember it before saving. "
                                    "Saving with Remember unchecked removes the stored credential. You can also delete this profile.")
 
@@ -1198,7 +1198,7 @@ class Application:
         ttk.Button(self.eleven_speech_fields,text='Refresh voices',command=self._load_shared_voices).grid(row=0,column=2,padx=8)
         self.eleven_status=tk.StringVar(value='Uses the DX Talker pilot account. No API key is required. Blank uses the service default voice.')
         ttk.Label(self.eleven_speech_fields,textvariable=self.eleven_status,wraplength=610).grid(row=1,column=0,columnspan=3,sticky='w',pady=(8,0))
-        ttk.Label(self.eleven_speech_fields,text='Online synthesis sends announcement and voice ID text to our speech service and ElevenLabs. Testing limits apply. Windows, Piper and Recorded remain available. Speed is fixed; character and group pauses are retained.',wraplength=610).grid(row=2,column=0,columnspan=3,sticky='w',pady=(8,0))
+        ttk.Label(self.eleven_speech_fields,text='Online synthesis sends announcement and voice ID text to our speech service and ElevenLabs. Testing limits apply. System speech, Piper and Recorded remain available. Speed is fixed; character and group pauses are retained.',wraplength=610).grid(row=2,column=0,columnspan=3,sticky='w',pady=(8,0))
         access = ttk.LabelFrame(frame, text="Interface", padding=12)
         access.grid(row=7, column=0, sticky="w", pady=(0, 12))
         self._field(access, 0, "Text size", "text_size", note="10 to 18 points. High contrast is in Appearance.", compact=True)
@@ -1618,14 +1618,14 @@ class Application:
             self.combos["serial_port"].configure(values=serial_ports())
             self.emit("journal", f"Found {len(devices)} audio output names")
         except Exception as exc:
-            self.emit("journal", f"Device discovery unavailable ({type(exc).__name__}). Install the runtime requirements on Windows.")
+            self.emit("journal", f"Device discovery unavailable ({type(exc).__name__}). Check the installed audio and serial dependencies.")
 
     def _load_voices(self):
         def task():
             try:
                 self.emit("voices", (EspeakSpeech() if sys.platform.startswith("linux") else WindowsSpeech()).voices(self.background_cancel))
             except Exception:
-                self.emit("journal", "Windows voices could not be enumerated. The default voice remains available on Windows.")
+                self.emit("journal", "System voices could not be enumerated. Check the installed speech provider.")
         threading.Thread(target=task, daemon=True).start()
 
     def emit(self, kind, value):

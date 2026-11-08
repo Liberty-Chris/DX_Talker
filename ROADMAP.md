@@ -92,3 +92,7 @@ Review older PC performance in the next maintenance batch. Measure UI event work
 ## XP desktop acceptance
 
 The XP port targets the full maintained desktop core with private runtimes and separate 32 bit SP3 and 64 bit SP2 installers. Verify shared policies and UI with the actual bundled interpreters, native adapters with simulated devices and clean installation/upgrade/removal on hosted Windows. Then record named XP VM or hardware acceptance, selected endpoint routing, serial polarity, receive hold, stop, cable failure and long sessions before claiming supported XP operation. The older listener source kit is not the full port.
+
+## Ubuntu desktop pilot
+
+The a19 source adds an amd64 Debian installer for Ubuntu 22.04 and 24.04 using the shared desktop core. Verify the private runtime, offline speech, keyring, menu integration, retained settings and package replacement/removal in hosted Ubuntu checks. Then test real local audio, receive hold and the selected serial or VOX radio interface. Raspberry Pi requires its own ARM package and performance measurements. This work does not complete the standalone hardware milestone.

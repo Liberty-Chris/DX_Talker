@@ -111,3 +111,7 @@ RTS/DTR line control does not send CAT bytes, so it does not need a user selecta
 The receive meter separates input health from sound level. Before the first frame it says there is no measurement. Missing initial frames, an inactive device, stale samples and invalid callback data have distinct explanations and diagnostic codes. A displayed quiet level does not establish that a failed input is healthy. A transient input overflow restarts the entire quiet countdown; unrecognized driver faults remain latched until the input is reopened. Channel clear describes measured channel audio, not RF being armed. Correct the input and deliberately enable RF after a fault.
 
 The XP pilot exposes audio through Windows MME and serial RTS/DTR through Windows communication APIs. Audio names differ from modern Windows backend names, so select and test the intended endpoints again after importing settings. Missing or ambiguous devices stop output rather than selecting default speakers. An audio driver cleanup failure requires restarting the application before reopening audio. Physical XP driver and radio behavior still require bench testing.
+
+## Ubuntu audio and serial devices
+
+Ubuntu uses the same audio/PTT coordinator with Linux device names. Audio still requires a separate sound interface; serial RTS/DTR controls do not carry audio. See [Ubuntu desktop](ubuntu.md) for serial permissions, stable paths and physical acceptance checks.

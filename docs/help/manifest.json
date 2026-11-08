@@ -61,7 +61,12 @@
       "id": "spotting",
       "title": "Share a DX spot",
       "path": "spotting.md"
+    },
+    {
+      "id": "ubuntu",
+      "title": "Ubuntu desktop",
+      "path": "ubuntu.md"
     }
   ],
-  "version": "0.2.0a18"
+  "version": "0.2.0a19"
 }

@@ -35,8 +35,11 @@ def build():
                 shutil.copy2(distribution.locate_file(item), target)
     # The runtime license must be supplied by the build's official CPython tree.
     python_license = ROOT/'platforms/linux/PYTHON-LICENSE.txt'
-    if not python_license.is_file(): raise ValueError('Provide the official runtime license at build/PYTHON-LICENSE.txt')
+    if not python_license.is_file(): raise ValueError('Provide the official runtime license at platforms/linux/PYTHON-LICENSE.txt')
     shutil.copy2(python_license, notices/'PYTHON-LICENSE.txt')
+    for name in ['libssl3', 'libffi8', 'libtcl8.6', 'libtk8.6', 'tcl8.6', 'tk8.6']:
+        copyright_file = Path('/usr/share/doc')/name/'copyright'
+        if copyright_file.is_file(): shutil.copy2(copyright_file, notices/(name+'-copyright.txt'))
     control = package/'DEBIAN'; control.mkdir()
     (control/'control').write_text('Package: dxtalker\nVersion: '+__version__+'\nArchitecture: amd64\nMaintainer: DX Talker\nSection: hamradio\nPriority: optional\nDepends: libc6 (>= 2.35), libportaudio2, ca-certificates, espeak-ng, libsecret-tools, policykit-1, xdg-utils\nDescription: Spoken DX cluster assistant\n Profiles, local filters, speech, coordinated radio output and identification.\n')
     desktop = package/'usr/share/applications'; desktop.mkdir(parents=True)

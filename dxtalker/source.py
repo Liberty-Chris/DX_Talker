@@ -12,6 +12,7 @@ import ssl
 
 from .models import UTC, Settings, parse_json_feed, parse_line
 from .protocol import LineFramer, TelnetDecoder, TerminalText
+from .updates import update_ssl_context
 
 
 class NoRedirect(request.HTTPRedirectHandler):
@@ -271,7 +272,7 @@ class SourceClient:
 
     def _https(self):
         self.emit("source_state", "Connecting to HTTPS feed")
-        opener = request.build_opener(NoRedirect())
+        opener = request.build_opener(NoRedirect(), request.HTTPSHandler(context=update_ssl_context()))
         while not self.cancel.is_set():
             headers = {"Accept": "application/json", "User-Agent": "DXTalker/0.1"}
             if self.secret:

@@ -2,6 +2,7 @@
 import io
 import json
 import os
+import ssl
 from pathlib import Path
 import tempfile
 import threading
@@ -20,7 +21,7 @@ def run(destination):
         from .models import Settings, save_settings
         from .app import Application
         from .performance import measure, violations, BUDGETS
-        from .updates import INSTALLER, update_ssl_context
+        from .updates import INSTALLER, update_ssl_context, HTTPSRedirect
         speech = EspeakSpeech(); cancel = threading.Event()
         assert speech.voices(cancel)
         clip = speech.render('DX Talker. Kilo Foxtrot four Delta Bravo Xray.', '', 0, cancel)
@@ -29,13 +30,26 @@ def run(destination):
         service = SpeechService()
         try: assert service.render_configured('DX Talker [pause 500ms] test', Settings(), cancel).duration > 0
         finally: service.close()
+        from .speech import plan_ssml
+        short = speech.render(plan_ssml([('test', 0), ('test', 0)]), '', 0, cancel, ssml=True)
+        paused = speech.render(plan_ssml([('test', 750), ('test', 0)]), '', 0, cancel, ssml=True)
+        assert paused.duration > short.duration + .5
         report['offline_speech'] = True
+        report['native_pause_seconds_added'] = round(paused.duration - short.duration, 3)
         reference = protect_secret('synthetic-keyring-test')
         try: assert protect_secret(reference, decrypt=True) == 'synthetic-keyring-test'
         finally: forget_secret(reference)
         report['desktop_keyring'] = True
         context = update_ssl_context()
-        assert context.check_hostname
+        assert context.check_hostname and context.verify_mode == ssl.CERT_REQUIRED
+        from urllib import request
+        opener = request.build_opener(HTTPSRedirect(), request.HTTPSHandler(context=context))
+        query = request.Request('https://api.github.com/repos/Liberty-Chris/DX_Talker/releases?per_page=1',
+                                headers={'User-Agent': 'DXTalker-Ubuntu-build-verification'})
+        with opener.open(query, timeout=20) as response:
+            data = response.read(1024 * 1024 + 1)
+            assert len(data) <= 1024 * 1024 and isinstance(json.loads(data), list)
+        report['verified_https'] = True
         assert INSTALLER == 'DXTalker-Ubuntu-amd64.deb'
         os.environ['LOCALAPPDATA'] = temporary.name
         save_settings(Settings(check_updates=False))

@@ -137,3 +137,7 @@ Desktop buttons and settings panels have rounded surfaces in every appearance mo
 On Android Listen, use the kHz/MHz control beside Recent spots. It updates retained row frequencies and future speech without reconnecting the cluster. Pending/current speech is stopped when units change, and displayed history is not replayed. Frequencies and band/license rules stay in canonical kHz internally. Applying a listening preset can also change units; its value is retained when other filter controls are edited.
 
 On the XP pilot, Windows speech uses installed SAPI 5 voices through a persistent local worker rather than requiring PowerShell. Voice selection, speed and pauses remain available. Speech is rendered to PCM before radio keying. Installing an external Piper build requires one that is compatible with XP; the current modern Piper download is not an XP compatibility claim. Recorded packs use the same portable PCM assets.
+
+## Ubuntu system speech
+
+On Ubuntu, eSpeak NG replaces the Windows provider. It renders offline WAV audio through the same coordinator, including character/group pauses and speed controls. A named voice overrides the gender preference. Piper requires its Linux executable and local model. Recorded packs and configured ElevenLabs speech remain available. See [Ubuntu desktop](ubuntu.md).

@@ -46,8 +46,8 @@ class EspeakSpeech:
             raise ValueError('Speech text or speed is outside the supported range')
         if voice and voice not in self.voices(cancel): raise ValueError('Choose an installed system voice')
         selected = voice or 'en-us'
-        if gender == 'Female': selected += '+f3'
-        elif gender == 'Male': selected += '+m3'
+        if not voice and gender == 'Female': selected += '+f3'
+        elif not voice and gender == 'Male': selected += '+m3'
         if ssml:
             root = ET.fromstring(text)
             if root.tag.split('}')[-1] != 'speak': raise ValueError('Invalid speech plan')
