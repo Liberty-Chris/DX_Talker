@@ -290,3 +290,7 @@ The a18 publication graph calls the existing Android build and emulator workflow
 ## 0.2.0a19. Ubuntu desktop pilot
 
 A new amd64 Debian package shares the maintained desktop core, with native eSpeak NG WAV rendering, Secret Service credentials, Linux serial paths and Ubuntu CA certificates. The release workflow includes its clearly labelled package and checksum after build and installer verification. Application menu integration and private Python runtime packaging are implemented. The first [hosted Ubuntu verification](https://github.com/Liberty-Chris/DX_Talker/actions/runs/42520344119) passed native package builds and install, launch, speech, keyring, QR PNG, reinstall, settings preservation and removal on Ubuntu 22.04 and 24.04. Installed 22.04 UI startup measured 419 ms, median navigation 9.46 ms and idle CPU ratio 0.0071, within the retained budgets. These are hosted measurements. All 233 local source tests pass under a dummy display. Final a19 verification adds a native pause duration comparison and real verified public GitHub HTTPS check. No physical Linux audio, radio, ARM or Raspberry Pi acceptance is claimed.
+
+## 0.2.0a20. Alpha naming and release navigation
+
+The shared desktop header and About label now say Alpha. The publication workflow is named Build and publish DX Talker and is linked directly from the README and release guide. Pilot remains the existing prerelease update channel for compatibility. No source, audio or radio behavior changes. Documentation and version checks pass; hosted regression checks accompany the pull request.

@@ -1,4 +1,4 @@
-name: Windows pilot
+name: Build and publish DX Talker
 
 on:
   push:
