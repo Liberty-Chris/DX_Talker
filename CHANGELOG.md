@@ -6,6 +6,8 @@ Bundle six recommended nodes from the supplied validated operator list: W1NR, DX
 
 Add a desktop Mode column and explicit license filter heading. Omit untagged activity and unknown mode placeholders from mobile rows. Put kHz/MHz on Listen and keep Apply filters visible below the form. Use canonical filter draft keys, preserve preset units and clear stale displayed rows when applying while stopped. Share display/speech acceptance and add synthetic live-feed UI coverage for bands, modes, license classes and unit/preset changes.
 
+Correct the desktop rendering regression introduced in a14. Enlarge the solid areas of rounded image tiles while preserving their corner artwork and small control sizes, share identical Tk surfaces and reuse corner geometry across colors. Update state controls only when their visible state changes instead of rewriting them every 75 ms. Rounded styling, keyboard behavior and output controls remain available.
+
 ## 0.2.0a14. November 8, 2026
 
 Remove the separate spot review action on desktop and Android while preserving validation, session binding and rate limits. Move the listening shortcut out of Frequency range and align Announcements panels. Add rounded ttk buttons and panel surfaces, keeping native window frames. Give Android an explicit camera permission flow and an owned QR scanner with camera lifecycle/error handling and diagnostic events. Add camera permission/return instrumentation coverage and an ordered release download index.

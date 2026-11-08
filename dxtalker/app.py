@@ -964,10 +964,14 @@ class Application:
             else:
                 text = "Connect"
                 edge, background, ink = (p["accent"] if attention else p["edge"]), p["field"], p["ink"]
+            rendered=(self.theme.get(),text,background,edge,ink,stopping)
+            if item.get("rendered") == rendered:
+                continue
             from .rounded import button_style
             item["shell"].configure(background=p['bg'])
             style=button_style(self.root,p,background,edge,ink)
             item["button"].configure(text=text,style=style,state="disabled" if stopping else "normal")
+            item["rendered"]=rendered
 
     def _refresh_spot_units(self):
         self.tree.heading("frequency", text="Frequency " + self.settings.frequency_unit)

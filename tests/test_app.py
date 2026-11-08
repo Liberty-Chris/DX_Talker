@@ -362,6 +362,33 @@ class AppTests(unittest.TestCase):
         self.assertIsNone(self.app.source)
         self.assertTrue(all(i['button'].cget('text') == 'Connect' for i in self.app.connection_controls))
 
+    def test_unchanged_state_controls_do_not_redraw_on_idle_polls(self):
+        from contextlib import ExitStack
+        self.app._render_connections()
+        controls=self.app.connection_controls+self.app.listening_controls+self.app.rf_controls
+        image_count=len(self.root.tk.call('image','names'))
+        self.root.update_idletasks()
+        for item in controls:
+            self.assertLess(item['button'].winfo_reqwidth(),256)
+            self.assertLess(item['button'].winfo_reqheight(),64)
+        with ExitStack() as stack:
+            writes=[stack.enter_context(patch.object(widget,'configure',wraps=widget.configure))
+                    for item in controls for widget in (item['shell'],item['button'])]
+            for _ in range(40):self.app._render_connections()
+            self.assertTrue(all(write.call_count==0 for write in writes))
+            self.app.connection_controls[0]['hover']=True
+            self.app._render_connections()
+            self.assertEqual(sum(write.call_count for write in writes),2)
+            self.assertIn('TButton',self.app.connection_controls[0]['button'].cget('style'))
+            for write in writes:write.reset_mock()
+            self.app._render_connections()
+            self.assertTrue(all(write.call_count==0 for write in writes))
+        # A new state may add a bounded set of shared surfaces, never one per tick.
+        warmed=len(self.root.tk.call('image','names'))
+        self.assertGreaterEqual(warmed,image_count)
+        for _ in range(40):self.app._render_connections()
+        self.assertEqual(len(self.root.tk.call('image','names')),warmed)
+
     def test_speech_settings_hide_the_inactive_provider_controls(self):
         self.assertEqual(self.app.piper_speech_fields.winfo_manager(), '')
         self.assertEqual(self.app.windows_speech_fields.winfo_manager(), 'grid')
