@@ -1,4 +1,8 @@
 """Install only runtime facilities absent from Python 3.4."""
+import os
+# Must precede imports which can load hashlib/OpenSSL. The launcher supplies
+# the same process-only setting before the interpreter starts.
+os.environ['OPENSSL_ia32cap'] = ':~0x20000000'
 import builtins
 import threading
 from types import SimpleNamespace

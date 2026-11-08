@@ -19,6 +19,10 @@ static BOOL append(WCHAR *target, DWORD *used, LPCWSTR text) {
 void WinMainCRTStartup(void) {
     DWORD size, i, used = 0, code = 1;
     LPWSTR arguments = GetCommandLineW();
+    /* Old bundled OpenSSL SHAEXT code is broken on newer x64 CPUs.
+       Use the documented scalar dispatch for this process and its child only.
+       Certificate checks and cryptographic algorithms remain enabled. */
+    if (!SetEnvironmentVariableW(L"OPENSSL_ia32cap", L":~0x20000000")) goto failed;
     size = GetModuleFileNameW(NULL, base, 32768);
     if (!size || size >= 32768) goto failed;
     for (i = size; i > 0; --i) {
