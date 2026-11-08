@@ -25,11 +25,13 @@ jobs:
       - name: Compile native XP launcher and installer
         run: python platforms/xp/build_installer.py --architecture ${{ matrix.architecture }} --stage build/xp-${{ matrix.architecture }}
       - name: Run shared behavioral checks with the bundled Python 3.4
+        if: ${{ !cancelled() }}
         run: |
           $app = "$PWD/build/xp-${{ matrix.architecture }}"
           & "$app/runtime/python.exe" -I -c "import sys;sys.path.insert(0,r'$app');from xp_support.test_runner import run;raise SystemExit(0 if run(r'$app') else 1)"
           if ($LASTEXITCODE -ne 0) { throw 'XP shared behavior checks failed' }
       - name: Check complete UI, QR, private secrets and SAPI without playback or PTT
+        if: ${{ !cancelled() }}
         run: |
           $app = "$PWD/build/xp-${{ matrix.architecture }}"
           $process = Start-Process "$app/runtime/python.exe" -ArgumentList '-I', "`"$app/run_xp.py`"", '--self-test', "`"$PWD/xp-${{ matrix.architecture }}-smoke.json`"" -PassThru

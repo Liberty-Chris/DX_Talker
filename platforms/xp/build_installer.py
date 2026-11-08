@@ -17,7 +17,7 @@ def development_environment(architecture):
     command = '"' + str(script) + '" -no_logo -arch=' + architecture + ' >nul && set'
     # Capture rather than print the developer environment: it can contain build
     # secrets inherited from Actions. Compiler output never includes that data.
-    output = subprocess.check_output(['cmd.exe','/d','/s','/c',command],text=True)
+    output = subprocess.check_output('cmd.exe /d /s /c "' + command + '"',text=True)
     result = dict(os.environ)
     for line in output.splitlines():
         name, equals, value = line.partition('=')
@@ -58,6 +58,11 @@ def build(architecture, stage):
     version=re.search(r'__version__ = "([^"]+)"',(ROOT/'dxtalker/__init__.py').read_text()).group(1)
     match=re.fullmatch(r'(\d+)\.(\d+)\.(\d+)(?:a|b|rc)?(\d*)',version)
     if not match:raise ValueError('Invalid application version')
+    if not re.search(r'(a|b|rc)\d+$', version):
+        sys.path.insert(0, str(ROOT/'scripts'))
+        from check_stable_release import check
+        check(ROOT)
+        raise ValueError('Stable XP installer terms presentation must be reviewed before enabling stable packaging')
     numeric=','.join(str(int(value or 0)) for value in match.groups())
     bits='32' if architecture=='x86' else '64'
     resource=stage/'launcher.rc'
