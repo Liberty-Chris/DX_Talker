@@ -71,7 +71,7 @@ class WindowsSpeech:
                 worker = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sapi_worker.vbs')
                 self.process = subprocess.Popen([executable, '//nologo', worker], stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                    creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+                    creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000))
                 process, responses = self.process, self.responses
                 def read(process=process, responses=responses):
                     try:

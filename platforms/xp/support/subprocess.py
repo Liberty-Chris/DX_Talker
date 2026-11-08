@@ -1,6 +1,9 @@
 from subprocess import *
 import subprocess as _native
 
+# The Windows flag exists on XP; Python only exported its name in later releases.
+CREATE_NO_WINDOW = getattr(_native, 'CREATE_NO_WINDOW', 0x08000000)
+
 class Popen(_native.Popen):
     def __init__(self, *args, **kwargs):
         text = kwargs.pop('text', False)

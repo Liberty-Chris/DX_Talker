@@ -19,6 +19,10 @@ function Run-Checked($file, $arguments) {
 $setup = Join-Path $PWD "dist\DXTalker-Setup-Windows-XP-${bits}bit.exe"
 $reportPath = Join-Path $PWD "xp-$Architecture-installer-smoke.json"
 $report = [ordered]@{ ok = $false; windows = [Environment]::OSVersion.VersionString }
+# Installed launch must supply its own compatibility settings, independently
+# of the build runner environment. This changes this script process only.
+$previousOpenSSLDispatch = $env:OPENSSL_ia32cap
+$env:OPENSSL_ia32cap = $null
 try {
     Run-Checked $setup @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', '/TASKS=desktopicon')
     foreach ($path in @("$installDir\DXTalkerXP.exe", "$installDir\runtime\python34.dll", "$installDir\runtime\msvcr100.dll", "$installDir\dxtalker\app.py", $desktop, $startMenu)) {
@@ -63,5 +67,6 @@ try {
     $report.uninstall = $true
     $report.ok = $true
 } finally {
+    $env:OPENSSL_ia32cap = $previousOpenSSLDispatch
     $report | ConvertTo-Json | Set-Content $reportPath
 }
