@@ -130,3 +130,5 @@ Generate ElevenLabs recorded voice chooses an application managed destination au
 Local Windows generation and recorded playback are useful for busy feeds. Online ElevenLabs includes service/network/provider latency and cannot guarantee contest rate throughput. See [Keeping up](listening_filters.md) for queue age, preparation timing, zero additional gap and catch up controls. Filtering reduces the number of announcements; no speech engine can speak an unlimited incoming feed in real time.
 
 Voice ID pause controls and independent CW/voice schedules are described under [Station identification](identification.md).
+
+Desktop buttons and settings panels have rounded surfaces in every appearance mode. Keyboard focus, Enter and Space activation, disabled states and the connection/listening/RF state colors remain available. Outer window borders follow the operating system. Announcements aligns its settings panels and puts the listening filter shortcut above them.

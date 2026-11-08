@@ -1,5 +1,7 @@
-DX Talker 0.2.0a13 updates release delivery and build tooling.
+DX Talker 0.2.0a14 streamlines spotting, refreshes desktop controls and improves Android QR scanning.
 
-GitHub Actions now use Node.js 24. Publication checks the version tag before Windows packaging and gives a clear instruction to increase the version when a previous release already owns it. Repeating publication for the same commit recognizes a complete existing release without replacing its downloads. Release notes are checked against the application version and corrections to archived release text can be applied separately from installers.
+Send a spot directly from its form on desktop and Android. The separate Review step is removed. Field validation, current cluster binding, rate limiting and delivery status remain. Desktop shows the normalized command as you type.
 
-This maintenance release retains the listening filters, saved presets, FCC license class and region options, reporting station and DX geography controls, QR collection transfer, reviewed spotting, Android layout improvements, bounded PTT test and speech queue improvements introduced in a12. No new radio or speech behavior is introduced by a13. Existing profiles and settings are retained.
+Announcements places What do you want to hear directly above the aligned format, frequency, timing and RF supervision panels. Desktop buttons and panels use rounded surfaces with the existing themes and keyboard controls. Operating system window frames retain their native appearance.
+
+Android requests camera permission before opening the scanner. Denial offers app settings or file import without losing collected QR pages. The scanner owns its camera lifecycle and shows readable camera failures rather than closing the main app. Camera launch and preview failures record diagnostic events without QR contents. Physical phone camera acceptance remains required.

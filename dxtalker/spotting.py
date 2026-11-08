@@ -1,4 +1,4 @@
-"""Explicit, reviewed submissions to the currently monitored cluster only."""
+"""Explicit submissions to the currently monitored cluster only."""
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 import tkinter as tk
@@ -41,21 +41,22 @@ def open_spot_dialog(app,myself=False):
     ttk.Label(frame,text='Only the current cluster receives this command. Cluster policy determines acceptance and propagation.',wraplength=520).grid(row=3,column=0,columnspan=3,sticky='w',pady=8)
     ttk.Label(frame,textvariable=preview,wraplength=520).grid(row=4,column=0,columnspan=3,sticky='w')
     ttk.Label(frame,textvariable=app.spot_status,wraplength=520).grid(row=5,column=0,columnspan=3,sticky='w',pady=8)
-    reviewed=[None]
-    send=ttk.Button(frame,text='Send reviewed spot',state='disabled')
-    def review():
-        try:
-            reviewed[0]=command(call.get(),frequency.get(),unit.get(),comment.get());preview.set(reviewed[0]);send.configure(state='normal')
-        except ValueError as exc:preview.set(str(exc));send.configure(state='disabled')
+    send=ttk.Button(frame,text='Send spot')
     def submit():
-        if app.source is not source or not (source.ready.is_set() or source.signed_in.is_set()):app.spot_status.set('Cluster changed or disconnected. Close this form and review again.');return
+        if app.source is not source or not (source.ready.is_set() or source.signed_in.is_set()):
+            app.spot_status.set('Cluster changed or disconnected. Reopen this form for the current cluster.');return
         try:
             text=command(call.get(),frequency.get(),unit.get(),comment.get())
-            if text!=reviewed[0]:raise ValueError('Review the changed spot before sending')
             source.submit_spot(text)
             send.configure(state='disabled');app.spot_status.set('Queued for this cluster. Waiting for socket delivery.')
         except ValueError as exc:app.spot_status.set(str(exc))
-    def changed(*args):reviewed[0]=None;send.configure(state='disabled');preview.set('')
+    def changed(*args):
+        send.configure(state='normal')
+        try:preview.set(command(call.get(),frequency.get(),unit.get(),comment.get()))
+        except ValueError:preview.set('')
     for var in (call,frequency,unit,comment):var.trace_add('write',changed)
-    ttk.Button(frame,text='Review spot',command=review).grid(row=6,column=0,pady=10)
-    send.configure(command=submit);send.grid(row=6,column=1,sticky='w')
+    send.configure(command=submit);send.grid(row=6,column=1,sticky='w',pady=10)
+    ttk.Button(frame,text='Close',command=window.destroy).grid(row=6,column=2,padx=8)
+    window.bind('<Escape>',lambda event:window.destroy())
+    changed()
+    return window

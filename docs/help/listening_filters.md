@@ -1,6 +1,6 @@
 # What do you want to hear?
 
-Open What do you want to hear? from Live spots on desktop, or Filters from Listen on Android. Choose bands, modes and activities without learning cluster commands. Apply listening filters on desktop or Save filters on Android preserves the current cluster connection. Pending announcements are cleared so the new choices take effect; current playback can finish. The main spot list shows matching reports. Desktop All received temporarily includes hidden reports for inspection.
+Open What do you want to hear? from Live spots or the top of Announcements on desktop, or Filters from Listen on Android. Choose bands, modes and activities without learning cluster commands. Apply listening filters on desktop or Save filters on Android preserves the current cluster connection. Pending announcements are cleared so the new choices take effect; current playback can finish. The main spot list shows matching reports. Desktop All received temporarily includes hidden reports for inspection.
 
 ## Combine interests
 

@@ -172,6 +172,8 @@ class Application:
         style.map("TNotebook.Tab", background=[("selected", p["panel"]), ("active", p["field"])],
                   foreground=[("selected", p["accent"]), ("active", p["ink"])])
         style.configure("Vertical.TScrollbar", background=p["field"], arrowcolor=p["muted"])
+        from .rounded import install
+        install(self.root,p,self.theme.get())
 
     def _paint_widgets(self):
         p = PALETTES[self.theme.get()]
@@ -722,32 +724,36 @@ class Application:
         self.voice_id_wav_fields.grid() if recorded else self.voice_id_wav_fields.grid_remove()
 
     def _policy_tab(self):
-        frame = self.tabs["Announcements"]
-        self._format_editor(frame)
+        page = self.tabs["Announcements"]
+        frame = ttk.Frame(page)
+        frame.grid(row=0,column=0,sticky='nw')
+        interests=ttk.Frame(frame)
+        interests.grid(row=0,column=0,sticky='ew',pady=(0,12))
+        ttk.Button(interests,text='What do you want to hear?',command=self._open_filters).pack(side='left',padx=(0,12))
+        ttk.Label(interests,text='Bands, modes, activities, license and location.',wraplength=340).pack(side='left')
+        self._format_editor(frame,row=1)
         frequency = ttk.LabelFrame(frame, text="Frequency range", padding=12)
-        frequency.grid(row=1, column=0, sticky="w", pady=(0, 12))
+        frequency.grid(row=2, column=0, sticky="ew", pady=(0, 12))
         self._field(frequency, 0, "Minimum (kHz)", "min_khz", compact=True)
         self._field(frequency, 1, "Maximum (kHz)", "max_khz", compact=True)
         for name in ("min_khz", "max_khz"):
             self.field_widgets[name].configure(width=14)
         ttk.Label(frequency, text="Filter limits use kHz, including when speech and display use MHz.",
                   wraplength=550).grid(row=2, column=0, columnspan=2, sticky="w", pady=(8, 0))
-        ttk.Button(frequency,text='What do you want to hear?',command=self._open_filters).grid(row=3,column=0,columnspan=2,sticky='w',pady=8)
-        ttk.Label(frequency,text='Bands, modes, activities, license class and location in one listening panel.',wraplength=550).grid(row=4,column=0,columnspan=2,sticky='w')
         timing = ttk.LabelFrame(frame, text="Timing and repeats", padding=12)
-        timing.grid(row=2, column=0, sticky="w", pady=(0, 12))
+        timing.grid(row=3, column=0, sticky="ew", pady=(0, 12))
         self._field(timing, 0, "Maximum spot age (s)", "max_age_seconds", note="30 to 600 seconds", compact=True)
         self._field(timing, 1, "Repeat suppression (s)", "repeat_seconds", note="30 to 3600 seconds", compact=True)
         self._field(timing, 2, "Gap between spots (s)", "spacing_seconds", note="0 to 120 seconds. Zero adds no pause.", compact=True)
         supervision = ttk.LabelFrame(frame, text="RF supervision", padding=12)
-        supervision.grid(row=3, column=0, sticky="w", pady=(0, 12))
+        supervision.grid(row=4, column=0, sticky="ew", pady=(0, 12))
         self.variables["supervised_ack"] = tk.BooleanVar(value=self.settings.supervised_ack)
         self.channel_ack = self.variables["supervised_ack"]
         # Retain the old saved value for settings compatibility; it no longer gates RF.
         ttk.Label(supervision, text="Optional receive audio monitoring in Audio / PTT can hold transmissions while audio is detected. Supervise operation on a clear or coordinated channel. RF Enable does not require an acknowledgement.",
                   wraplength=550).grid(row=0, column=0, sticky="w")
         ttk.Label(frame, text="Only validated spots are spoken. Comments and cluster commands are excluded.\nQueue: up to 100 spots. Starting output does not replay displayed history.",
-                  wraplength=650).grid(row=4, column=0, sticky="w")
+                  wraplength=650).grid(row=5, column=0, sticky="w")
 
     def _spot_filter_picker(self, key, title, values):
         dialog = tk.Toplevel(self.root)
@@ -777,9 +783,9 @@ class Application:
         "Callsign + frequency": ("callsign,frequency,intro", "New DX", False),
     }
 
-    def _format_editor(self, parent):
+    def _format_editor(self, parent, row=0):
         frame = ttk.LabelFrame(parent, text="Announcement format", padding=12)
-        frame.grid(row=0, column=0, sticky="w", pady=(0, 12))
+        frame.grid(row=row, column=0, sticky="ew", pady=(0, 12))
         presets = ttk.Frame(frame)
         presets.grid(row=0, column=0, sticky="w", pady=(0, 8))
         ttk.Label(presets, text="Preset").pack(side="left", padx=(0, 12))
@@ -885,9 +891,8 @@ class Application:
 
     def _state_control(self, parent, kind):
         action = {"connection": self._connection_action, "listening": self._listen, "rf": self._enable}[kind]
-        shell = tk.Frame(parent, padx=2, pady=2)
-        button = tk.Button(shell, relief="flat", borderwidth=0, padx=10, pady=7, width=15,
-                           takefocus=True, command=self.guard(action))
+        shell = tk.Frame(parent)
+        button = ttk.Button(shell, width=15,takefocus=True,command=self.guard(action))
         button.pack(fill="both", expand=True)
         item = {"shell": shell, "button": button, "hover": False, "focus": False, "kind": kind}
         {"connection": self.connection_controls, "listening": self.listening_controls, "rf": self.rf_controls}[kind].append(item)
@@ -941,12 +946,10 @@ class Application:
             else:
                 text = "Connect"
                 edge, background, ink = (p["accent"] if attention else p["edge"]), p["field"], p["ink"]
-            item["shell"].configure(background=edge)
-            item["button"].configure(text=text, background=background, foreground=ink,
-                                     activebackground=background, activeforeground=ink,
-                                     highlightthickness=1, highlightbackground=edge, highlightcolor=edge,
-                                     font=("Segoe UI", self.settings.text_size), state="disabled" if stopping else "normal",
-                                     disabledforeground=p["muted"])
+            from .rounded import button_style
+            item["shell"].configure(background=p['bg'])
+            style=button_style(self.root,p,background,edge,ink)
+            item["button"].configure(text=text,style=style,state="disabled" if stopping else "normal")
 
     def _refresh_spot_units(self):
         self.tree.heading("frequency", text="Frequency " + self.settings.frequency_unit)

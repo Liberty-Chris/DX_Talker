@@ -53,6 +53,41 @@ class AppTests(unittest.TestCase):
             self.env.stop()
             self.folder.cleanup()
 
+    def test_announcements_panels_align_and_filter_shortcut_is_outside_frequency(self):
+        self.root.deiconify();self.root.geometry('1000x700')
+        self.app.notebook.select(4);self.root.update()
+        page=self.app.tabs['Announcements'];body=page.winfo_children()[0]
+        panels=[w for w in body.winfo_children() if w.winfo_class()=='TLabelframe']
+        self.assertEqual(len(panels),4)
+        self.assertEqual(len({w.winfo_width() for w in panels}),1)
+        self.assertEqual(len({w.winfo_rootx() for w in panels}),1)
+        frequency=next(w for w in panels if w.cget('text')=='Frequency range')
+        self.assertFalse(any(w.winfo_class()=='TButton' and w.cget('text')=='What do you want to hear?' for w in frequency.winfo_children()))
+        self.assertLess(body.winfo_width(),1000)
+
+    def test_direct_spot_send_validates_and_preserves_session(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from dxtalker.spotting import open_spot_dialog
+        ready=threading.Event();ready.set()
+        source=SimpleNamespace(settings=replace(self.app.settings,source_type='TCP/Telnet'),ready=ready,signed_in=ready,submit_spot=Mock())
+        self.app.source=source
+        try:
+            window=open_spot_dialog(self.app)
+            children=window.winfo_children()[0].winfo_children()
+            entries=[w for w in children if w.winfo_class()=='TEntry']
+            send=next(w for w in children if w.winfo_class()=='TButton' and w.cget('text')=='Send spot')
+            send.invoke();source.submit_spot.assert_not_called()
+            for widget,value in zip(entries,('WB4IUY','14225','SSB')):
+                self.root.setvar(widget.cget('textvariable'),value)
+            send.invoke();source.submit_spot.assert_called_once_with('DX 14225 WB4IUY SSB')
+            self.root.setvar(entries[-1].cget('textvariable'),'POTA')
+            self.app.source=None;send.invoke()
+            source.submit_spot.assert_called_once()
+            self.assertIn('disconnected',self.app.spot_status.get())
+            window.destroy()
+        finally:self.app.source=None
+
     def test_compact_live_layout_keeps_queue_and_source_commands_reachable(self):
         self.root.deiconify();self.root.geometry('900x600');self.root.update()
         self.app._responsive_layout();self.root.update()
@@ -268,7 +303,8 @@ class AppTests(unittest.TestCase):
         self.app.connection_controls[0]['hover'] = True
         self.app._render_connections()
         self.assertEqual(self.app.connection_controls[0]['button'].cget('text'), 'Disconnect')
-        self.assertEqual(self.app.connection_controls[0]['shell'].cget('background'), '#d63852')
+        from tkinter import ttk
+        self.assertEqual(ttk.Style(self.root).lookup(self.app.connection_controls[0]['button'].cget('style'),'bordercolor'), '#d63852')
         self.app._connection_action()
         self.assertIsNone(self.app.source)
         self.assertTrue(all(i['button'].cget('text') == 'Connect' for i in self.app.connection_controls))
@@ -356,11 +392,11 @@ class AppTests(unittest.TestCase):
                     self.app.theme.set(theme)
                     button['focus'] = False
                     self.app._render_connections()
-                    self.assertEqual(button['shell'].cget('background'), PALETTES[theme]['accent'])
+                    self.assertEqual(self.root.tk.call('ttk::style','lookup',button['button'].cget('style'),'-bordercolor'), PALETTES[theme]['accent'])
                     button['focus'] = True
                     self.app._render_connections()
                     self.assertEqual(button['button'].cget('text'), 'Disable RF')
-                    self.assertEqual(button['shell'].cget('background'), '#d63852')
+                    self.assertEqual(self.root.tk.call('ttk::style','lookup',button['button'].cget('style'),'-bordercolor'), '#d63852')
                 # Disabling RF leaves an existing cluster and live rows intact.
                 source = Mock()
                 self.app.source = source
