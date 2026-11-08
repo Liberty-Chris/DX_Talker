@@ -1,0 +1,30 @@
+{
+  "python_x86": {
+    "url": "https://www.python.org/ftp/python/3.4.4/python-3.4.4.msi",
+    "sha256": "46c8f9f63cf02987e8bf23934b2f471e1868b24748c5bb551efcf4863b43ca6c"
+  },
+  "python_x64": {
+    "url": "https://www.python.org/ftp/python/3.4.4/python-3.4.4.amd64.msi",
+    "sha256": "ace645d104bddd4f4ffbf453bedddaf2496e3609af3fa47173680d2f321d3709"
+  },
+  "inno": {
+    "url": "https://files.jrsoftware.org/is/5/innosetup-5.6.1-unicode.exe",
+    "sha256": "27d49e9bc769e9d1b214c153011978db90dc01c2acd1ddcd9ed7b3fe3b96b538"
+  },
+  "certificates": {
+    "url": "https://files.pythonhosted.org/packages/32/d1/a3652fe2c19134d0d15922177821d863cbd7e842d53a21bbe7e8e3a1b5ac/certifi-2026.10.23-py3-none-any.whl",
+    "sha256": "e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1"
+  },
+  "qrcode": {
+    "url": "https://files.pythonhosted.org/packages/39/71/c01d42a3fc1a9c768c93980f26159ec682dc7bd49407e756f671b52b8344/qrcode-5.3-py2.py3-none-any.whl",
+    "sha256": "60222a612b83231ed99e6cb36e55311227c395d0d0f62e41bb51ebbb84a9a22b"
+  },
+  "png": {
+    "url": "https://files.pythonhosted.org/packages/2f/b1/c8dfcf50feb12a30be7d95c5f45d638704682487d8e50419ef41463febcd/pypng-0.0.18.tar.gz",
+    "sha256": "985a1306319e3187e2cb3dabec95a7a0f0f281ae2e1fec04289bed520fecd932"
+  },
+  "six": {
+    "url": "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl",
+    "sha256": "4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274"
+  }
+}

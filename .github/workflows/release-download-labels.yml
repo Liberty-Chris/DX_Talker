@@ -1,0 +1,34 @@
+name: Release download labels
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Apply reviewed labels and download tables to existing releases'
+        type: boolean
+        default: false
+  push:
+    branches: [feat/xp-core-installers]
+    paths: ['scripts/release_assets.py', 'scripts/label_release_assets.py', '.github/workflows/release-download-labels.yml']
+permissions:
+  contents: write
+jobs:
+  labels:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Label downloads without changing filenames or binaries
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APPLY: ${{ github.event_name == 'push' || inputs.apply }}
+        run: |
+          flags=()
+          if [[ "$APPLY" == true ]]; then flags+=(--apply); fi
+          python scripts/label_release_assets.py "${flags[@]}"
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: Release-download-label-report
+          path: release-download-labels.json
