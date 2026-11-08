@@ -58,9 +58,10 @@ def enable_private_crt(source, destination):
     if msi.MsiOpenDatabaseW(str(destination),C.c_void_p(1),C.byref(database)): raise ValueError('Cannot prepare the private CRT extraction')
     try:
         for sql in ("UPDATE `Feature` SET `Level`=1 WHERE `Feature`='PrivateCRT'",
-                    "DELETE FROM `Condition` WHERE `Feature`='PrivateCRT'"):
+                    "DELETE FROM `Condition` WHERE `Feature_`='PrivateCRT'"):
             view=C.c_uint32()
-            if msi.MsiDatabaseOpenViewW(database,sql,C.byref(view)): raise ValueError('Cannot select the private CRT feature')
+            result = msi.MsiDatabaseOpenViewW(database,sql,C.byref(view))
+            if result: raise ValueError('Cannot select private CRT metadata (' + str(result) + '): ' + sql)
             try:
                 if msi.MsiViewExecute(view,0): raise ValueError('Cannot apply the private CRT feature selection')
             finally: msi.MsiCloseHandle(view)
