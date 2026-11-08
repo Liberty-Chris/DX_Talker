@@ -80,3 +80,6 @@ An older report from 0.2.0a8 contained audio stop errors along the completion pa
 A14 introduced extra rendering work for rounded controls and panels. A15 reduces the image tiling work and skips unchanged state button updates. The rounded appearance is retained. This correction does not require resetting settings or changing speech providers.
 
 If navigation remains slow after updating, export a fresh diagnostic ZIP from History / Updates. Include the app version, Windows version, approximate time, whether a cluster was connected and whether local listening or RF output was running. Mention whether the delay occurs immediately after launch or develops over time. Existing diagnostics capture long event loop stalls but may not record every shorter navigation delay. No diagnostics are uploaded automatically.
+
+
+Build verification now checks startup, tab switching, scrolling and idle CPU use before publication. These checks do not run continuously on your PC and do not replace the diagnostic export if a slowdown recurs. The Node.js runtime used by GitHub Actions is part of build automation; the Windows application runs Python and Tk and does not require Node.js.

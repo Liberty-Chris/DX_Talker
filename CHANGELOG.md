@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.2.0a15. Unreleased
+## 0.2.0a16. Unreleased
+
+Add automatic startup, navigation, scrolling and idle CPU budgets to explicit Windows self tests. Include measured values, limits and failures in the existing verification artifacts and fail the source, portable or installed checks on a breach. Keep benchmark work outside normal application use. Retain deterministic rendering regression tests and record the broader efficiency audit as the next maintenance batch.
+
+## 0.2.0a15
 
 Bundle six recommended nodes from the supplied validated operator list: W1NR, DX Spots, N2WQ, WB3FFV, W3LPL and W4MYA. Show preconfigured addresses in the choosers and reuse the operator's entered callsign when saving a node. Preserve existing profiles and explicit connection. Embed the listening filter editor directly on Source in responsive columns; keep independent filter application and include pending filter edits in the main save action. Move frequency limits into its advanced controls. Record physical phone confirmation that a14 QR scanning and import work.
 

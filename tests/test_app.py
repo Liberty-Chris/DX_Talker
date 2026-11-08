@@ -362,6 +362,24 @@ class AppTests(unittest.TestCase):
         self.assertIsNone(self.app.source)
         self.assertTrue(all(i['button'].cget('text') == 'Connect' for i in self.app.connection_controls))
 
+    def test_performance_probe_measures_pages_and_restores_ui_without_output(self):
+        from dxtalker.performance import measure
+        self.root.deiconify();self.root.geometry('1000x700')
+        self.app.notebook.select(4);self.root.update()
+        selected=self.app.notebook.select()
+        positions=[canvas.yview()[0] for _,canvas in self.app.scroll_tabs]
+        generation=self.app.source_generation
+        metrics=measure(self.app,10,rounds=1,idle_seconds=0.1)
+        self.assertEqual(metrics['navigation_samples'],8)
+        self.assertEqual(metrics['scroll_samples'],18)
+        self.assertGreater(metrics['idle_wall_seconds'],0)
+        self.assertEqual(self.app.notebook.select(),selected)
+        self.assertEqual([canvas.yview()[0] for _,canvas in self.app.scroll_tabs],positions)
+        self.assertIsNone(self.app.source)
+        self.assertEqual(self.app.source_generation,generation)
+        self.assertFalse(self.app.engine.enabled)
+        self.assertFalse(self.app.engine.local_enabled)
+
     def test_unchanged_state_controls_do_not_redraw_on_idle_polls(self):
         from contextlib import ExitStack
         self.app._render_connections()
