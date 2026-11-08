@@ -195,3 +195,8 @@ Use feed supplied or operator known station locations instead of presenting call
 Spotting requires reviewed explicit submission to the current signed in TCP node. Socket delivery is not cluster acceptance. Do not duplicate submissions across nodes or retry after reconnect. A bounded manual serial PTT test remains inside the sole transmission coordinator and respects the optional receive gate. Independent CW/voice deadlines serialize audio; operator pause markers produce PCM/SSML silence and are not passed through as spoken words.
 
 Reuse Windows synthesis initialization and verified recorded PCM assets instead of trading freshness for an unbounded backlog. Retain bounded queue/age limits and expose preparation time and queue age. Runtime faults stop output and use a nonblocking notice so a user reading an error does not look like a frozen event loop. Bundled voice assets and reviewed directory entries are separate supplied content, not fabricated during implementation.
+
+
+## Release version ownership and prose corrections. November 7, 2026
+
+Keep published installers tied to their original version and tested commit. Workflow changes that need a newly distributed package receive a new application version; rerunning a workflow does not increment it. Check conflicts before packaging and again at publication. Store corrections to published descriptions in version named archive files and synchronize only the release body through a separate workflow. This resolves copied descriptions without replacing installed users' downloads or moving tags.

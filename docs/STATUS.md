@@ -215,3 +215,10 @@ Local verification: 176 Python tests pass with no skips under a Linux dummy X di
 The 0.2.0a12 release was published successfully with seven uploaded assets. Run 42441841646 subsequently passed its builds and tests but failed on duplicate release creation. Workflow maintenance now pins actions declaring Node.js 24, serializes publication jobs and checks existing release completeness before an exact commit retry. It never replaces published assets and retains the different commit tag guard. A stale a11 release notes file is corrected for a12 and checked alongside version metadata. Existing GitHub release prose requires a separate edit; changing the source does not alter it retroactively.
 
 Local publication regressions cover complete retries, explicit 404 versus other API errors, missing or empty assets, drafts, wrong tags and non JSON failures. Node.js 24 workflow integration is pending CI. No application version bump or new release is part of this maintenance change.
+
+
+## a13 publication completion and release text correction
+
+Run 42442975977 passed every build and verification job but failed because main's merge commit differed from the existing a12 tag. The prior duplicate creation fix correctly preserves downloads, but did not make a changed commit eligible to reuse the same version. The release metadata is now advanced to a13, including Android versionCode 7 and Windows numeric version 0.2.0.13. An early tag check prevents another full Windows package build for an already owned version and prints a version bump instruction.
+
+The existing a12 GitHub body still describes a11 at review time. Its corrected description is archived separately from a13's current notes. A dedicated Release notes workflow will apply the archived correction after merge, or on a manual main run, without modifying installers or tags. Eleven focused publication and note correction regressions pass locally. Documentation, current/archived version checks and whitespace checks pass. Full Windows and Android integration verification is pending CI. No new application behavior or radio testing is claimed for this maintenance release.

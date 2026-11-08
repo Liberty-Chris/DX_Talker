@@ -24,6 +24,15 @@ jobs:
       - uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.12'
+      - name: Check publication version before packaging
+        if: runner.os == 'Linux' && (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release && github.ref == 'refs/heads/main'))
+        shell: bash
+        run: |
+          release_tag="v$(python -c 'from dxtalker import __version__; print(__version__)')"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then release_tag="$GITHUB_REF_NAME"; fi
+          python scripts/check_versions.py "$release_tag"
+          existing="$(git ls-remote origin "refs/tags/$release_tag" | cut -f1)"
+          python scripts/check_published_release.py --check-target "$release_tag" "$GITHUB_SHA" "$existing"
       - run: python -m pip install -r requirements.txt
       - run: python -m unittest discover -s tests -v
       - run: python scripts/check_docs.py
@@ -193,10 +202,7 @@ jobs:
         run: |
           if [[ "$GITHUB_REF" == refs/heads/main ]]; then
             existing="$(git ls-remote origin "refs/tags/$RELEASE_TAG" | cut -f1)"
-            if [[ -n "$existing" && "$existing" != "$GITHUB_SHA" ]]; then
-              echo "Existing release tag points to another commit"
-              exit 1
-            fi
+            python scripts/check_published_release.py --check-target "$RELEASE_TAG" "$GITHUB_SHA" "$existing"
             if [[ -z "$existing" ]]; then
               git tag "$RELEASE_TAG" "$GITHUB_SHA"
               git push origin "refs/tags/$RELEASE_TAG"

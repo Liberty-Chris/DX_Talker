@@ -45,3 +45,12 @@ The version alignment check also verifies the opening version in docs/releases/c
 ## Android test downloads
 
 Open Actions and choose Android APK, then select a successful run for the intended main commit. Download its debug APK artifact, extract the ZIP and install app-debug.apk. Pull request artifacts are candidate builds, not published Windows updates. Android artifacts are separate from the Windows release and do not automatically appear in the desktop updater. Check the run commit and app version rather than assuming the most recent run contains a new version. Artifact downloads require GitHub sign in and expire according to the workflow retention setting.
+
+
+## Version ownership and published text corrections
+
+A release version belongs to one tested commit. PR 25 changed workflow tooling while retaining a12, so publishing its merge commit stopped at the existing tag guard. Run 42442975977 confirmed this cause after all packaging checks passed. The next release is a13 with matching application, installer, EXE numeric metadata, help version, Android version name and increased Android version code. Ordinary merges and workflow runs do not increment versions automatically.
+
+Publication now checks tag ownership in the Linux core job before Windows packaging. A conflict explains that the version and metadata must be increased. The publish job repeats that check under publication concurrency to catch another run publishing in the meantime.
+
+Archived release descriptions live at docs/releases/vVERSION.md. The Release notes workflow validates each archive and, on main pushes that change those files or its tooling, updates matching published release bodies. It can also be run manually on main. Its write permission is limited to the sync job, which edits only notes using gh release edit. It does not create a release, move tags or replace assets. PR validation has read permission and never edits releases. Failed lookups and draft releases stop synchronization. The initial archive corrects a12's accidentally copied a11 description. Current.md remains the description for the next publication and is not used to rewrite older releases.

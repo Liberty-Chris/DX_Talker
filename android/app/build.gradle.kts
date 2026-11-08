@@ -9,8 +9,8 @@ android {
         applicationId = "club.dxtalker.android"
         minSdk = 29
         targetSdk = 35
-        versionCode = 6
-        versionName = "0.2.0a12"
+        versionCode = 7
+        versionName = "0.2.0a13"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
