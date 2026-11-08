@@ -46,3 +46,7 @@ Use the download explicitly labelled Windows XP and the architecture matching yo
 The XP pilot uses the same profiles, filtering, announcement controls, radio coordinator, IDs and transfer tools as the modern application. System speech uses installed SAPI voices. Select Windows MME audio devices again when moving settings from a modern Windows installation. Optional Piper or other external executables must themselves support XP. Recorded PCM voice packs avoid that external runtime requirement.
 
 These installers are for XP acceptance testing. Hosted verification does not establish operation on your particular XP system or radio interface. Use sample spots and local previews first. RF always starts disabled.
+
+## Android pilot download
+
+From a18, Android phones and tablets appears beside the Windows and XP downloads on the GitHub Release page. Download DXTalker-Android.apk and open it on the Android device to install the pilot. Android may ask permission to install an app from your browser or file manager. This is manual pilot distribution; Play Store installation and automatic mobile updates are not provided by this download change. Development APKs signed with different keys cannot replace one another directly. Export your profile collection before replacing an existing test installation.

@@ -6,6 +6,7 @@ on:
   pull_request:
     paths: ['android/**', 'dxtalker/privileges.py', 'scripts/sync_privileges.py', '.github/workflows/android-apk.yml']
   workflow_dispatch:
+  workflow_call:
 jobs:
   build:
     runs-on: ubuntu-latest

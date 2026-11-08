@@ -24,6 +24,8 @@ class ReleaseAssetTests(unittest.TestCase):
         self.assertIn('64 bit application installer', assets.label('DXTalker-Setup-Windows-XP-64bit.exe'))
         self.assertIn('portable ZIP', assets.label('DXTalker-Windows-x64.zip'))
         self.assertIn('Not an installer or full application', assets.label('DXTalker-XP-source-test-kit.zip'))
+        self.assertIn('Android phones and tablets', assets.label('DXTalker-Android.apk'))
+        self.assertIn('manual installation', assets.label('DXTalker-Android.apk'))
         self.assertIsNone(assets.label('unknown.exe'))
 
     def test_reconciliation_only_changes_labels_and_managed_body(self):
@@ -66,6 +68,7 @@ class ReleaseAssetTests(unittest.TestCase):
             directory = Path(folder)/'release'; directory.mkdir()
             name = 'DXTalker-Setup-Windows-XP-32bit.exe'
             (directory/name).write_text('synthetic')
+            (directory/'DXTalker-Android.apk').write_bytes(b'synthetic APK')
             notes = Path(folder)/'notes.md'; notes.write_text('Original release prose.\n')
             output = Path(folder)/'prepared.md'
             command = [sys.executable, str(ROOT/'scripts/release_assets.py'), str(directory), '--notes', str(notes), '--tag', 'v0.2.0a17', '--output', str(output)]
@@ -74,6 +77,8 @@ class ReleaseAssetTests(unittest.TestCase):
             self.assertTrue(prepared.startswith('Original release prose.\n'))
             self.assertIn('/v0.2.0a17/'+name, prepared)
             self.assertNotIn('source-test-kit', prepared)
+            self.assertIn('/v0.2.0a17/DXTalker-Android.apk', prepared)
+            self.assertIn('Android phones and tablets', prepared)
             (directory/'unlabelled.exe').write_text('synthetic')
             failed = subprocess.run(command, capture_output=True)
             self.assertNotEqual(failed.returncode, 0)
