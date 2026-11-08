@@ -333,3 +333,51 @@ class EngineTests(unittest.TestCase):
         evidence=next(value for kind,value in self.events if kind=='diagnostic')
         self.assertEqual(evidence['route'],'radio')
         self.assertEqual(evidence['code'],'audio_stream_fault')
+
+    def test_recovered_spot_underrun_keeps_rf_enabled_and_releases_ptt(self):
+        self.enable_and_id()
+        class RecoveryAudio(FakeAudio):
+            def play(self,*args):
+                super().play(*args)
+                return dict(output_underflows=1,status_flags=['output_underflow'])
+        self.engine.audio=RecoveryAudio()
+        self.assertTrue(self.engine.offer(self.spot()))
+        wait_for(lambda:any(kind=='audio_recovery' for kind,value in self.events) and not self.engine.busy)
+        self.assertTrue(self.engine.enabled)
+        self.assertEqual(self.ptts[-1].calls[-2:],[False,'close'])
+        self.assertFalse(any(kind=='diagnostic' for kind,value in self.events))
+        event=next(value for kind,value in self.events if kind=='audio_recovery')
+        self.assertEqual(event['route'],'radio')
+        self.assertEqual(event['operation'],'spot')
+
+    def test_recovery_does_not_mark_an_interrupted_required_id_complete(self):
+        class RecoveryAudio(FakeAudio):
+            def play(self,*args):
+                super().play(*args)
+                return dict(output_underflows=1,status_flags=['output_underflow'])
+        self.engine.audio=RecoveryAudio()
+        self.engine.enable()
+        wait_for(lambda:bool(self.ptts) and not self.engine.enabled and not self.engine.busy)
+        self.assertEqual(self.ptts[-1].calls[-2:],[False,'close'])
+        event=next(value for kind,value in self.events if kind=='diagnostic')
+        self.assertEqual(event['code'],'audio_id_interrupted')
+        self.assertEqual(self.engine.alternate,0)
+
+    def test_power_request_is_released_when_output_worker_exits(self):
+        from unittest.mock import patch
+        from dxtalker.power import OutputPower, CONTINUOUS, SYSTEM
+        from types import SimpleNamespace
+        self.engine.shutdown();self.engine.worker.join(2)
+        calls=[]
+        api=SimpleNamespace(request=lambda flags:calls.append((threading.get_ident(),flags)) or True)
+        with patch('dxtalker.engine.OutputPower', side_effect=lambda emit:OutputPower(emit,api)):
+            self.engine=Engine(replace(self.settings,keep_awake='Computer'), lambda *event:self.events.append(event), self.audio,self.speech,lambda settings:FakePTT())
+            self.engine.listen_locally()
+            wait_for(lambda:bool(calls))
+            self.engine.stop()
+            wait_for(lambda:len(calls)>=2)
+            self.engine.listen_locally()
+            wait_for(lambda:len(calls)>=3)
+            self.engine.shutdown();self.engine.worker.join(2)
+        self.assertEqual([flags for thread,flags in calls],[CONTINUOUS|SYSTEM,CONTINUOUS,CONTINUOUS|SYSTEM,CONTINUOUS])
+        self.assertEqual(len({thread for thread,flags in calls}),1)

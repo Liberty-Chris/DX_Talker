@@ -658,6 +658,12 @@ class Application:
         self.variables["ptt_method"].trace_add("write", lambda *args: self._ptt_method_changed())
         self._ptt_method_changed()
 
+        if sys.platform == 'win32':
+            power = ttk.LabelFrame(frame, text='Power management', padding=12)
+            power.grid(row=5, column=0, sticky='w', pady=(0,12))
+            self._field(power, 0, 'Keep awake', 'keep_awake', ['Off', 'Computer', 'Computer and display'], compact=True)
+            ttk.Label(power, text='Applies while listening, RF or a preview is active. Does not change Num Lock, screensaver or lock settings. Save and apply.', wraplength=610).grid(row=1,column=0,columnspan=3,sticky='w',pady=(8,0))
+
     def _test_ptt(self):
         keys=('ptt_method','serial_port','active_high','receive_guard','receive_device','receive_threshold_db','receive_quiet_seconds','max_tx_seconds')
         values={}
@@ -1684,6 +1690,12 @@ class Application:
                     continue
                 elif kind == 'performance':
                     self.diagnostics.record('speech_timing',**value)
+                    continue
+                elif kind == 'audio_recovery':
+                    self.diagnostics.record('audio_recovered', **value)
+                    continue
+                elif kind == 'power_event':
+                    self.diagnostics.record('desktop_power', **value)
                     continue
                 elif kind == 'speech_voice':
                     self.resolved_voice.set('Speaking voice: '+value)

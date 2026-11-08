@@ -148,3 +148,7 @@ Publish the tested Android pilot APK on the same GitHub Release as Windows and X
 ## 0.2.0a20. Unreleased
 
 Use Alpha in the shared desktop header and About label. Rename the multi platform workflow Build and publish DX Talker and link it prominently from the README and release guide. Preserve the existing Pilot update channel and installer filenames.
+
+## 0.2.0a21. Unreleased
+
+Improve modern desktop buffering and recover bounded isolated spot/preview underruns. Keep persistent faults, interrupted station IDs, cancellation, device loss and deadlines as stop conditions. Add optional Windows native keep awake controls with automatic release and no keyboard injection. Record sampled screensaver transitions and fixed audio timing/status metadata for diagnosis.

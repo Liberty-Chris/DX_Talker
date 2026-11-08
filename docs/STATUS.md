@@ -294,3 +294,9 @@ A new amd64 Debian package shares the maintained desktop core, with native eSpea
 ## 0.2.0a20. Alpha naming and release navigation
 
 The shared desktop header and About label now say Alpha. The publication workflow is named Build and publish DX Talker and is linked directly from the README and release guide. Pilot remains the existing prerelease update channel for compatibility. No source, audio or radio behavior changes. Documentation and version checks pass; hosted regression checks accompany the pull request.
+
+## 0.2.0a21. Screensaver audio resilience
+
+The supplied diagnostic contains one a15 radio audio_stream_fault at 06:47:08 UTC, after 91,136 of 138,884 frames were queued at 22,050 Hz. The operator reports the screensaver event at that time. Speech preparation took 0.266 seconds and the app continued running. Modern playback now uses adaptive high latency buffers and tolerates bounded isolated output underruns. Required IDs and persistent or other audio faults still stop RF.
+
+Optional Windows keep awake controls use thread scoped native requests and preserve keyboard, screensaver and lock settings. The existing diagnostic watchdog records sampled screensaver changes and observation gaps; audio reports add fixed flags, counters and timing/latency metadata. Focused audio, coordinator and power tests pass locally, with native Windows API verification reserved for Windows CI. Full source and hosted checks accompany the PR. Physical acceptance on the reporting Windows 10 machine remains open.
