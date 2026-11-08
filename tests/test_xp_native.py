@@ -1,5 +1,6 @@
 """XP APIs are simulated here. No native audio endpoint or serial port is opened."""
 import ctypes as C
+import io
 import tempfile
 import threading
 import time
@@ -66,6 +67,22 @@ class XPNativeTests(unittest.TestCase):
             self.assertEqual(source.replace(destination), destination)
             self.assertFalse(source.exists())
             self.assertEqual(destination.read_text(encoding='utf-8'), 'synthetic settings')
+
+    def test_qr_png_encoder_preserves_modules_scale_and_quiet_border(self):
+        import qrcode
+        import png
+        from platforms.xp.support.qr_image import PyPNGImage
+        qr = qrcode.QRCode(box_size=3, border=4, image_factory=PyPNGImage)
+        qr.add_data('synthetic collection'); qr.make(fit=True)
+        image = qr.make_image(); output = io.BytesIO(); image.save(output)
+        width, height, rows, metadata = png.Reader(bytes=output.getvalue()).asDirect()
+        pixels = list(rows)
+        self.assertEqual(width, height)
+        self.assertEqual(width, (qr.modules_count + 8) * 3)
+        self.assertTrue(all(value == 1 for value in pixels[0]))
+        for row in range(qr.modules_count):
+            for column in range(qr.modules_count):
+                self.assertEqual(pixels[(row + 4) * 3][(column + 4) * 3], 0 if qr.modules[row][column] else 1)
 
     def tearDown(self): winmm._quarantined[:]=[]
     def test_pcm_completion_cancellation_deadline_and_cleanup(self):

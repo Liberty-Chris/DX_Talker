@@ -10,6 +10,7 @@ permissions:
 jobs:
   xp:
     runs-on: windows-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -32,7 +33,7 @@ jobs:
         run: |
           $app = "$PWD/build/xp-${{ matrix.architecture }}"
           & "$app/runtime/python.exe" -I -c "import sys;sys.path.insert(0,r'$app');from xp_support.test_runner import run;raise SystemExit(0 if run(r'$app') else 1)"
-          if ($LASTEXITCODE -ne 0) { throw 'XP shared behavior checks failed' }
+          if ($LASTEXITCODE -ne 0) { throw "XP shared behavior checks failed with exit code $LASTEXITCODE" }
       - name: Check complete UI, QR, private secrets and SAPI without playback or PTT
         if: ${{ !cancelled() }}
         run: |
@@ -40,6 +41,19 @@ jobs:
           $process = Start-Process "$app/runtime/python.exe" -ArgumentList '-I', "`"$app/run_xp.py`"", '--self-test', "`"$PWD/xp-${{ matrix.architecture }}-smoke.json`"" -PassThru
           if (-not $process.WaitForExit(90000)) { $process.Kill(); throw 'XP UI check timed out' }
           if ($process.ExitCode -ne 0) { Get-Content xp-${{ matrix.architecture }}-smoke.json; throw 'XP UI check failed' }
+      - name: Diagnose unexpected UI exits
+        if: failure()
+        run: |
+          $app = "$PWD/build/xp-${{ matrix.architecture }}"
+          & "$app/runtime/python.exe" -I platforms/xp/probe_ui.py "$app" "xp-${{ matrix.architecture }}-ui-trace.log"
+          Write-Output "UI diagnostic exit code: $LASTEXITCODE"
+          Get-WinEvent -FilterHashtable @{ LogName='Application'; StartTime=(Get-Date).AddMinutes(-15) } -ErrorAction SilentlyContinue | Where-Object { $_.Id -eq 1000 } | Select-Object -First 3 -ExpandProperty Message
+          exit 0
+      - name: Verify public update HTTPS with the bundled interpreter
+        run: |
+          $app = "$PWD/build/xp-${{ matrix.architecture }}"
+          & "$app/runtime/python.exe" -I platforms/xp/check_https.py "$app" "xp-${{ matrix.architecture }}-https-smoke.json"
+          if ($LASTEXITCODE -ne 0) { throw 'XP verified HTTPS check failed' }
       - name: Check XP installation, native launch, upgrade, shortcuts and removal
         run: ./platforms/xp/check_installer.ps1 -Architecture ${{ matrix.architecture }}
       - uses: actions/upload-artifact@v7.0.2
@@ -48,6 +62,7 @@ jobs:
           name: XP-verification-${{ matrix.architecture }}
           path: |
             xp-*-smoke.json
+            xp-*-ui-trace.log*
             build/*-msi-image.log
       - uses: actions/upload-artifact@v7.0.2
         with:

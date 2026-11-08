@@ -58,13 +58,18 @@ def run(destination):
         assert protect_secret(secret, decrypt=True) == 'synthetic-test-secret'
         report['account_secret_roundtrip'] = True
         import qrcode
-        from qrcode.image.pure import PyPNGImage
+        from xp_support.qr_image import PyPNGImage
         image = qrcode.make('DX Talker synthetic QR test', image_factory=PyPNGImage)
         output = io.BytesIO(); image.save(output)
         photo = tk.PhotoImage(data=base64.b64encode(output.getvalue()))
         assert photo.width() > 0
         report['qr_png'] = True
         report['settings_fields'] = len(fields(Settings))
+        from dxtalker.performance import measure, violations, BUDGETS
+        report['performance'] = measure(app, report['ui_startup_ms'])
+        report['performance_budgets'] = BUDGETS
+        report['performance_failures'] = violations(report['performance'])
+        assert not report['performance_failures'], 'XP UI performance budget failed'
         app.close()
         if not app.diagnostics.closed.is_set():
             root.after(5000, root.quit); root.mainloop()

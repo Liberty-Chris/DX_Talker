@@ -20,6 +20,8 @@ class Target34(ast.NodeTransformer):
     def application_module(self, name):
         return self.filename.endswith('/dxtalker/' + name + '.py')
     def visit_ImportFrom(self, node):
+        if node.module == 'qrcode.image.pure' and any(name.name == 'PyPNGImage' for name in node.names):
+            node.module = 'xp_support.qr_image'
         if node.module == '__future__':
             node.names = [name for name in node.names if name.name != 'annotations']
             return node if node.names else None
