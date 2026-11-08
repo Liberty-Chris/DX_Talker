@@ -132,3 +132,6 @@ Local Windows generation and recorded playback are useful for busy feeds. Online
 Voice ID pause controls and independent CW/voice schedules are described under [Station identification](identification.md).
 
 Desktop buttons and settings panels have rounded surfaces in every appearance mode. Keyboard focus, Enter and Space activation, disabled states and the connection/listening/RF state colors remain available. Outer window borders follow the operating system. Announcements aligns its format, timing and RF supervision panels. The listening filter editor is embedded on Source.
+
+
+On Android Listen, use the kHz/MHz control beside Recent spots. It updates retained row frequencies and future speech without reconnecting the cluster. Pending/current speech is stopped when units change, and displayed history is not replayed. Frequencies and band/license rules stay in canonical kHz internally. Applying a listening preset can also change units; its value is retained when other filter controls are edited.

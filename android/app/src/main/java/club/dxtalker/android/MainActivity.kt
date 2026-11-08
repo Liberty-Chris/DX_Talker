@@ -21,6 +21,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class MainActivity : Activity() {
+    private var applyFilterEdits:(()->Unit)?=null
+    private var filterApplyStatus:TextView?=null
     private val qrCollection = QrCollection()
     private var cameraScanRequested = false
     private lateinit var status: TextView
@@ -80,7 +82,7 @@ class MainActivity : Activity() {
             if (password) inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { drafts["$page:$key"] = s.toString() }
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { drafts["$page:$key"] = s.toString();if(page=="Filters")refreshFilterPending() }
                 override fun afterTextChanged(s: Editable?) {}
             })
             container.addView(this)
@@ -150,7 +152,17 @@ class MainActivity : Activity() {
         root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16),dp(8),dp(16),dp(8)) }
         if(page=="Listen")shell.addView(root,LinearLayout.LayoutParams(-1,0,1f))
         else shell.addView(ScrollView(this).apply { isFillViewport = true; addView(root) }, LinearLayout.LayoutParams(-1,0,1f))
+        filterApplyStatus=null;applyFilterEdits=null
         when(page) { "Listen" -> homeContent(); "Clusters" -> profilesContent(); "Edit cluster" -> profileContent(); "Speech" -> speechContent(); "Filters" -> filterContent(); "Spot" -> spotContent(); "Directory" -> directoryContent(); else -> settingsContent() }
+        if(page=="Filters") {
+            val actions=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(dp(16),dp(4),dp(16),dp(4));setBackgroundColor(surface) }
+            filterApplyStatus=label("",12f,secondary);actions.addView(filterApplyStatus)
+            actions.addView(button("Apply filters") { applyFilterEdits?.invoke() }.apply {
+                backgroundTintList=android.content.res.ColorStateList.valueOf(accent)
+                setTextColor(if(ink==Color.WHITE)Color.BLACK else Color.WHITE)
+            })
+            shell.addView(actions);refreshFilterPending()
+        }
         val player = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12),dp(4),dp(12),dp(4)); setBackgroundColor(surface) }
         status = label("",13f,secondary).apply { maxLines=2;ellipsize=android.text.TextUtils.TruncateAt.END;accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         player.addView(status)
@@ -177,6 +189,13 @@ class MainActivity : Activity() {
         }
         refresh()
     }
+    private fun frequencyUnitsAnchor():View = root.findViewWithTag("frequency_units")
+    private fun refreshFilterPending() {
+        val pending=ListeningSettings.defaults.any { (key,default) ->
+            (drafts["Filters:$key"] ?: prefs.getString(key,default).orEmpty()) != prefs.getString(key,default).orEmpty()
+        }
+        filterApplyStatus?.text=if(pending)"Changes pending. Apply to update display and speech."else "Filter choices are applied."
+    }
     private fun homeContent() {
         val toolbar=LinearLayout(this).apply { gravity=Gravity.CENTER_VERTICAL }
         toolbar.addView(button(prefs.getString("profile_name","Choose cluster").orEmpty()) { go("Clusters",true) }.apply { maxLines=1;ellipsize=android.text.TextUtils.TruncateAt.END;contentDescription="Change cluster" },LinearLayout.LayoutParams(0,-2,1f))
@@ -185,6 +204,17 @@ class MainActivity : Activity() {
         root.addView(label(SpotFilters.summary { key -> prefs.getString(key,"").orEmpty() },12f,secondary).apply { maxLines=2;ellipsize=android.text.TextUtils.TruncateAt.END })
         val heading=LinearLayout(this).apply { gravity=Gravity.CENTER_VERTICAL }
         heading.addView(label("Recent spots",16f).apply { setTypeface(null,Typeface.BOLD) },LinearLayout.LayoutParams(0,-2,1f))
+        heading.addView(button(prefs.getString("frequency_unit","kHz").orEmpty()) {
+            val menu=PopupMenu(this,frequencyUnitsAnchor())
+            for(unit in listOf("kHz","MHz"))menu.menu.add(unit)
+            menu.setOnMenuItemClickListener { choice ->
+                prefs.edit().putString("frequency_unit",choice.title.toString()).apply()
+                drafts.remove("Filters:frequency_unit");drafts.remove("Filters:Frequency units")
+                ListenerService.reformatSpots(choice.title.toString())
+                if(ListenerService.listeningActive)command("units")
+                render();true
+            };menu.show()
+        }.apply { contentDescription="Change frequency units";tag="frequency_units" },LinearLayout.LayoutParams(dp(76),-2))
         heading.addView(button("Why hidden?") { val counts=synchronized(ListenerService.hidden){ListenerService.hidden.toMap()};AlertDialog.Builder(this).setTitle("Filtered reports").setMessage(if(counts.isEmpty())"No reports have been hidden in this session."else counts.entries.joinToString("\n"){it.key+": "+it.value}).setPositiveButton("Close",null).show() },LinearLayout.LayoutParams(dp(118),-2))
         root.addView(heading)
         spotsView=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(dp(8),0,dp(8),0);background=rounded(surface) }
@@ -328,14 +358,15 @@ class MainActivity : Activity() {
             } catch(_:Exception) { Toast.makeText(this,"Check the name, connection address, callsign and numeric ranges.",Toast.LENGTH_LONG).show() }
         })
     }
-    private fun spinner(panel: LinearLayout, title: String, values: List<String>, selected: String): Spinner {
+    private fun spinner(panel: LinearLayout, title: String, values: List<String>, selected: String, key:String=title): Spinner {
         panel.addView(label(title,13f,secondary))
         return Spinner(this).apply {
+            contentDescription=title
             adapter = ArrayAdapter(this@MainActivity,android.R.layout.simple_spinner_dropdown_item,values)
-            setSelection(values.indexOf(drafts["$page:$title"] ?: selected).coerceAtLeast(0)); panel.addView(this)
+            setSelection(values.indexOf(drafts["$page:$key"] ?: selected).coerceAtLeast(0)); panel.addView(this)
             onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onNothingSelected(parent: AdapterView<*>?) {}
-                override fun onItemSelected(parent: AdapterView<*>?,view: View?,position: Int,id: Long) { drafts["$page:$title"] = values[position] }
+                override fun onItemSelected(parent: AdapterView<*>?,view: View?,position: Int,id: Long) { drafts["$page:$key"] = values[position];if(page=="Filters")refreshFilterPending() }
             }
         }
     }
@@ -393,7 +424,8 @@ class MainActivity : Activity() {
     private fun filterContent() {
         val panel = section("What do you want to hear?")
         fun staged(key:String)=drafts["Filters:$key"] ?: prefs.getString(key,ListeningSettings.defaults[key] ?: "").orEmpty()
-        panel.addView(label(SpotFilters.summary { staged(it) },14f,secondary))
+        panel.addView(label(SpotFilters.summary { staged(it) }+" · "+staged("frequency_unit"),14f,secondary))
+        panel.addView(label("Choose your interests, then use Apply filters at the bottom of the screen. It stays visible while you scroll.",13f,secondary))
         val saved=section("Listening presets").apply { visibility=if(drafts["Filters:presets_open"]=="true")View.VISIBLE else View.GONE }
         panel.addView(button("Listening presets") { drafts["Filters:presets_open"]=(drafts["Filters:presets_open"]!="true").toString();render() })
         val presets=runCatching { JSONObject(prefs.getString("listening_presets","{}").orEmpty()) }.getOrDefault(JSONObject())
@@ -421,30 +453,30 @@ class MainActivity : Activity() {
         }
         panel.addView(label("Choose POTA, 20m and SSB to require all three. Selecting several bands accepts any of those bands. Mode and activity tags must be present in the spot.",14f,secondary))
         val license=section("My operating privileges (optional)")
-        spinner(license,"FCC license class",UsPrivileges.classes,staged("license_class")).apply {
-            onItemSelectedListener=object:AdapterView.OnItemSelectedListener { override fun onNothingSelected(p:AdapterView<*>?){};override fun onItemSelected(p:AdapterView<*>?,v:View?,position:Int,id:Long){drafts["Filters:license_class"]=UsPrivileges.classes[position]} }
+        spinner(license,"FCC license class",UsPrivileges.classes,staged("license_class"),key="license_class").apply {
+            onItemSelectedListener=object:AdapterView.OnItemSelectedListener { override fun onNothingSelected(p:AdapterView<*>?){};override fun onItemSelected(p:AdapterView<*>?,v:View?,position:Int,id:Long){drafts["Filters:license_class"]=UsPrivileges.classes[position];refreshFilterPending()} }
         }
-        spinner(license,"Operating region",UsPrivileges.regions,staged("license_region")).apply {
-            onItemSelectedListener=object:AdapterView.OnItemSelectedListener { override fun onNothingSelected(p:AdapterView<*>?){};override fun onItemSelected(p:AdapterView<*>?,v:View?,position:Int,id:Long){drafts["Filters:license_region"]=UsPrivileges.regions[position]} }
+        spinner(license,"Operating region",UsPrivileges.regions,staged("license_region"),key="license_region").apply {
+            onItemSelectedListener=object:AdapterView.OnItemSelectedListener { override fun onNothingSelected(p:AdapterView<*>?){};override fun onItemSelected(p:AdapterView<*>?,v:View?,position:Int,id:Long){drafts["Filters:license_region"]=UsPrivileges.regions[position];refreshFilterPending()} }
         }
-        license.addView(CheckBox(this).apply { text="Include unverified license eligibility";setTextColor(ink);isChecked=staged("license_unknown")=="true";setOnCheckedChangeListener { _,checked -> drafts["Filters:license_unknown"]=checked.toString() } })
+        license.addView(CheckBox(this).apply { text="Include unverified license eligibility";setTextColor(ink);isChecked=staged("license_unknown")=="true";setOnCheckedChangeListener { _,checked -> drafts["Filters:license_unknown"]=checked.toString();refreshFilterPending() } })
         panel.addView(button("Location, timing and frequency limits") { drafts["Filters:advanced"] = (!(drafts["Filters:advanced"]?.toBoolean() ?: false)).toString();render() })
         val advanced=section("Location and advanced filters").apply { visibility=if(drafts["Filters:advanced"]?.toBoolean()==true)View.VISIBLE else View.GONE }
         for((key,title) in listOf("filter_spotter_countries" to "Reporting station countries (US,CA)","filter_spotter_continents" to "Reporting station continents (NA,EU)","filter_spotter_regions" to "Reporting station regions (NC,SC,GA)","filter_dx_countries" to "DX station countries (US,JP)","filter_dx_continents" to "DX station continents (NA,EU)","location_overrides" to "Known station locations (CALL=US,NA,NC)"))edit(advanced,title,staged(key),key=key)
-        advanced.addView(CheckBox(this).apply { text="Include unknown locations";setTextColor(ink);isChecked=staged("geography_unknown")=="true";setOnCheckedChangeListener { _,checked->drafts["Filters:geography_unknown"]=checked.toString() } })
+        advanced.addView(CheckBox(this).apply { text="Include unknown locations";setTextColor(ink);isChecked=staged("geography_unknown")=="true";setOnCheckedChangeListener { _,checked->drafts["Filters:geography_unknown"]=checked.toString();refreshFilterPending() } })
         advanced.addView(label("Location requires feed metadata or your known station list. Callsigns alone do not establish current locations. Separate known stations with a semicolon. Leave location fields blank to accept all.",14f,secondary))
-        val units=spinner(advanced,"Frequency units",listOf("kHz","MHz"),staged("frequency_unit"))
         for((key,title) in listOf("min_khz" to "Minimum frequency (kHz)","max_khz" to "Maximum frequency (kHz)","max_age_seconds" to "Maximum spot age (30 to 600 seconds)","repeat_seconds" to "Repeat suppression (30 to 3600 seconds)","spacing_seconds" to "Additional gap (0 to 120 seconds)"))edit(advanced,title,staged(key),key=key).apply { inputType=InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL }
-        root.addView(button("Save filters") {
+        applyFilterEdits = {
             try {
-                drafts["Filters:frequency_unit"]=units.selectedItem.toString()
                 val values=ListeningSettings.json { staged(it) };ListeningSettings.validate(values)
                 val editor=prefs.edit();for(key in ListeningSettings.defaults.keys)editor.putString(key,values.get(key).toString());editor.apply()
+                drafts.keys.filter { it.startsWith("Filters:") }.toList().forEach { drafts.remove(it) }
                 if(ListenerService.listeningActive)command("apply")
+                else { ListenerService.clearDisplayedSpots();synchronized(ListenerService.hidden){ListenerService.hidden.clear()} }
                 Toast.makeText(this,"Filters applied. The cluster connection stays open.",Toast.LENGTH_SHORT).show()
                 go("Listen",true)
             }catch(_:Exception) { Toast.makeText(this,"Check locations, frequency limits and timing ranges. See Help for examples.",Toast.LENGTH_LONG).show() }
-        })
+        }
         root.addView(button("Filter help and FCC sources") {
             AlertDialog.Builder(this).setTitle("Listening filters").setMessage("Unknown mode means no single mode was supplied. No activity tag means no POTA, SOTA or FOTA tag was recognized. License filtering checks reported frequency and mode, not occupied bandwidth, split frequency or every location and station condition. It does not grant permission to transmit. Sources and current limitations are in the maintained Help page.")
                 .setPositiveButton("Open Help") { _,_->startActivity(Intent(Intent.ACTION_VIEW,android.net.Uri.parse("https://github.com/Liberty-Chris/DX_Talker/blob/main/docs/help/listening_filters.md"))) }.setNegativeButton("Close",null).show()

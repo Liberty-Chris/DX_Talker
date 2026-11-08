@@ -1,6 +1,6 @@
 # What do you want to hear?
 
-On desktop, What do you want to hear? is embedded directly on Source beside connection settings. Narrow windows place it below those settings with the normal page scrollbar. The Live spots shortcut opens Source and scrolls to the editor. On Android, open Filters from Listen. Choose bands, modes and activities without learning cluster commands. Apply listening filters on desktop or Save filters on Android preserves the current cluster connection. Pending announcements are cleared so the new choices take effect; current playback can finish. The main spot list shows matching reports. Desktop All received temporarily includes hidden reports for inspection.
+On desktop, What do you want to hear? is embedded directly on Source beside connection settings. Narrow windows place it below those settings with the normal page scrollbar. The Live spots shortcut opens Source and scrolls to the editor. On Android, open Filters from Listen. Choose bands, modes and activities without learning cluster commands. Apply listening filters on desktop or Apply filters on Android preserves the current cluster connection. Pending announcements are cleared so the new choices take effect; current playback can finish. The main spot list shows matching reports. Desktop All received temporarily includes hidden reports for inspection.
 
 ## Combine interests
 
@@ -50,7 +50,7 @@ Selected location filters hide missing locations unless Include unknown location
 
 ## Presets and transfer
 
-Save combinations as named listening presets, independently of cluster profiles. Load a preset to review it, remove an unwanted preset or overwrite its name to update it. Desktop Apply commits staged preset changes. Android Save current choices as preset stores that named preset; Save filters activates the current choices. There can be up to 30 presets, subject to the bounded settings and transfer size.
+Save combinations as named listening presets, independently of cluster profiles. Load a preset to review it, remove an unwanted preset or overwrite its name to update it. Desktop Apply commits staged preset changes. Android Save current choices as preset stores that named preset; Apply filters activates the current choices. There can be up to 30 presets, subject to the bounded settings and transfer size.
 
 Version 3 profile/QR collections include the current filters, license choices, known locations and saved listening presets without passwords or tokens. Review these locations before sharing a collection. Both receivers must support version 3; older applications should be updated first. Existing version 1 and 2 imports remain supported. Android legacy imports reset missing filter fields to their defaults while preserving the active connection profile.
 
@@ -59,3 +59,8 @@ Version 3 profile/QR collections include the current filters, license choices, k
 The additional gap accepts zero to 120 seconds. Zero adds no configured pause, but speech still takes time to prepare and play. The queue remains bounded and expires old spots. Pending count, oldest queued spot age, expired count and desktop preparation time help identify delays. Catch up to live on desktop or Live now on Android discards pending spots. It preserves the connection and does not interrupt the current announcement or cancel required IDs.
 
 Desktop filter edits stay pending until Apply listening filters or Save and apply settings. Apply listening filters changes only listening choices and preserves the feed and pending radio/connection edits. Reset changes restores the applied filter choices. Preset loading also stays pending until applied. Frequency limits are in the Source editor under Location and advanced filters.
+
+
+Android keeps a highlighted Apply filters button below the scrolling form. The pending message distinguishes unsaved choices from applied filters. Applying clears old rows and queued announcements so new matching spots use the chosen rules, including when editing while listening is stopped. An active cluster stays connected. The service confirms application before reporting new matching spots. Preset loading stages its canonical settings, including units; it does not use a second hidden units draft.
+
+Live rows show only recognized modes and actual POTA/SOTA/FOTA tags. Untagged activity and unknown mode placeholders are omitted. License filter names describe your selected listening rule above the list, not a station's license class. Desktop has a separate Mode column beside Spotted by and preserves Source for the feed name.

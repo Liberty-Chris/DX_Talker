@@ -4,6 +4,8 @@
 
 Bundle six recommended nodes from the supplied validated operator list: W1NR, DX Spots, N2WQ, WB3FFV, W3LPL and W4MYA. Show preconfigured addresses in the choosers and reuse the operator's entered callsign when saving a node. Preserve existing profiles and explicit connection. Embed the listening filter editor directly on Source in responsive columns; keep independent filter application and include pending filter edits in the main save action. Move frequency limits into its advanced controls. Record physical phone confirmation that a14 QR scanning and import work.
 
+Add a desktop Mode column and explicit license filter heading. Omit untagged activity and unknown mode placeholders from mobile rows. Put kHz/MHz on Listen and keep Apply filters visible below the form. Use canonical filter draft keys, preserve preset units and clear stale displayed rows when applying while stopped. Share display/speech acceptance and add synthetic live-feed UI coverage for bands, modes, license classes and unit/preset changes.
+
 ## 0.2.0a14. November 8, 2026
 
 Remove the separate spot review action on desktop and Android while preserving validation, session binding and rate limits. Move the listening shortcut out of Frequency range and align Announcements panels. Add rounded ttk buttons and panel surfaces, keeping native window frames. Give Android an explicit camera permission flow and an owned QR scanner with camera lifecycle/error handling and diagnostic events. Add camera permission/return instrumentation coverage and an ordered release download index.

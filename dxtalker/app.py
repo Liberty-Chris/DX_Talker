@@ -448,13 +448,13 @@ class Application:
         ttk.Button(filters,text='Why hidden?',command=self._why_hidden).pack(side='left')
         self.live_hint = ttk.Label(frame, textvariable=self.filter_summary, text="Spots appear here before RF is enabled. Select one to preview it locally.")
         self.live_hint.grid(row=2, column=0, sticky="w", pady=(0, 8))
-        columns = ("time", "dx", "frequency", "spotter", "source")
+        columns = ("time", "dx", "frequency", "spotter", "mode", "source")
         table = ttk.Frame(frame)
         table.grid(row=3, column=0, sticky="nsew")
         self.tree = ttk.Treeview(table, columns=columns, show="headings", height=10, selectmode="browse")
-        for key, title, width in zip(columns, ("UTC", "DX callsign", "Frequency kHz", "Spotted by", "Source"), (100, 170, 170, 160, 100)):
+        for key, title, width in zip(columns, ("UTC", "DX callsign", "Frequency kHz", "Spotted by", "Mode", "Source"), (90, 150, 140, 140, 65, 100)):
             self.tree.heading(key, text=title)
-            self.tree.column(key, width=width, minwidth=80)
+            self.tree.column(key, width=width, minwidth=55 if key=="mode" else 80)
         scroll = ttk.Scrollbar(table, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=scroll.set)
         scroll.pack(side="right", fill="y")
@@ -1571,8 +1571,10 @@ class Application:
         self.emit("journal", "Three sample spots loaded. Samples can be previewed locally and never enter the RF queue.")
 
     def _add_spot(self, spot):
+        from .filtering import mode_of
+        mode=mode_of(spot.comment,spot.mode)
         item = self.tree.insert("", 0, values=(spot.timestamp.strftime("%H:%MZ"), spot.dx_call,
-                                                spot.frequency_text(self.settings.frequency_unit), spot.spotter, spot.source),
+                                                spot.frequency_text(self.settings.frequency_unit), spot.spotter, "" if mode=="Unknown" else mode, spot.source),
                                 tags=("alternate",) if len(self.spots) % 2 else ())
         self.spots[item] = spot
         from .filtering import rejection

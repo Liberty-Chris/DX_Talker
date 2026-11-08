@@ -55,7 +55,7 @@ object SpotFilters {
     fun matches(spot:DxSpot,get:(String)->String)=rejection(spot,get).isEmpty()
     fun summary(get: (String)->String):String {
         val parts=mutableListOf<String>()
-        if(get("license_class").isNotBlank() && get("license_class")!="Off")parts.add(get("license_class")+" class")
+        if(get("license_class").isNotBlank() && get("license_class")!="Off")parts.add("License filter: "+get("license_class"))
         for((key,default) in listOf("filter_bands" to "All bands","filter_modes" to "All modes","filter_activities" to "All activities"))parts.add(get(key).replace("General","No activity tag").ifBlank { default })
         for((key,title) in listOf("filter_spotter_countries" to "Reported from","filter_spotter_continents" to "Reporting continents","filter_spotter_regions" to "Reporting regions","filter_dx_countries" to "DX countries","filter_dx_continents" to "DX continents"))if(get(key).isNotBlank())parts.add(title+": "+get(key))
         return parts.joinToString(" · ")

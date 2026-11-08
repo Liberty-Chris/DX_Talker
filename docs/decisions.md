@@ -205,3 +205,8 @@ Keep published installers tied to their original version and tested commit. Work
 ## Embedded Source listening editor. November 8, 2026
 
 Place the full listening editor alongside connection settings on wide desktop windows and below them on narrower windows. Use the existing Source scrollbar and route the Live spots shortcut to this section. Keep filter changes staged and preserve the independent Apply listening filters action, which must not apply pending connection or radio edits. The main settings save merges pending filter fields too, so visible edits are not silently omitted. This replaces a detached window while preserving independent connection and output controls.
+
+
+## Spot metadata and mobile filter application. November 8, 2026
+
+Use a separate desktop Mode column and label the operator's selected license filter above the list. Do not present an untagged activity fallback as General, which can be mistaken for a license class. Omit missing activity/mode metadata from live row details. Keep one canonical mobile draft key per filter and an anchored Apply action. Route display and announcement preparation through one filter decision so rejected reports cannot enter either path. Retain canonical received frequencies for display conversion; unit changes do not reconnect or replay history.

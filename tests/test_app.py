@@ -107,6 +107,17 @@ class AppTests(unittest.TestCase):
         self.assertEqual(self.app.settings.filter_bands,'40m')
         self.assertEqual(self.app.variables['filter_bands'].get(),'40m')
 
+    def test_spot_mode_column_and_license_filter_label_are_unambiguous(self):
+        self.app.settings=replace(self.app.settings,license_class='General')
+        from dxtalker.filtering import summary
+        self.assertIn('License filter: General',summary(self.app.settings))
+        spot=replace(self.spot(),comment='CW',mode='')
+        self.app._add_spot(spot)
+        row=self.app.tree.item(next(iter(self.app.spots)),'values')
+        self.assertEqual(row[4],'CW');self.assertEqual(row[5],spot.source)
+        self.app._clear_spots();self.app._add_spot(replace(spot,comment='CQ'))
+        self.assertEqual(self.app.tree.item(next(iter(self.app.spots)),'values')[4],'')
+
     def test_direct_spot_send_validates_and_preserves_session(self):
         from types import SimpleNamespace
         from unittest.mock import Mock
