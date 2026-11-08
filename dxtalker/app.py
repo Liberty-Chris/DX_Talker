@@ -359,8 +359,22 @@ class Application:
         self.error_frame.pack(fill='x',before=self.notebook)
 
     def _open_filters(self):
-        from .filter_ui import open_filters
-        open_filters(self)
+        self.notebook.select(1)
+        def reveal():
+            self.root.update_idletasks()
+            canvas=next(c for f,c in self.scroll_tabs if f is self.tabs['Source'])
+            position=self.filter_editor.frame.winfo_y()
+            canvas.yview_moveto(position/max(1,self.tabs['Source'].winfo_height()))
+            self.filter_editor.focus()
+        self.root.after_idle(reveal)
+
+    def _sync_listening_editor(self):
+        from .listening import FIELDS
+        previous=self.initializing;self.initializing=True
+        try:
+            for key in (*FIELDS,'listening_presets'):self.variables[key].set(getattr(self.settings,key))
+        finally:self.initializing=previous
+        if hasattr(self,'filter_editor'):self.filter_editor.reset()
 
     def _apply_listening(self,settings):
         from .listening import FIELDS
@@ -368,10 +382,7 @@ class Application:
         save_settings(updated)
         self.settings=updated
         self.engine.update_listening(updated)
-        self.initializing=True
-        try:
-            for key in (*FIELDS,'listening_presets'):self.variables[key].set(getattr(updated,key))
-        finally:self.initializing=False
+        self._sync_listening_editor()
         self._refresh_filtered_view()
         self._journal('Listening filters applied. Source connection preserved.')
 
@@ -437,13 +448,13 @@ class Application:
         ttk.Button(filters,text='Why hidden?',command=self._why_hidden).pack(side='left')
         self.live_hint = ttk.Label(frame, textvariable=self.filter_summary, text="Spots appear here before RF is enabled. Select one to preview it locally.")
         self.live_hint.grid(row=2, column=0, sticky="w", pady=(0, 8))
-        columns = ("time", "dx", "frequency", "spotter", "source")
+        columns = ("time", "dx", "frequency", "spotter", "mode", "source")
         table = ttk.Frame(frame)
         table.grid(row=3, column=0, sticky="nsew")
         self.tree = ttk.Treeview(table, columns=columns, show="headings", height=10, selectmode="browse")
-        for key, title, width in zip(columns, ("UTC", "DX callsign", "Frequency kHz", "Spotted by", "Source"), (100, 170, 170, 160, 100)):
+        for key, title, width in zip(columns, ("UTC", "DX callsign", "Frequency kHz", "Spotted by", "Mode", "Source"), (90, 150, 140, 140, 65, 100)):
             self.tree.heading(key, text=title)
-            self.tree.column(key, width=width, minwidth=80)
+            self.tree.column(key, width=width, minwidth=55 if key=="mode" else 80)
         scroll = ttk.Scrollbar(table, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=scroll.set)
         scroll.pack(side="right", fill="y")
@@ -477,14 +488,16 @@ class Application:
         items = []
         listing = tk.Listbox(window, width=72, height=12)
         listing.pack(padx=12,pady=12)
-        note = tk.StringVar(value="Dad's curated list is pending. Load a directory file when available. Status is curated, not a live reachability guarantee.")
+        note = tk.StringVar(value="Choose a recommended cluster and add it to your profiles. Use your own callsign when connecting. Review dates reflect the supplied operator list, not a live availability check.")
         ttk.Label(window,textvariable=note,wraplength=580).pack(padx=12,pady=8)
         def populate(path):
             if Path(path).stat().st_size > transfer.MAX_BYTES: raise ValueError('Directory exceeds 64 KiB')
             entries = transfer.catalog(json.loads(Path(path).read_text()))
             items[:] = entries
             listing.delete(0,'end')
-            for entry in items: listing.insert('end', f"{entry['name']} ({entry['status']}; checked {entry['checked'] or 'unknown'})")
+            for entry in items:
+                c=entry['connection']
+                listing.insert('end', f"{entry['name']}  {c['host']}:{c['port']} ({entry['status']})")
         def load():
             path = filedialog.askopenfilename(title='Load curated cluster directory',filetypes=[('JSON directory','*.json')])
             if path: populate(path)
@@ -495,7 +508,9 @@ class Application:
             if item['status'] != 'active': raise ValueError('This directory entry is retired')
             if any(p['connection'] == item['connection'] for p in self.profile_store.profiles):
                 raise ValueError('This connection is already saved')
-            self.profile_store.save(item['name'], replace(self.settings, **item['connection']))
+            connection=dict(item['connection'])
+            connection['login']=connection['login'] or self.variables['login'].get().strip()
+            self.profile_store.save(item['name'], replace(self.settings, **connection))
             self._refresh_profiles()
             note.set('Added. Select the profile to enter your callsign and any required password. Nothing connected automatically.')
         ttk.Button(window,text='Load directory file',command=self.guard(load)).pack(side='left',padx=12,pady=12)
@@ -504,7 +519,10 @@ class Application:
         if bundled.exists(): populate(bundled)
 
     def _source_tab(self):
-        frame = self.tabs["Source"]
+        page=self.tabs['Source']
+        frame=ttk.Frame(page)
+        frame.grid(row=0,column=0,sticky='nw')
+        self.source_connection_panel=frame
         profiles = ttk.LabelFrame(frame, text="Cluster profiles", padding=12)
         profiles.grid(row=0, column=0, sticky="w", pady=(0, 12))
         self.profile_name = tk.StringVar()
@@ -577,6 +595,18 @@ class Application:
         self._refresh_profiles()
         self.combos["source_type"].bind("<<ComboboxSelected>>", lambda event: self._source_type_changed(clear_secret=True))
         self._source_type_changed()
+        from .filter_ui import build_filters
+        self.filter_editor=build_filters(self,page)
+        self.filter_editor.frame.grid(row=0,column=1,sticky='nw',padx=(24,0))
+        page.bind('<Configure>',lambda event:self._layout_source_columns(event.width),add='+')
+
+    def _layout_source_columns(self,width):
+        required=self.source_connection_panel.winfo_reqwidth()+self.filter_editor.frame.winfo_reqwidth()+24+32
+        layout='wide' if width>=required else 'stacked'
+        if getattr(self,'source_column_layout',None)==layout:return
+        self.source_column_layout=layout
+        if layout=='wide':self.filter_editor.frame.grid_configure(row=0,column=1,padx=(24,0),pady=0)
+        else:self.filter_editor.frame.grid_configure(row=1,column=0,padx=0,pady=(18,0))
 
     def _audio_tab(self):
         frame = self.tabs["Audio and PTT"]
@@ -727,33 +757,21 @@ class Application:
         page = self.tabs["Announcements"]
         frame = ttk.Frame(page)
         frame.grid(row=0,column=0,sticky='nw')
-        interests=ttk.Frame(frame)
-        interests.grid(row=0,column=0,sticky='ew',pady=(0,12))
-        ttk.Button(interests,text='What do you want to hear?',command=self._open_filters).pack(side='left',padx=(0,12))
-        ttk.Label(interests,text='Bands, modes, activities, license and location.',wraplength=340).pack(side='left')
-        self._format_editor(frame,row=1)
-        frequency = ttk.LabelFrame(frame, text="Frequency range", padding=12)
-        frequency.grid(row=2, column=0, sticky="ew", pady=(0, 12))
-        self._field(frequency, 0, "Minimum (kHz)", "min_khz", compact=True)
-        self._field(frequency, 1, "Maximum (kHz)", "max_khz", compact=True)
-        for name in ("min_khz", "max_khz"):
-            self.field_widgets[name].configure(width=14)
-        ttk.Label(frequency, text="Filter limits use kHz, including when speech and display use MHz.",
-                  wraplength=550).grid(row=2, column=0, columnspan=2, sticky="w", pady=(8, 0))
+        self._format_editor(frame)
         timing = ttk.LabelFrame(frame, text="Timing and repeats", padding=12)
-        timing.grid(row=3, column=0, sticky="ew", pady=(0, 12))
+        timing.grid(row=1, column=0, sticky="ew", pady=(0, 12))
         self._field(timing, 0, "Maximum spot age (s)", "max_age_seconds", note="30 to 600 seconds", compact=True)
         self._field(timing, 1, "Repeat suppression (s)", "repeat_seconds", note="30 to 3600 seconds", compact=True)
         self._field(timing, 2, "Gap between spots (s)", "spacing_seconds", note="0 to 120 seconds. Zero adds no pause.", compact=True)
         supervision = ttk.LabelFrame(frame, text="RF supervision", padding=12)
-        supervision.grid(row=4, column=0, sticky="ew", pady=(0, 12))
+        supervision.grid(row=2, column=0, sticky="ew", pady=(0, 12))
         self.variables["supervised_ack"] = tk.BooleanVar(value=self.settings.supervised_ack)
         self.channel_ack = self.variables["supervised_ack"]
         # Retain the old saved value for settings compatibility; it no longer gates RF.
         ttk.Label(supervision, text="Optional receive audio monitoring in Audio / PTT can hold transmissions while audio is detected. Supervise operation on a clear or coordinated channel. RF Enable does not require an acknowledgement.",
                   wraplength=550).grid(row=0, column=0, sticky="w")
         ttk.Label(frame, text="Only validated spots are spoken. Comments and cluster commands are excluded.\nQueue: up to 100 spots. Starting output does not replay displayed history.",
-                  wraplength=650).grid(row=5, column=0, sticky="w")
+                  wraplength=650).grid(row=3, column=0, sticky="w")
 
     def _spot_filter_picker(self, key, title, values):
         dialog = tk.Toplevel(self.root)
@@ -946,10 +964,14 @@ class Application:
             else:
                 text = "Connect"
                 edge, background, ink = (p["accent"] if attention else p["edge"]), p["field"], p["ink"]
+            rendered=(self.theme.get(),text,background,edge,ink,stopping)
+            if item.get("rendered") == rendered:
+                continue
             from .rounded import button_style
             item["shell"].configure(background=p['bg'])
             style=button_style(self.root,p,background,edge,ink)
             item["button"].configure(text=text,style=style,state="disabled" if stopping else "normal")
+            item["rendered"]=rendered
 
     def _refresh_spot_units(self):
         self.tree.heading("frequency", text="Frequency " + self.settings.frequency_unit)
@@ -963,7 +985,11 @@ class Application:
             self.notebook.select(0);self.command_entries[0].focus_set();return
         self.notebook.select(1)
         def focus():
-            next(canvas for frame,canvas in self.scroll_tabs if frame is self.tabs['Source']).yview_moveto(1)
+            self.root.update_idletasks()
+            frame=self.tabs['Source'];canvas=next(c for f,c in self.scroll_tabs if f is frame)
+            button=self.command_buttons[1]
+            bottom=button.winfo_rooty()-frame.winfo_rooty()+button.winfo_height()+12
+            canvas.yview_moveto(max(0,(bottom-canvas.winfo_height())/max(1,frame.winfo_height())))
             self.command_entries[1].focus_set()
         self.root.after_idle(focus)
 
@@ -1462,7 +1488,8 @@ class Application:
                 values[f.name] = type(default)(value) if type(default) is not str else value.strip()
             except (ValueError, tk.TclError):
                 raise ValueError(f"Enter a valid number for {f.name.replace('_', ' ')}") from None
-        return Settings(**values).validate()
+        pending=Settings(**values)
+        return self.filter_editor.current(pending) if hasattr(self,'filter_editor') else pending.validate()
 
     def _apply(self):
         updated = self._read_settings()
@@ -1478,6 +1505,7 @@ class Application:
         history_changed = any(getattr(updated, key) != getattr(self.settings, key) for key in
                               ("logging_enabled", "log_directory", "log_max_mb", "log_backups"))
         self.settings = updated
+        self._sync_listening_editor()
         if history_changed or self.history is None:
             self._configure_history()
         self._trim_spots()
@@ -1547,8 +1575,10 @@ class Application:
         self.emit("journal", "Three sample spots loaded. Samples can be previewed locally and never enter the RF queue.")
 
     def _add_spot(self, spot):
+        from .filtering import mode_of
+        mode=mode_of(spot.comment,spot.mode)
         item = self.tree.insert("", 0, values=(spot.timestamp.strftime("%H:%MZ"), spot.dx_call,
-                                                spot.frequency_text(self.settings.frequency_unit), spot.spotter, spot.source),
+                                                spot.frequency_text(self.settings.frequency_unit), spot.spotter, "" if mode=="Unknown" else mode, spot.source),
                                 tags=("alternate",) if len(self.spots) % 2 else ())
         self.spots[item] = spot
         from .filtering import rejection

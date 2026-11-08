@@ -1,5 +1,5 @@
 """One staged listening editor. Cluster credentials and radio settings stay separate."""
-from collections import Counter
+from types import SimpleNamespace
 from dataclasses import replace
 import json
 import tkinter as tk
@@ -10,25 +10,18 @@ from .filtering import BANDS, MODES, ACTIVITIES, summary
 from .privileges import CLASSES, REGIONS
 
 
-def open_filters(app):
-    old=getattr(app,'filter_window',None)
-    if old and old.winfo_exists():old.lift();return
-    window=tk.Toplevel(app.root);app.filter_window=window
-    window.title('What do you want to hear?');window.transient(app.root)
-    window.geometry('740x650');window.minsize(540,400)
+def build_filters(app,parent):
+    window=app.root
     from .appearance import PALETTES
-    window.configure(background=PALETTES[app.theme.get()]['bg'])
-    canvas=tk.Canvas(window,highlightthickness=0,background=PALETTES[app.theme.get()]['bg'])
-    scroll=ttk.Scrollbar(window,orient='vertical',command=canvas.yview)
-    canvas.configure(yscrollcommand=scroll.set);scroll.pack(side='right',fill='y');canvas.pack(fill='both',expand=True)
-    frame=ttk.Frame(canvas,padding=16);item=canvas.create_window(0,0,window=frame,anchor='nw')
-    frame.bind('<Configure>',lambda e:canvas.configure(scrollregion=canvas.bbox('all')))
-    canvas.bind('<Configure>',lambda e:canvas.itemconfigure(item,width=e.width))
+    frame=ttk.Frame(parent)
     staged={k:(tk.BooleanVar(value=getattr(app.settings,k)) if type(getattr(app.settings,k)) is bool else tk.StringVar(value=str(getattr(app.settings,k)))) for k in FIELDS}
+    dirty=set();resetting=[False];preset_dirty=[False]
     presets=validate_presets(app.settings.listening_presets)
-    def current():
-        defaults=Settings()
-        return replace(app.settings,**{k:type(getattr(defaults,k))(v.get()) for k,v in staged.items()},listening_presets=json.dumps(presets,separators=(',',':'))).validate()
+    def current(base=None):
+        defaults=Settings();base=base or app.settings
+        changes={k:type(getattr(defaults,k))(staged[k].get()) for k in dirty}
+        if preset_dirty[0]:changes['listening_presets']=json.dumps(presets,separators=(',',':'))
+        return replace(base,**changes).validate()
     note=tk.StringVar();status=tk.StringVar()
     def describe(*args):
         try:note.set(summary(current()))
@@ -43,10 +36,10 @@ def open_filters(app):
     def save():
         label=name.get().strip() or simpledialog.askstring('Save listening preset','Preset name',parent=window)
         if not label:return
-        presets[label]=snapshot(current());validate_presets(json.dumps(presets))
+        presets[label]=snapshot(current());validate_presets(json.dumps(presets));preset_dirty[0]=True
         picker.configure(values=list(presets));name.set(label);status.set('Preset staged. Apply to save it.')
     def remove():
-        presets.pop(name.get(),None);picker.configure(values=list(presets));name.set('');status.set('Preset removal staged. Apply to save it.')
+        presets.pop(name.get(),None);preset_dirty[0]=True;picker.configure(values=list(presets));name.set('');status.set('Preset removal staged. Apply to save it.')
     for label,action in (('Load',load),('Save',save),('Remove',remove)):ttk.Button(saved,text=label,command=app.guard(action)).pack(side='left',padx=3)
     filters=ttk.LabelFrame(frame,text='Choose your interests',padding=12);filters.pack(fill='x',pady=6)
     def choose(key,title,values):
@@ -77,7 +70,7 @@ def open_filters(app):
         ttk.Label(license,text=title).grid(row=row,column=0,sticky='w',padx=(0,12),pady=3)
         ttk.Combobox(license,textvariable=staged[key],values=values,state='readonly',width=22).grid(row=row,column=1,sticky='w')
     ttk.Checkbutton(license,text='Include spots whose license eligibility cannot be verified',variable=staged['license_unknown']).grid(row=2,column=0,columnspan=2,sticky='w',pady=6)
-    def advanced():geo.pack_forget() if geo.winfo_manager() else geo.pack(fill='x',pady=6)
+    def advanced():geo.pack_forget() if geo.winfo_manager() else geo.pack(fill='x',pady=6,before=footer)
     ttk.Button(frame,text='Location and advanced filters',command=advanced).pack(anchor='w',pady=6)
     geo=ttk.LabelFrame(frame,text='Location and advanced filters',padding=12)
     specs=(('filter_spotter_countries','Reporting station countries','Country codes, for example US,CA'),('filter_spotter_continents','Reporting station continents','AF, AN, AS, EU, NA, OC, SA'),('filter_spotter_regions','Reporting station regions','For example NC,SC,GA'),('filter_dx_countries','DX station countries','Country codes, for example US,JP'),('filter_dx_continents','DX station continents','AF, AN, AS, EU, NA, OC, SA'),('location_overrides','Known station locations','CALL=US,NA,NC;CALL=CA,NA,ON'),('min_khz','Minimum frequency (kHz)',''),('max_khz','Maximum frequency (kHz)',''))
@@ -87,13 +80,24 @@ def open_filters(app):
         if hint:ttk.Label(geo,text=hint,wraplength=200).grid(row=row,column=2,sticky='w')
     ttk.Checkbutton(geo,text='Include spots with unknown location',variable=staged['geography_unknown']).grid(row=8,column=0,columnspan=3,sticky='w',pady=6)
     ttk.Label(geo,text='Location comes from feed metadata or your known station list. A callsign alone does not establish current location. Leave a location field empty to accept all.',wraplength=620).grid(row=9,column=0,columnspan=3,sticky='w')
-    for var in staged.values():var.trace_add('write',describe)
+    def changed(key,*args):
+        if resetting[0]:return
+        dirty.add(key);status.set("Pending changes. Apply listening filters or save settings.");describe()
+    for key,var in staged.items():var.trace_add('write',lambda *args,k=key:changed(k))
     describe()
-    footer=ttk.Frame(window,padding=12);footer.pack(side='bottom',fill='x',before=canvas)
+    footer=ttk.Frame(frame,padding=(0,12));footer.pack(fill='x')
     ttk.Label(footer,textvariable=status,wraplength=650).pack(anchor='w')
+    def reset():
+        resetting[0]=True
+        try:
+            dirty.clear();preset_dirty[0]=False
+            for key,var in staged.items():var.set(getattr(app.settings,key))
+            presets.clear();presets.update(validate_presets(app.settings.listening_presets))
+            picker.configure(values=list(presets));status.set('');describe()
+        finally:resetting[0]=False
     def apply():
-        try:app._apply_listening(current());window.destroy()
+        try:app._apply_listening(current());status.set('Listening filters applied. Cluster connection preserved.')
         except ValueError as exc:status.set(str(exc))
     ttk.Button(footer,text='Apply listening filters',command=apply,style='Accent.TButton').pack(side='right',padx=6)
-    ttk.Button(footer,text='Cancel',command=window.destroy).pack(side='right')
-    window.bind('<Escape>',lambda e:window.destroy())
+    ttk.Button(footer,text='Reset changes',command=reset).pack(side='right')
+    return SimpleNamespace(frame=frame,current=current,reset=reset,apply=apply,variables=staged,focus=picker.focus_set)

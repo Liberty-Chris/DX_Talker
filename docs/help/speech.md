@@ -68,7 +68,7 @@ The listening toggle uses already applied settings. It does not save pending edi
 
 ## Announcement policy controls
 
-Announcements groups Frequency range, Timing and repeats and RF supervision into compact sections. Frequency limits always use kHz. Timing fields are in seconds, with supported ranges beside them. Optional receive audio transmit hold is configured in Audio / PTT; an acknowledgement checkbox no longer gates RF. Editing, validation and Save and apply behavior are unchanged.
+Announcements groups Announcement format, Timing and repeats and RF supervision into compact sections. Frequency limits are on Source in the listening editor under Location and advanced filters and always use kHz. Timing fields are in seconds, with supported ranges beside them. Optional receive audio transmit hold is configured in Audio / PTT; an acknowledgement checkbox no longer gates RF. Editing, validation and Save and apply behavior are unchanged.
 
 
 ## Announcement format
@@ -131,4 +131,7 @@ Local Windows generation and recorded playback are useful for busy feeds. Online
 
 Voice ID pause controls and independent CW/voice schedules are described under [Station identification](identification.md).
 
-Desktop buttons and settings panels have rounded surfaces in every appearance mode. Keyboard focus, Enter and Space activation, disabled states and the connection/listening/RF state colors remain available. Outer window borders follow the operating system. Announcements aligns its settings panels and puts the listening filter shortcut above them.
+Desktop buttons and settings panels have rounded surfaces in every appearance mode. Keyboard focus, Enter and Space activation, disabled states and the connection/listening/RF state colors remain available. Outer window borders follow the operating system. Announcements aligns its format, timing and RF supervision panels. The listening filter editor is embedded on Source.
+
+
+On Android Listen, use the kHz/MHz control beside Recent spots. It updates retained row frequencies and future speech without reconnecting the cluster. Pending/current speech is stopped when units change, and displayed history is not replayed. Frequencies and band/license rules stay in canonical kHz internally. Applying a listening preset can also change units; its value is retained when other filter controls are edited.

@@ -22,6 +22,12 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
         @Volatile var speechReady=false
         @Volatile var listeningActive=false
         val spots=mutableListOf<String>()
+        private val spotRecords=mutableListOf<DxSpot>()
+        fun clearDisplayedSpots() { synchronized(spots){spots.clear();spotRecords.clear()} }
+        fun reformatSpots(unit:String) {
+            require(unit in listOf("kHz","MHz"))
+            synchronized(spots) { spots.clear();spots.addAll(spotRecords.map { SpotPresentation.row(it,unit) }) }
+        }
         @Volatile var queued=0
         @Volatile var oldestSeconds=0L
         @Volatile var expired=0
@@ -109,15 +115,24 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
                     submissions.add(connectionToken to SpotSubmission.command(call,frequency,unit,comment));lastSubmission=now;spotStatus="Queued for the current cluster. Waiting for socket delivery.";update()
                 } catch(error:Exception) { spotStatus=if(error is IllegalArgumentException)error.message ?: "Check the spot fields"else "Spot could not be queued";update() }
             }
+            "units" -> {
+                val unit=prefs.getString("frequency_unit","kHz").orEmpty()
+                if(unit in listOf("kHz","MHz")) {
+                    session=session + ("frequency_unit" to unit)
+                    clearSpeech()
+                    reformatSpots(unit)
+                    update()
+                }
+            }
             "apply" -> {
                 // Update only listening policy, never an unsaved source or credentials.
                 val keys=setOf("format","min_khz","max_khz","max_age_seconds","repeat_seconds","spacing_seconds","frequency_unit","filter_bands","filter_modes","filter_activities","license_class","license_region","license_unknown","filter_dx_countries","filter_dx_continents","filter_spotter_countries","filter_spotter_continents","filter_spotter_regions","geography_unknown","location_overrides")
                 val fresh=snapshot(); session=session + fresh.filterKeys { it in keys }; clearSpeech(); seen.clear();synchronized(hidden){hidden.clear()}
-                synchronized(spots) { spots.clear() }; update()
+                synchronized(spots) { spots.clear();spotRecords.clear() }; update("Filters applied. Waiting for new matching spots.")
             }
             "start"->if(!running){
                 session=snapshot();activeCall=session["call"].orEmpty();connectionToken=generation+1;connected=false;submissions.clear();spotStatus="";synchronized(hidden){hidden.clear()};expired=0
-                running=true;listeningActive=true;paused=false;generation++;val token=generation;seen.clear();clearSpeech();synchronized(spots){spots.clear()}
+                running=true;listeningActive=true;paused=false;generation++;val token=generation;seen.clear();clearSpeech();synchronized(spots){spots.clear();spotRecords.clear()}
                 startForeground(1,notification());update("Connecting. Listening armed for the first spot.");worker=thread(name="dx-listener"){listenLoop(token)}}
             "mute"->{muted=!muted;if(muted)clearSpeech();update();nextSpeech()}
             "pause"->{paused=!paused;if(paused)clearSpeech();update();nextSpeech()}
@@ -132,10 +147,12 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
         val now=Instant.now();val spot=supplied?:SpotPolicy.parse(line,now)?:return
         main.post{
             if(!active(token))return@post
-            val reason=if(spot.frequency<setting("min_khz","1").toBigDecimal() || spot.frequency>setting("max_khz","10000000").toBigDecimal())"Frequency range"else SpotFilters.rejection(spot) { key -> setting(key,"") }
-            if(reason.isNotEmpty()){synchronized(hidden){hidden[reason]=(hidden[reason]?:0)+1};update();return@post}
-            val details=SpotFilters.mode(spot.comment,spot.mode)+" · "+SpotFilters.tags(spot.comment).sorted().joinToString(" / ")+" · "+java.time.format.DateTimeFormatter.ofPattern("HH:mm 'UTC'").withZone(java.time.ZoneOffset.UTC).format(spot.time)
-            synchronized(spots){spots.add(0,spot.call+"  "+spot.frequency(setting("frequency_unit","kHz"))+" "+setting("frequency_unit","kHz")+"\n"+details);while(spots.size>150)spots.removeAt(spots.lastIndex)}
+            val decision=SpotPresentation.decide(spot) { key -> setting(key,"") }
+            if(decision.reason.isNotEmpty()){synchronized(hidden){hidden[decision.reason]=(hidden[decision.reason]?:0)+1};update();return@post}
+            synchronized(spots){
+                spotRecords.add(0,spot);spots.add(0,decision.row)
+                while(spots.size>150){spots.removeAt(spots.lastIndex);spotRecords.removeAt(spotRecords.lastIndex)}
+            }
             update("Receiving matching DX spots")
             val iterator=pending.iterator()
             while(iterator.hasNext())if(iterator.next().second<now){iterator.remove();expired++}
@@ -143,7 +160,7 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
             seen.entries.removeAll{tick-it.value>=setting("repeat_seconds","300").toLong()*1000}
             if(muted||paused||spot.time.plusSeconds(age)<now||spot.frequency<setting("min_khz","1").toBigDecimal()||spot.frequency>setting("max_khz","10000000").toBigDecimal()||key in seen||pending.size>=100)return@post
             seen[key]=tick
-            pending.add(SpotPolicy.speak(spot,setting("format","New DX on. {frequency} {unit}. {call}."),setting("frequency_unit","kHz")) to spot.time.plusSeconds(age));nextSpeech();update()
+            pending.add(decision.speech to spot.time.plusSeconds(age));nextSpeech();update()
         }
     }
     private fun failure(error:Exception):String=when(error){

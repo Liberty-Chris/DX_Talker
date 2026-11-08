@@ -200,3 +200,20 @@ Reuse Windows synthesis initialization and verified recorded PCM assets instead 
 ## Release version ownership and prose corrections. November 7, 2026
 
 Keep published installers tied to their original version and tested commit. Workflow changes that need a newly distributed package receive a new application version; rerunning a workflow does not increment it. Check conflicts before packaging and again at publication. Store corrections to published descriptions in version named archive files and synchronize only the release body through a separate workflow. This resolves copied descriptions without replacing installed users' downloads or moving tags.
+
+
+## Embedded Source listening editor. November 8, 2026
+
+Place the full listening editor alongside connection settings on wide desktop windows and below them on narrower windows. Use the existing Source scrollbar and route the Live spots shortcut to this section. Keep filter changes staged and preserve the independent Apply listening filters action, which must not apply pending connection or radio edits. The main settings save merges pending filter fields too, so visible edits are not silently omitted. This replaces a detached window while preserving independent connection and output controls.
+
+
+## Spot metadata and mobile filter application. November 8, 2026
+
+Use a separate desktop Mode column and label the operator's selected license filter above the list. Do not present an untagged activity fallback as General, which can be mistaken for a license class. Omit missing activity/mode metadata from live row details. Keep one canonical mobile draft key per filter and an anchored Apply action. Route display and announcement preparation through one filter decision so rejected reports cannot enter either path. Retain canonical received frequencies for display conversion; unit changes do not reconnect or replay history.
+
+
+## Desktop rounded rendering cost. November 8, 2026
+
+Keep rounded desktop controls but use larger solid strips in image elements, explicit 32 pixel widget minima and shared Tk image instances. Tk tiles these images instead of stretching them. The original 32 pixel surface left a 12 pixel center, causing excessive draw calls on large cards. Cache the geometry separately from colors to avoid recomputing every antialiased corner for a newly visited state. Skip unchanged state control writes during the 75 ms event poll, while still rendering source, output, hover, focus and theme changes. Do not slow safety event polling to mask rendering cost.
+
+A comparison of the a12 and a14 tags reproduced slower tab switching under the same Linux dummy display with no public cluster, speech or RF activity. This establishes a rendering regression, not a confirmed diagnosis of the reporting PC. Windows packaged verification and operator testing remain distinct evidence.

@@ -53,17 +53,70 @@ class AppTests(unittest.TestCase):
             self.env.stop()
             self.folder.cleanup()
 
-    def test_announcements_panels_align_and_filter_shortcut_is_outside_frequency(self):
+    def test_announcements_panels_align_and_filters_live_on_source(self):
         self.root.deiconify();self.root.geometry('1000x700')
         self.app.notebook.select(4);self.root.update()
         page=self.app.tabs['Announcements'];body=page.winfo_children()[0]
         panels=[w for w in body.winfo_children() if w.winfo_class()=='TLabelframe']
-        self.assertEqual(len(panels),4)
+        self.assertEqual(len(panels),3)
         self.assertEqual(len({w.winfo_width() for w in panels}),1)
         self.assertEqual(len({w.winfo_rootx() for w in panels}),1)
-        frequency=next(w for w in panels if w.cget('text')=='Frequency range')
-        self.assertFalse(any(w.winfo_class()=='TButton' and w.cget('text')=='What do you want to hear?' for w in frequency.winfo_children()))
+        self.assertNotIn('Frequency range',[w.cget('text') for w in panels])
+        self.assertEqual(self.app.filter_editor.frame.master,self.app.tabs['Source'])
         self.assertLess(body.winfo_width(),1000)
+
+    def test_source_filters_are_inline_and_reflow_without_a_new_window(self):
+        self.root.maxsize(3000,2000);self.root.deiconify();self.root.geometry('1800x1000');self.app.notebook.select(1);self.root.update()
+        panel=self.app.filter_editor.frame;left=self.app.source_connection_panel
+        self.assertEqual(self.app.source_column_layout,'wide')
+        next(w for w in panel.winfo_children() if w.winfo_class()=='TButton' and w.cget('text')=='Location and advanced filters').invoke();self.root.update()
+        self.assertEqual(panel.pack_slaves()[-1].winfo_class(),'TFrame')
+        self.assertGreaterEqual(panel.winfo_rootx(),left.winfo_rootx()+left.winfo_width())
+        self.assertEqual(panel.winfo_rooty(),left.winfo_rooty())
+        self.root.geometry('900x650');self.root.update()
+        self.assertEqual(self.app.source_column_layout,'stacked')
+        self.assertGreaterEqual(panel.winfo_y(),left.winfo_y()+left.winfo_height())
+        before=set(self.root.winfo_children())
+        self.app._open_filters();self.root.update()
+        self.assertEqual(self.app.notebook.index('current'),1)
+        self.assertEqual(set(self.root.winfo_children()),before)
+
+    def test_inline_filters_stage_apply_and_reset_without_reconnecting(self):
+        from types import SimpleNamespace
+        self.app.variables['host'].set('pending.invalid')
+        source=SimpleNamespace();self.app.source=source;self.app.engine.local_enabled=True
+        try:
+            panel=self.app.filter_editor
+            panel.variables['filter_bands'].set('20m')
+            self.assertEqual(self.app.settings.filter_bands,'')
+            self.assertTrue(self.app.engine.local_enabled)
+            saved=next(w for w in panel.frame.winfo_children() if w.winfo_class()=='TLabelframe' and w.cget('text')=='Listening presets')
+            next(w for w in saved.winfo_children() if w.winfo_class()=='TCombobox').set('Portable 20m')
+            next(w for w in saved.winfo_children() if w.winfo_class()=='TButton' and w.cget('text')=='Save').invoke()
+            panel.apply()
+            import json
+            self.assertEqual(json.loads(self.app.settings.listening_presets)['Portable 20m']['filter_bands'],'20m')
+            self.assertEqual(self.app.settings.filter_bands,'20m')
+            self.assertNotEqual(self.app.settings.host,'pending.invalid')
+            self.assertIs(self.app.source,source);self.assertTrue(self.app.engine.local_enabled)
+            panel.variables['filter_bands'].set('40m');panel.reset()
+            self.assertEqual(panel.variables['filter_bands'].get(),'20m')
+        finally:self.app.source=None;self.app.engine.local_enabled=False
+        panel.variables['filter_bands'].set('40m')
+        self.app._apply()
+        self.assertEqual(self.app.settings.filter_bands,'40m')
+        self.assertEqual(self.app.variables['filter_bands'].get(),'40m')
+
+    def test_spot_mode_column_and_license_filter_label_are_unambiguous(self):
+        self.app.settings=replace(self.app.settings,license_class='General')
+        from dxtalker.filtering import summary
+        self.assertIn('License filter: General',summary(self.app.settings))
+        spot=replace(self.spot(),comment='CW',mode='')
+        self.app._add_spot(spot)
+        row=self.app.tree.item(next(iter(self.app.spots)),'values')
+        self.assertEqual(row[4],'CW');self.assertEqual(row[5],spot.source)
+        self.app._clear_spots();self.app._add_spot(replace(spot,comment='CQ'))
+        self.assertEqual(self.app.tree.item(next(iter(self.app.spots)),'values')[4],'')
 
     def test_direct_spot_send_validates_and_preserves_session(self):
         from types import SimpleNamespace
@@ -308,6 +361,33 @@ class AppTests(unittest.TestCase):
         self.app._connection_action()
         self.assertIsNone(self.app.source)
         self.assertTrue(all(i['button'].cget('text') == 'Connect' for i in self.app.connection_controls))
+
+    def test_unchanged_state_controls_do_not_redraw_on_idle_polls(self):
+        from contextlib import ExitStack
+        self.app._render_connections()
+        controls=self.app.connection_controls+self.app.listening_controls+self.app.rf_controls
+        image_count=len(self.root.tk.call('image','names'))
+        self.root.update_idletasks()
+        for item in controls:
+            self.assertLess(item['button'].winfo_reqwidth(),256)
+            self.assertLess(item['button'].winfo_reqheight(),64)
+        with ExitStack() as stack:
+            writes=[stack.enter_context(patch.object(widget,'configure',wraps=widget.configure))
+                    for item in controls for widget in (item['shell'],item['button'])]
+            for _ in range(40):self.app._render_connections()
+            self.assertTrue(all(write.call_count==0 for write in writes))
+            self.app.connection_controls[0]['hover']=True
+            self.app._render_connections()
+            self.assertEqual(sum(write.call_count for write in writes),2)
+            self.assertIn('TButton',self.app.connection_controls[0]['button'].cget('style'))
+            for write in writes:write.reset_mock()
+            self.app._render_connections()
+            self.assertTrue(all(write.call_count==0 for write in writes))
+        # A new state may add a bounded set of shared surfaces, never one per tick.
+        warmed=len(self.root.tk.call('image','names'))
+        self.assertGreaterEqual(warmed,image_count)
+        for _ in range(40):self.app._render_connections()
+        self.assertEqual(len(self.root.tk.call('image','names')),warmed)
 
     def test_speech_settings_hide_the_inactive_provider_controls(self):
         self.assertEqual(self.app.piper_speech_fields.winfo_manager(), '')

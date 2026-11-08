@@ -138,6 +138,14 @@ try {
                                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20,
                                          creationflags=subprocess.CREATE_NO_WINDOW)
                 report["light_screenshot"] = capture.returncode == 0 and Path(env["DX_IMAGE"]).exists()
+                app.theme.set("Dark");app._change_theme()
+                for suffix,action in (("source",lambda:app.notebook.select(1)),("filters",app._open_filters),("announcements",lambda:app.notebook.select(4))):
+                    action();root.update()
+                    env["DX_IMAGE"]=str(Path(image).with_name(Path(image).stem+"_"+suffix+".png"))
+                    capture=subprocess.run([shell,"-NoProfile","-NonInteractive","-Command",script],env=env,
+                                           stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=20,
+                                           creationflags=subprocess.CREATE_NO_WINDOW)
+                    report[suffix+"_screenshot"]=capture.returncode==0 and Path(env["DX_IMAGE"]).exists()
                 root.after(500, app.close)
                 root.mainloop()
             finally:

@@ -1,6 +1,12 @@
 package club.dxtalker.android
 
 import android.Manifest
+import android.app.Activity
+import android.view.View
+import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
+import androidx.test.runner.lifecycle.Stage
+import androidx.test.espresso.matcher.RootMatchers.withDecorView
+import org.hamcrest.Matchers.equalTo
 import android.content.pm.PackageManager
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityNodeInfo
@@ -37,6 +43,21 @@ class CameraTests {
         }
         fail("Android camera permission button did not appear: $id")
     }
+    private fun focusedWindow(kind:Class<out Activity>):View {
+        val deadline=SystemClock.uptimeMillis()+12000
+        while(SystemClock.uptimeMillis()<deadline) {
+            val result=java.util.concurrent.atomic.AtomicReference<View?>()
+            instrumentation.runOnMainSync {
+                ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.RESUMED)
+                    .firstOrNull { kind.isInstance(it) }?.window?.decorView?.let { view ->
+                        if(view.isShown && view.hasWindowFocus())result.set(view)
+                    }
+            }
+            result.get()?.let { return it }
+            SystemClock.sleep(50)
+        }
+        throw AssertionError("Expected a resumed, focused "+kind.simpleName)
+    }
     @Test fun cameraDenialGrantPreviewAndReturn() {
         assertEquals("Fresh test installation must start without camera access",PackageManager.PERMISSION_DENIED,context.checkSelfPermission(Manifest.permission.CAMERA))
         context.getSharedPreferences("dx",0).edit().clear().putBoolean("diagnostics",true).commit()
@@ -53,13 +74,15 @@ class CameraTests {
             onView(withText("Close")).inRoot(isDialog()).perform(click())
             onView(withText("Scan desktop QR collection")).perform(click())
             permissionButton("permission_allow_foreground_only_button")
-            onView(withText("Close scanner")).check(matches(isDisplayed()))
+            val scannerWindow=focusedWindow(QrScanActivity::class.java)
+            onView(withText("Close scanner")).inRoot(withDecorView(equalTo(scannerWindow))).check(matches(isDisplayed()))
             val deadline=SystemClock.uptimeMillis()+10000
             val log=java.io.File(context.filesDir,"diagnostics/events.jsonl")
             while(SystemClock.uptimeMillis()<deadline && (!log.exists() || !log.readText().contains("qr_camera_preview_started"))) SystemClock.sleep(100)
             assertTrue("Virtual camera preview must actually start",log.exists() && log.readText().contains("qr_camera_preview_started"))
-            onView(withText("Close scanner")).perform(click())
-            onView(withText("Scan desktop QR collection")).check(matches(isDisplayed()))
+            onView(withText("Close scanner")).inRoot(withDecorView(equalTo(scannerWindow))).perform(click())
+            val mainWindow=focusedWindow(MainActivity::class.java)
+            onView(withText("Scan desktop QR collection")).inRoot(withDecorView(equalTo(mainWindow))).check(matches(isDisplayed()))
         }
     }
 }

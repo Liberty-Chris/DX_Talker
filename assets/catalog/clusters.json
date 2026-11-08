@@ -1,1 +1,96 @@
-{"schema":"dxtalker-directory","version":1,"entries":[]}
+{
+  "schema": "dxtalker-directory",
+  "version": 1,
+  "entries": [
+    {
+      "id": "w1nr",
+      "name": "W1NR",
+      "connection": {
+        "source_type": "TCP/Telnet",
+        "host": "dx.w1nr.net",
+        "port": 7300,
+        "login": "",
+        "feed_url": "",
+        "poll_seconds": 30
+      },
+      "status": "active",
+      "checked": "2026-11-08",
+      "description": "DXSpider. Reported validated in the supplied operator list. Use your own callsign; node registration and password requirements depend on the cluster."
+    },
+    {
+      "id": "dxspots",
+      "name": "DX Spots",
+      "connection": {
+        "source_type": "TCP/Telnet",
+        "host": "dxspots.com",
+        "port": 23,
+        "login": "",
+        "feed_url": "",
+        "poll_seconds": 30
+      },
+      "status": "active",
+      "checked": "2026-11-08",
+      "description": "CCC. Reported validated in the supplied operator list. Use your own callsign; node registration and password requirements depend on the cluster."
+    },
+    {
+      "id": "n2wq",
+      "name": "N2WQ",
+      "connection": {
+        "source_type": "TCP/Telnet",
+        "host": "cluster.n2wq.com",
+        "port": 7373,
+        "login": "",
+        "feed_url": "",
+        "poll_seconds": 30
+      },
+      "status": "active",
+      "checked": "2026-11-08",
+      "description": "CCC. Reported validated in the supplied operator list. Use your own callsign; node registration and password requirements depend on the cluster."
+    },
+    {
+      "id": "wb3ffv",
+      "name": "WB3FFV",
+      "connection": {
+        "source_type": "TCP/Telnet",
+        "host": "dxc.wb3ffv.us",
+        "port": 7300,
+        "login": "",
+        "feed_url": "",
+        "poll_seconds": 30
+      },
+      "status": "active",
+      "checked": "2026-11-08",
+      "description": "DXSpider. Reported validated in the supplied operator list. Use your own callsign; node registration and password requirements depend on the cluster."
+    },
+    {
+      "id": "w3lpl",
+      "name": "W3LPL",
+      "connection": {
+        "source_type": "TCP/Telnet",
+        "host": "dxc.w3lpl.net",
+        "port": 7373,
+        "login": "",
+        "feed_url": "",
+        "poll_seconds": 30
+      },
+      "status": "active",
+      "checked": "2026-11-08",
+      "description": "DXSpider. Reported validated in the supplied operator list. Use your own callsign; node registration and password requirements depend on the cluster."
+    },
+    {
+      "id": "w4mya",
+      "name": "W4MYA",
+      "connection": {
+        "source_type": "TCP/Telnet",
+        "host": "dxc.w4mya.us",
+        "port": 7373,
+        "login": "",
+        "feed_url": "",
+        "poll_seconds": 30
+      },
+      "status": "active",
+      "checked": "2026-11-08",
+      "description": "CCC. Reported validated in the supplied operator list. Use your own callsign; node registration and password requirements depend on the cluster."
+    }
+  ]
+}

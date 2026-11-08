@@ -99,7 +99,7 @@ class NavigationTests {
                 onView(withText("Settings")).perform(click())
                 onView(withText("Stop listening")).check(matches(isDisplayed()))
                 onView(withText("What do you want to hear?")).perform(click())
-                onView(withText("Save filters")).perform(scrollTo(),click())
+                onView(withText("Apply filters")).check(matches(isDisplayed())).perform(click())
                 assertTrue(ListenerService.listeningActive)
                 assertFalse("Navigation or filtering closed the original TCP session",closed.get())
                 assertTrue(probed.await(3,java.util.concurrent.TimeUnit.SECONDS))

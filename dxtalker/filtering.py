@@ -59,7 +59,7 @@ def matches(spot,settings):return not rejection(spot,settings)
 
 
 def summary(settings):
-    parts=[settings.license_class+' class'] if settings.license_class!='Off' else []
+    parts=['License filter: '+settings.license_class] if settings.license_class!='Off' else []
     for key,default in (('filter_bands','All bands'),('filter_modes','All modes'),('filter_activities','All activities')):
         parts.append(getattr(settings,key).replace('General','No activity tag') or default)
     for key,title in (('filter_spotter_countries','Reported from'),('filter_spotter_continents','Reporting continents'),('filter_spotter_regions','Reporting regions'),('filter_dx_countries','DX countries'),('filter_dx_continents','DX continents')):
