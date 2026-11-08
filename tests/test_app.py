@@ -53,6 +53,21 @@ class AppTests(unittest.TestCase):
             self.env.stop()
             self.folder.cleanup()
 
+    def test_compact_live_layout_keeps_queue_and_source_commands_reachable(self):
+        self.root.deiconify();self.root.geometry('900x600');self.root.update()
+        self.app._responsive_layout();self.root.update()
+        self.assertGreaterEqual(self.app.tree.winfo_height(),90)
+        self.assertLessEqual(self.app.catch_up_button.winfo_rooty()+self.app.catch_up_button.winfo_height(),self.app.tabs['Live spots'].winfo_rooty()+self.app.tabs['Live spots'].winfo_height())
+        self.assertTrue(self.app.compact_commands_button.winfo_ismapped())
+        self.assertFalse(self.app.live_command_bar.winfo_ismapped())
+        self.app._focus_command(source=True);self.root.update()
+        self.assertEqual(self.app.notebook.index('current'),1)
+        self.assertTrue(self.app.command_buttons[1].winfo_ismapped())
+        canvas=next(c for f,c in self.app.scroll_tabs if f is self.app.tabs['Source'])
+        button=self.app.command_buttons[1]
+        self.assertGreaterEqual(button.winfo_rooty(),canvas.winfo_rooty())
+        self.assertLessEqual(button.winfo_rooty()+button.winfo_height(),canvas.winfo_rooty()+canvas.winfo_height())
+
     def test_filter_changes_preserve_source_and_local_listening(self):
         from types import SimpleNamespace
         source=SimpleNamespace()

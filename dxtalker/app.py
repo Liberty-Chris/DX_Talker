@@ -100,6 +100,7 @@ class Application:
         brand = resource_root() / "assets/brand"
         self.logos = {name: tk.PhotoImage(file=str(brand / f"logo-{'light' if name == 'Light' else 'dark'}.png")).subsample(2)
                       for name in PALETTES}
+        self.compact_logos={name:logo.subsample(2) for name,logo in self.logos.items()}
         self.icon = tk.PhotoImage(file=str(brand / "icon.png"))
         root.iconphoto(True, self.icon)
         if sys.platform == "win32":
@@ -115,7 +116,7 @@ class Application:
         self.root.bind("<Escape>", lambda event: self._stop())
         self.root.bind("<F6>", lambda event: self.guard(self._preview_spot)())
         self.root.bind("<F8>", lambda event: self.guard(self._listen)())
-        self.root.bind("<Alt-c>", lambda event: self.command_entries[0].focus_set())
+        self.root.bind("<Alt-c>", lambda event: self._focus_command())
         self.notebook.enable_traversal()
         self.root.bind("<Configure>", self._responsive_layout, add="+")
         root.after_idle(self._responsive_layout)
@@ -174,7 +175,7 @@ class Application:
 
     def _paint_widgets(self):
         p = PALETTES[self.theme.get()]
-        self.brand_label.configure(image=self.logos[self.theme.get()])
+        self.brand_label.configure(image=(self.compact_logos if getattr(self,"compact_mode",False) else self.logos)[self.theme.get()])
         self.accent_line.configure(background=p["accent"])
         for text in (self.log, self.help_text, self.raw_console, self.release_notes):
             text.configure(background=p["panel"], foreground=p["ink"], insertbackground=p["ink"],
@@ -448,8 +449,9 @@ class Application:
         self.queue_summary=tk.StringVar()
         queue_row=ttk.Frame(frame);queue_row.grid(row=4,column=0,sticky='ew')
         ttk.Label(queue_row,textvariable=self.queue_summary).pack(side='left')
-        ttk.Button(queue_row,text='Catch up to live',command=self.engine.catch_up).pack(side='right')
-        self._command_bar(frame, 5)
+        self.catch_up_button=ttk.Button(queue_row,text='Catch up to live',command=self.engine.catch_up);self.catch_up_button.pack(side='right')
+        self.compact_commands_button=ttk.Button(queue_row,text='Cluster commands',command=lambda:self._focus_command(source=True))
+        self.live_command_bar=self._command_bar(frame, 5)
         # The activity journal contains application events, never raw cluster text.
         self.activity_label = ttk.Label(frame, text="Activity")
         self.activity_label.grid(row=6, column=0, sticky="w", pady=(8, 4))
@@ -953,12 +955,25 @@ class Application:
             values[2] = spot.frequency_text(self.settings.frequency_unit)
             self.tree.item(item, values=values)
 
+    def _focus_command(self,source=False):
+        if not source and self.command_entries[0].winfo_ismapped():
+            self.notebook.select(0);self.command_entries[0].focus_set();return
+        self.notebook.select(1)
+        def focus():
+            next(canvas for frame,canvas in self.scroll_tabs if frame is self.tabs['Source']).yview_moveto(1)
+            self.command_entries[1].focus_set()
+        self.root.after_idle(focus)
+
     def _responsive_layout(self, event=None):
         if event is not None and event.widget is not self.root:
             return
         compact = self.root.winfo_height() < 720
-        for widget in (self.log, self.activity_label, self.live_hint):
+        self.compact_mode=compact
+        self.brand_label.configure(image=(self.compact_logos if compact else self.logos)[self.theme.get()])
+        for widget in (self.log, self.activity_label, self.live_hint,self.live_command_bar):
             widget.grid_remove() if compact else widget.grid()
+        if compact:self.compact_commands_button.pack(side='right',padx=8)
+        else:self.compact_commands_button.pack_forget()
 
     def _command_bar(self, frame, row):
         bar = ttk.LabelFrame(frame, text="Manual response or cluster command", padding=8)
@@ -971,6 +986,7 @@ class Application:
         send = ttk.Button(bar, text="Send", command=self.guard(self._send))
         send.grid(row=0, column=1, padx=(8, 0))
         self.command_buttons.append(send)
+        return bar
 
     def _set_secret_visible(self, visible):
         self.secret_visible = visible

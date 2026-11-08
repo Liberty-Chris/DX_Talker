@@ -24,9 +24,9 @@ Local listening and RF transmission are mutually exclusive. Disconnect, source f
 
 ## Navigation and visibility
 
-F6 previews the selected spot while output is stopped. F8 toggles local listening. Escape stops all output. Alt+C focuses the Live spots command input. Ctrl+Tab and Ctrl+Shift+Tab move between pages. Tab and Shift+Tab move through controls. Enter sends a command from its input field.
+F6 previews the selected spot while output is stopped. F8 toggles local listening. Escape stops all output. Alt+C focuses a visible command input. At compact window heights, Cluster commands or Alt+C opens Source and scrolls to its command field. Ctrl+Tab and Ctrl+Shift+Tab move between pages. Tab and Shift+Tab move through controls. Enter sends a command from its input field.
 
-Choose High contrast in Appearance for white text on a dark background. Speech also contains Interface text size, from 10 to 18 points. Save to apply. Settings pages scroll vertically. At small window heights the Live spots activity panel is hidden to preserve table space. Enlarge the window to see it. Larger text can require a wider window.
+Choose High contrast in Appearance for white text on a dark background. Speech also contains Interface text size, from 10 to 18 points. Save to apply. Settings pages scroll vertically. At small window heights the header shrinks and the Live spots activity panel, filter summary and duplicate command bar are hidden to preserve table space. Cluster commands remains available above the table controls. Enlarge the window to see it. Larger text can require a wider window.
 
 These controls improve keyboard and listening access. Tkinter screen reader support varies. NVDA, Windows Narrator, keyboard focus order and enlarged text need acceptance testing with visually impaired operators before claiming complete assistive technology support.
 

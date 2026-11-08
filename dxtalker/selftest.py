@@ -85,6 +85,16 @@ def run(report_path):
                         assert control.winfo_ismapped()
                         assert control.winfo_rooty() + control.winfo_height() <= root.winfo_rooty() + root.winfo_height()
                         assert control.winfo_rootx() + control.winfo_width() <= root.winfo_rootx() + root.winfo_width()
+                app.notebook.select(0);root.update()
+                assert app.tree.winfo_height()>=90
+                assert app.catch_up_button.winfo_rooty()+app.catch_up_button.winfo_height()<=app.tabs['Live spots'].winfo_rooty()+app.tabs['Live spots'].winfo_height()
+                assert app.compact_commands_button.winfo_ismapped()
+                app._focus_command(source=True);root.update()
+                assert app.command_buttons[1].winfo_ismapped()
+                source_canvas=next(c for f,c in app.scroll_tabs if f is app.tabs['Source'])
+                command_button=app.command_buttons[1]
+                assert source_canvas.winfo_rooty()<=command_button.winfo_rooty()
+                assert command_button.winfo_rooty()+command_button.winfo_height()<=source_canvas.winfo_rooty()+source_canvas.winfo_height()
                 report["small_window_controls"] = True
                 root.geometry(normal_geometry)
                 app.notebook.select(0)
