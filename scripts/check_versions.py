@@ -17,6 +17,10 @@ manual = json.loads((ROOT / "docs/help/manifest.json").read_text())
 assert f'#define AppVersion "{__version__}"' in installer
 assert f"StringStruct('FileVersion', '{__version__}')" in metadata
 assert f"StringStruct('ProductVersion', '{__version__}')" in metadata
+major, minor, patch, stage, serial = version_key(__version__)
+numeric = (major, minor, patch, serial)
+assert f"filevers={numeric}" in metadata, "Numeric EXE file version must match the application version"
+assert f"prodvers={numeric}" in metadata, "Numeric EXE product version must match the application version"
 assert manual["version"] == __version__
 android=(ROOT / "android/app/build.gradle.kts").read_text()
 assert f'versionName = "{__version__}"' in android
