@@ -477,14 +477,16 @@ class Application:
         items = []
         listing = tk.Listbox(window, width=72, height=12)
         listing.pack(padx=12,pady=12)
-        note = tk.StringVar(value="Dad's curated list is pending. Load a directory file when available. Status is curated, not a live reachability guarantee.")
+        note = tk.StringVar(value="Choose a recommended cluster and add it to your profiles. Use your own callsign when connecting. Review dates reflect the supplied operator list, not a live availability check.")
         ttk.Label(window,textvariable=note,wraplength=580).pack(padx=12,pady=8)
         def populate(path):
             if Path(path).stat().st_size > transfer.MAX_BYTES: raise ValueError('Directory exceeds 64 KiB')
             entries = transfer.catalog(json.loads(Path(path).read_text()))
             items[:] = entries
             listing.delete(0,'end')
-            for entry in items: listing.insert('end', f"{entry['name']} ({entry['status']}; checked {entry['checked'] or 'unknown'})")
+            for entry in items:
+                c=entry['connection']
+                listing.insert('end', f"{entry['name']}  {c['host']}:{c['port']} ({entry['status']})")
         def load():
             path = filedialog.askopenfilename(title='Load curated cluster directory',filetypes=[('JSON directory','*.json')])
             if path: populate(path)
@@ -495,7 +497,9 @@ class Application:
             if item['status'] != 'active': raise ValueError('This directory entry is retired')
             if any(p['connection'] == item['connection'] for p in self.profile_store.profiles):
                 raise ValueError('This connection is already saved')
-            self.profile_store.save(item['name'], replace(self.settings, **item['connection']))
+            connection=dict(item['connection'])
+            connection['login']=connection['login'] or self.variables['login'].get().strip()
+            self.profile_store.save(item['name'], replace(self.settings, **connection))
             self._refresh_profiles()
             note.set('Added. Select the profile to enter your callsign and any required password. Nothing connected automatically.')
         ttk.Button(window,text='Load directory file',command=self.guard(load)).pack(side='left',padx=12,pady=12)

@@ -1,7 +1,5 @@
-DX Talker 0.2.0a14 streamlines spotting, refreshes desktop controls and improves Android QR scanning.
+DX Talker 0.2.0a15 adds six recommended cluster connections on desktop and Android.
 
-Send a spot directly from its form on desktop and Android. The separate Review step is removed. Field validation, current cluster binding, rate limiting and delivery status remain. Desktop shows the normalized command as you type.
+Choose W1NR, DX Spots, N2WQ, WB3FFV, W3LPL or W4MYA from the cluster directory and add it to your saved profiles. Hostname and port are preconfigured. Enter your own callsign or reuse the one already entered. No credentials are included and nothing connects automatically. Existing profiles remain editable and removable.
 
-Announcements places What do you want to hear directly above the aligned format, frequency, timing and RF supervision panels. Desktop buttons and panels use rounded surfaces with the existing themes and keyboard controls. Operating system window frames retain their native appearance.
-
-Android requests camera permission before opening the scanner. Denial offers app settings or file import without losing collected QR pages. The scanner owns its camera lifecycle and shows readable camera failures rather than closing the main app. Camera launch and preview failures record diagnostic events without QR contents. Physical phone camera acceptance remains required.
+These nodes were reported validated in the supplied operator list. The review date is not a live availability guarantee. Node registration and password policies may vary. Android QR scanning and collection import from a14 have now been confirmed working on the reporting user's phone.

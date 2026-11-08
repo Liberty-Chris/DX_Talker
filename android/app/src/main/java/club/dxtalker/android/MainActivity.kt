@@ -276,7 +276,7 @@ class MainActivity : Activity() {
             if(entries.length()==0)panel.addView(label("No recommended entries are installed. Add a cluster yourself, import a profile collection or load a reviewed directory file.",14f,secondary))
             for(i in 0 until entries.length()) {
                 val entry=entries.getJSONObject(i);val card=section(entry.getString("name"));val c=entry.getJSONObject("connection")
-                card.addView(label(entry.getString("description")+"\n"+entry.getString("status")+" · checked "+entry.getString("checked"),14f,secondary))
+                card.addView(label(entry.getString("description")+"\n"+c.getString("host")+":"+c.getInt("port")+"\n"+entry.getString("status")+" · checked "+entry.getString("checked"),14f,secondary))
                 card.addView(button("Add to my clusters") {
                     val current=profiles();val name=entry.getString("name")
                     if((0 until current.length()).any { current.getJSONObject(it).optString("name")==name })Toast.makeText(this,"A profile with this name is already saved",Toast.LENGTH_LONG).show()

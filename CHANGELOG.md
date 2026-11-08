@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.2.0a14. Unreleased
+## 0.2.0a15. Unreleased
+
+Bundle six recommended nodes from the supplied validated operator list: W1NR, DX Spots, N2WQ, WB3FFV, W3LPL and W4MYA. Show preconfigured addresses in the choosers and reuse the operator's entered callsign when saving a node. Preserve existing profiles and explicit connection. Record physical phone confirmation that a14 QR scanning and import work.
+
+## 0.2.0a14. November 8, 2026
 
 Remove the separate spot review action on desktop and Android while preserving validation, session binding and rate limits. Move the listening shortcut out of Frequency range and align Announcements panels. Add rounded ttk buttons and panel surfaces, keeping native window frames. Give Android an explicit camera permission flow and an owned QR scanner with camera lifecycle/error handling and diagnostic events. Add camera permission/return instrumentation coverage and an ordered release download index.
 

@@ -231,3 +231,10 @@ Spot forms now submit directly through Send spot on desktop and Android, preserv
 Android requests camera permission on demand in the main activity and handles denial without losing collected pages. A dedicated in-app QR activity owns camera resume/pause, QR-only decoding and readable camera error recovery. Main launch failures and preview failures record bounded diagnostic events. The exact reported phone crash has not been established because no Android exception export was supplied. Emulator checks cover permission denial, grant, actual virtual camera preview and return; physical device acceptance remains needed.
 
 GitHub's API currently returns a9 and a8 ahead of a10 despite later a10 publication timestamps. A version ordered pilot download index gives a clear navigation path; existing release tags are retained. The app updater already compares numeric components. Source metadata is aligned to a14, with Android versionCode 8. Local and CI verification are in progress.
+
+
+## a15 bundled cluster directory
+
+The supplied image reports six validated TCP/Telnet nodes. The shared desktop/Android catalog now contains dx.w1nr.net:7300, dxspots.com:23, cluster.n2wq.com:7373, dxc.wb3ffv.us:7300, dxc.w3lpl.net:7373 and dxc.w4mya.us:7373. Validation provenance is the supplied operator list; no live connection or authentication was attempted during implementation. The November 8 review date records receipt of that list. No callsign or secret is bundled. Existing saved profiles remain intact, and adding a node does not connect automatically. Desktop and Android reuse the locally entered callsign when available.
+
+The reporting user confirms QR scan import now works on their phone after the a14 scanner change. This is physical acceptance for that device, not every camera model. Release metadata is aligned to a15 and Android versionCode 9. Catalog validation and build checks are pending.
