@@ -37,4 +37,12 @@ Settings are saved locally. RF and local listening enable state are never saved.
 For speech, keyboard and local listening tools, see Listening and accessibility. History and updates covers retention, log folders and the application update process.
 
 
-For new pilot targets, use the named x64 or x86 download. x86 is a Windows 10 target and does not imply XP compatibility. The XP source test kit is a separate limited listener requiring its own runtime. Optional recorded voices need a downloaded/generated pack selected in Speech. Cluster profiles and filters can be transferred through Source's QR/file controls without exporting credentials.
+For new pilot targets, use the named x64 or x86 download. x86 is a Windows 10 target and does not imply XP compatibility. Separate XP pilot installers bundle the application and its private runtime for Windows XP SP3 in 32 bit or Windows XP x64 SP2 in 64 bit. The older XP source test kit is only a developer listener. Optional recorded voices need a downloaded/generated pack selected in Speech. Cluster profiles and filters can be transferred through Source's QR/file controls without exporting credentials.
+
+## Windows XP pilot installation
+
+Use the download explicitly labelled Windows XP and the architecture matching your system. Run setup using the same Windows account that will run DX Talker. Python is included privately and other Python installations are left alone. Start menu and optional desktop shortcuts include XP and the architecture. Install the next matching XP setup over the existing copy to update it. Setup preserves settings and detects an existing desktop shortcut by its target, including renamed shortcuts.
+
+The XP pilot uses the same profiles, filtering, announcement controls, radio coordinator, IDs and transfer tools as the modern application. System speech uses installed SAPI voices. Select Windows MME audio devices again when moving settings from a modern Windows installation. Optional Piper or other external executables must themselves support XP. Recorded PCM voice packs avoid that external runtime requirement.
+
+These installers are for XP acceptance testing. Hosted verification does not establish operation on your particular XP system or radio interface. Use sample spots and local previews first. RF always starts disabled.

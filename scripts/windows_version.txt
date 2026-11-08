@@ -6,10 +6,10 @@ VSVersionInfo(
   kids=[StringFileInfo([StringTable('040904B0', [
     StringStruct('CompanyName', 'DX Talker'),
     StringStruct('FileDescription', 'DX Talker desktop application'),
-    StringStruct('FileVersion', '0.2.0a16'),
+    StringStruct('FileVersion', '0.2.0a17'),
     StringStruct('InternalName', 'DXTalker'),
     StringStruct('LegalCopyright', 'All rights reserved. See LICENSE.'),
     StringStruct('OriginalFilename', 'DXTalker.exe'),
     StringStruct('ProductName', 'DX Talker'),
-    StringStruct('ProductVersion', '0.2.0a16')])]),
+    StringStruct('ProductVersion', '0.2.0a17')])]),
     VarFileInfo([VarStruct('Translation', [1033, 1200])])])

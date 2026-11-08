@@ -49,3 +49,21 @@ class ReleaseNotesTests(unittest.TestCase):
         for code, patch in [(1, {}), (0, dict(isDraft=True)), (0, dict(tagName='v0.2.0a11'))]:
             with self.subTest(code=code, patch=patch), self.assertRaises(ValueError):
                 self.invoke(dict(self.release, **patch), code)
+
+    def test_correcting_prose_preserves_the_download_table_and_labels(self):
+        block = '<!-- dxtalker-downloads:start -->\nChoose your download.\n<!-- dxtalker-downloads:end -->'
+        captured = []
+        def run(command, **options):
+            if command[2] == 'view':
+                return SimpleNamespace(returncode=0, stdout=json.dumps(dict(self.release, body='Old prose.\n'+block)))
+            captured.append(Path(command[-1]).read_text())
+            return SimpleNamespace(returncode=0, stdout='')
+        self.assertTrue(module.sync_notes('v0.2.0a12', 'Liberty-Chris/DX_Talker', self.root, run))
+        self.assertEqual(captured, ['DX Talker 0.2.0a12 adds filters.\n\n'+block+'\n'])
+        self.assertEqual(self.path.read_text(), 'DX Talker 0.2.0a12 adds filters.\n')
+
+    def test_matching_prose_with_download_table_is_already_current(self):
+        block = '<!-- dxtalker-downloads:start -->\nDownloads.\n<!-- dxtalker-downloads:end -->'
+        changed, run = self.invoke(dict(self.release, body=self.path.read_text().rstrip()+'\n\n'+block))
+        self.assertFalse(changed)
+        self.assertEqual(run.call_count, 1)

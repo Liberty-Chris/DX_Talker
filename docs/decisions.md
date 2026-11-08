@@ -223,6 +223,12 @@ A comparison of the a12 and a14 tags reproduced slower tab switching under the s
 
 Use explicit synthetic self test measurements to block builds that exceed reviewed startup, navigation, scrolling or idle CPU budgets. Publish the measured evidence beside existing Windows verification reports, including failed checks. Pair wall clock budgets with deterministic drawing work checks instead of relying solely on fast hosted hardware. Keep profiling out of ordinary operation and leave the safety event poll unchanged. Node.js 24 belongs to GitHub action execution, not the Python/Tk desktop runtime. Track the wider older hardware resource audit as the next maintenance batch.
 
+## November 8, 2026. Shared XP desktop core
+
+Build the maintained desktop code for the official private Python 3.4.4 runtime instead of packaging the limited legacy listener as a full application. Explicit compatibility modules cover language and standard library differences. Native SAPI, WinMM and serial adapters remain behind the shared coordinator. Official runtime installers, pure QR dependencies, CA data and the XP compatible setup compiler are hash pinned. The native launcher imports only kernel32 and user32 and declares an XP subsystem minimum. Installation is account local and architecture specific.
+
+Keep existing modern installer filenames for updater compatibility and add descriptive release asset labels plus a managed download table. XP update selection uses separate XP filenames. The older source kit remains available as a developer artifact. Hosted interpreter and installation checks do not replace named XP VM or physical acceptance, especially for audio drivers, USB interfaces and process or cable failures. Stable XP packaging remains blocked pending approved legal text and the corresponding installer presentation review.
+
 ## November 8, 2026. Immediate filters and conservative mode inference
 
 Use one selection policy for the spot list and speech. Remove the desktop All received bypass. Infer a missing mode only from reviewed single mode frequency segments and leave mixed or conflicting reports Unknown. Require explicit Include unknown even when no particular mode is selected. Use the common regional CW subset documented in mode_inference.md and do not label shared phone or digital segments as a particular mode.

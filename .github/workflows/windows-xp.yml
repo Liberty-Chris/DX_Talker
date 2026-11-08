@@ -1,0 +1,79 @@
+name: Windows XP application checks
+on:
+  workflow_call:
+    secrets:
+      DXTALKER_SPEECH_CONFIG:
+        required: false
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  xp:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      OPENSSL_ia32cap: ':~0x20000000'
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [x86, x64]
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.12'
+      - uses: actions/cache@v6.1.0
+        with:
+          path: build/xp-downloads
+          key: xp-dependencies-${{ runner.os }}-${{ matrix.architecture }}-${{ hashFiles('platforms/xp/downloads.json') }}
+      - name: Configure the shared pilot speech endpoint
+        env:
+          DXTALKER_SPEECH_CONFIG: ${{ secrets.DXTALKER_SPEECH_CONFIG }}
+        run: python scripts/configure_speech_build.py
+      - name: Stage official private XP runtime and shared application
+        run: python platforms/xp/prepare.py --architecture ${{ matrix.architecture }} --out build/xp-${{ matrix.architecture }}
+      - name: Compile native XP launcher and installer
+        run: python platforms/xp/build_installer.py --architecture ${{ matrix.architecture }} --stage build/xp-${{ matrix.architecture }}
+      - name: Run shared behavioral checks with the bundled Python 3.4
+        id: behavior
+        if: ${{ !cancelled() }}
+        run: |
+          $app = "$PWD/build/xp-${{ matrix.architecture }}"
+          & "$app/runtime/python.exe" -I -c "import sys;sys.path.insert(0,r'$app');from xp_support.test_runner import run;raise SystemExit(0 if run(r'$app') else 1)"
+          if ($LASTEXITCODE -ne 0) { throw "XP shared behavior checks failed with exit code $LASTEXITCODE" }
+      - name: Check complete UI, QR, private secrets and SAPI without playback or PTT
+        id: desktop
+        if: ${{ !cancelled() }}
+        run: |
+          $app = "$PWD/build/xp-${{ matrix.architecture }}"
+          $process = Start-Process "$app/runtime/python.exe" -ArgumentList '-I', "`"$app/run_xp.py`"", '--self-test', "`"$PWD/xp-${{ matrix.architecture }}-smoke.json`"" -PassThru
+          if (-not $process.WaitForExit(90000)) { $process.Kill(); throw 'XP UI check timed out' }
+          if ($process.ExitCode -ne 0) { Get-Content xp-${{ matrix.architecture }}-smoke.json; throw 'XP UI check failed' }
+      - name: Diagnose unexpected UI exits
+        if: failure() && (steps.behavior.conclusion == 'failure' || steps.desktop.conclusion == 'failure')
+        run: |
+          $app = "$PWD/build/xp-${{ matrix.architecture }}"
+          & "$app/runtime/python.exe" -I platforms/xp/probe_ui.py "$app" "xp-${{ matrix.architecture }}-ui-trace.log"
+          Write-Output "UI diagnostic exit code: $LASTEXITCODE"
+          Get-WinEvent -FilterHashtable @{ LogName='Application'; StartTime=(Get-Date).AddMinutes(-15) } -ErrorAction SilentlyContinue | Where-Object { $_.Id -eq 1000 } | Select-Object -First 3 -ExpandProperty Message
+          exit 0
+      - name: Verify public update HTTPS with the bundled interpreter
+        run: |
+          $app = "$PWD/build/xp-${{ matrix.architecture }}"
+          & "$app/runtime/python.exe" -I platforms/xp/check_https.py "$app" "xp-${{ matrix.architecture }}-https-smoke.json"
+          if ($LASTEXITCODE -ne 0) { throw 'XP verified HTTPS check failed' }
+      - name: Check XP installation, native launch, upgrade, shortcuts and removal
+        run: ./platforms/xp/check_installer.ps1 -Architecture ${{ matrix.architecture }}
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: XP-verification-${{ matrix.architecture }}
+          path: |
+            xp-*-smoke.json
+            xp-*-ui-trace.log*
+            build/*-msi-image.log
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: Windows-XP-installer-${{ matrix.architecture }}
+          path: dist/DXTalker-Setup-Windows-XP-*.exe
+          if-no-files-found: error

@@ -259,8 +259,26 @@ The a16 source adds explicit self test budgets for UI creation, repeated navigat
 
 The supplied video shows slow scrolling, delayed application startup, a Not responding window and a report of saturated CPU while disconnected. This supports the rendering investigation but does not prove the full cause on that machine. A fresh physical test of a15 remains necessary. The next maintenance audit covers long sessions, bursts, logging, memory and speech work in addition to rendering.
 
+## 0.2.0a17. XP application installers and release downloads
+
+The maintained desktop core is generated for private official Python 3.4.4 runtimes with XP adapters for SAPI, WinMM audio/input and serial RTS/DTR. Separate account local 32 bit SP3 and 64 bit SP2 pilot installers include the runtime, canonical Help and required third party notices. Existing modern updater filenames remain intact. XP updates select only the matching XP installer. Published download labels and a managed table distinguish operating system, architecture and package role. The limited listener source kit remains a developer artifact.
+
+All 218 source tests pass locally under a dummy display without skips. Both actual bundled interpreters pass 148 shared model, parsing, filter/privilege, coordinator, source, profile/history, diagnostics/transfer, QR, desktop UI, receiver and simulated native adapter tests. [Hosted verification](https://github.com/Liberty-Chris/DX_Talker/actions/runs/42464870470) produces both XP installers and passing source/installed UI, persistent SAPI rendering, 78 settings fields, DPAPI, QR PNG, SHA vectors, HTTPS certificate/hostname verification, install, upgrade, renamed desktop shortcut preservation, user data preservation and removal reports. No audio playback, physical serial access or public spotting occurs in these checks.
+
+Installed XP x64 measured 875 ms UI startup, 35.9 ms median navigation and 0.0234 idle CPU ratio. Installed x86 measured 1312 ms startup, 50.8 ms median navigation and 0.0156 idle CPU ratio. Both meet the retained build budgets. These are hosted modern Windows build 26100 measurements, not XP or older PC performance guarantees.
+
+An intermittent x64 access violation in the old OpenSSL module matched the CPU SHA dispatch defect documented by Intel. The XP launcher now sets the documented process local dispatch mask before Python starts. Known digest vectors and real verified GitHub HTTPS pass on both architectures. Dependency downloads remain hash pinned and certificate failures are not retried insecurely. See [XP implementation and acceptance](xp_port.md) for the remaining legacy runtime limits.
+
+Actual XP x86 SP3 and XP x64 SP2 machine or VM acceptance and physical radio/driver checks remain open. Optional external speech executables need compatible XP builds. Stable XP packaging remains blocked pending the approved legal text and installer presentation review. Android behavior is unchanged; a17 metadata uses versionCode 11. The original archive is unchanged.
+
 ## November 8, 2026. Mode filtering and automatic saving
 
 Implemented on the working branch: common regional CW segment inference when mode metadata is absent, strict Unknown opt in, matching display and speech selection and removal of All received. All supported modes follow the same evidence policy. Shared portions stay Unknown. Desktop and Android save selected and unselected filters immediately while preserving the cluster connection. Text edits are validated before automatic saving. Preset loading is immediate and an empty checklist saves None.
 
 Local verification: all 205 Python tests passed under a virtual display, including 42 desktop integration tests. Shared fixtures cover 107 cases, including boundaries and all mode selections; fake audio confirms inferred CW and opted in Unknown are spoken. Documentation links, help manifest, version alignment and whitespace checks pass. The desktop filter layout was rendered and inspected. All Android production and unit test Kotlin sources compile with Kotlin 2.0.21 against Android API 35; all 22 JVM unit tests pass. This local compilation used a temporary R.drawable.dxt_icon constant in place of Android resource generation. It is not an APK build or device test. Updated emulator navigation and automatic saving tests still need CI, as does native Windows packaging. No physical device or RF acceptance is claimed.
+
+## PR 30 integration with current main
+
+Retain both the XP installer work and the mode filtering/automatic saving changes merged through PR 31. Resolve overlapping appended documentation entries without reverting either implementation. The combined source passes all 224 local tests under a dummy display without skips. Documentation links, release metadata, privilege synchronization and XP generated Python 3.4 syntax checks pass. Native Windows/XP and Android checks rerun on the combined branch before merge.
+
+The integrated XP check initially failed because the new cross platform mode comparison reads Android's SpotFilters.kt, which was absent from the staged test tree. Test builds now copy that reference alongside the shared fixture JSON. The comparison stays enabled and the Android reference remains outside the installer file list. This is a test staging correction; conflict resolution alone did not establish passing checks.
