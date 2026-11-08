@@ -282,3 +282,7 @@ Local verification: all 205 Python tests passed under a virtual display, includi
 Retain both the XP installer work and the mode filtering/automatic saving changes merged through PR 31. Resolve overlapping appended documentation entries without reverting either implementation. The combined source passes all 224 local tests under a dummy display without skips. Documentation links, release metadata, privilege synchronization and XP generated Python 3.4 syntax checks pass. Native Windows/XP and Android checks rerun on the combined branch before merge.
 
 The integrated XP check initially failed because the new cross platform mode comparison reads Android's SpotFilters.kt, which was absent from the staged test tree. Test builds now copy that reference alongside the shared fixture JSON. The comparison stays enabled and the Android reference remains outside the installer file list. This is a test staging correction; conflict resolution alone did not establish passing checks.
+
+## Android download consolidation
+
+The a18 publication graph calls the existing Android build and emulator workflow from the same release commit and requires its success before uploading DXTalker-Android.apk. Android remains available as a candidate Actions artifact and now has a labelled release asset and checksum. No application behavior, APK signing process, Play Store integration or automatic mobile updater changes. Publication and live release asset acceptance remain pending the owner's merge and publish action.

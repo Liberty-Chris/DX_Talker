@@ -1,4 +1,4 @@
-#define AppVersion "0.2.0a17"
+#define AppVersion "0.2.0a18"
 #ifndef AppArch
 #define AppArch "x64"
 #endif
