@@ -128,3 +128,7 @@ Added the project overview, roadmap, requirements, proposed architecture, decisi
 Started the Help and Info pages and added instructions for keeping them current during development.
 
 Reviewed the original archive without running its programs. Recorded the files found and the details useful for building the new application.
+
+## Pending release. Consistent mode filtering
+
+Display and speech now share strict mode selection, including conservative CW frequency inference and explicit Include unknown. The desktop All received bypass is removed. Mixed frequency portions stay Unknown for every mode. Filter selections and presets take effect and save automatically on desktop and Android, with no Apply step. Clearing the final selection accepts no spots.

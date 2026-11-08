@@ -1,6 +1,6 @@
 # Cluster configuration
 
-Use [What do you want to hear?](listening_filters.md) for local band, mode, activity, license and location filters. No cluster commands are needed for these choices. Desktop and Android main spot views show matching reports. Desktop All received exposes retained reports for troubleshooting.
+Use [What do you want to hear?](listening_filters.md) for local band, mode, activity, license and location filters. No cluster commands are needed for these choices. Desktop and Android main spot views show matching reports. Why hidden? provides rejection counts without showing rejected spots in the main list. Filter choices save automatically.
 
 App filters can only select reports the cluster sends. They do not undo saved filters on the cluster account or silently change preferences used by other programs. Source activity and the visible manual command field remain available for reading cluster replies and sending commands when necessary. Syntax varies between DXSpider, AR Cluster and other servers. Consult the connected node's help before changing its settings.
 

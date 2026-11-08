@@ -10,6 +10,7 @@ import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.Espresso.onData
 import androidx.test.espresso.action.ViewActions.*
 import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.assertion.ViewAssertions.doesNotExist
 import androidx.test.espresso.matcher.ViewMatchers.*
 import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.allOf
@@ -61,21 +62,23 @@ class FilterFlowTests {
                 onView(withText("Start listening")).perform(click());assertTrue(accepted.await(5,TimeUnit.SECONDS))
                 val token=ListenerService.connectionToken
                 onView(withText("Filters")).perform(click())
-                onView(withText("Apply filters")).check(matches(isDisplayed()))
-                onView(withText("Bands: All")).perform(scrollTo(),click());onView(withText("20m")).perform(click());onView(withText("Use selection")).perform(click())
-                onView(withText("Modes: All")).perform(scrollTo(),click());onView(withText("CW")).perform(click());onView(withText("Use selection")).perform(click())
-                assertEquals("",prefs.getString("filter_bands",""))
-                onView(withText("Apply filters")).check(matches(isDisplayed())).perform(click())
+                onView(withText("Apply filters")).check(doesNotExist())
+                onView(withText("Bands: All")).perform(scrollTo(),click());onView(withText("20m")).perform(click());onView(withText("Close")).perform(click())
+                onView(withText("Modes: All known modes")).perform(scrollTo(),click());onView(withText("CW")).perform(click());onView(withText("Close")).perform(click())
+                assertEquals("20m",prefs.getString("filter_bands",""))
+                assertEquals("CW",prefs.getString("filter_modes",""))
+                onView(withText("Back")).perform(click())
                 await("Saved bands reach the live service") { prefs.getString("filter_bands","")=="20m" && ListenerService.listeningActive && ListenerService.status.startsWith("Filters applied") }
-                batches.put("14025 K1AAA CW\n7025 K2BBB CW")
+                batches.put("14025 K1AAA CQ\n7025 K2BBB CW\n14074 K7GGG FT8\n14225 K8HHH CQ")
                 await("20m displayed and 40m rejected") { rows().any { it.startsWith("K1AAA ") } && synchronized(ListenerService.hidden){ListenerService.hidden["Band"]==1} }
                 assertEquals(1,rows().size);assertFalse(rows().single().contains("General"))
+                assertTrue(rows().single().contains("CW"))
                 onView(withContentDescription("Change frequency units")).perform(click());onView(withText("MHz")).perform(click())
                 await("Existing rows convert without reconnect") { rows().singleOrNull()?.contains("14.025 MHz")==true }
                 onView(withText("Filters")).perform(click())
-                onView(withText("Modes: CW")).perform(scrollTo(),click());onView(withText("CW")).perform(click());onView(withText("SSB")).perform(click());onView(withText("Use selection")).perform(click())
+                onView(withText("Modes: CW")).perform(scrollTo(),click());onView(withText("CW")).perform(click());onView(withText("SSB")).perform(click());onView(withText("Close")).perform(click())
                 onView(withContentDescription("FCC license class")).perform(scrollTo(),click());onData(equalTo("General")).perform(click())
-                onView(withText("Apply filters")).check(matches(isDisplayed())).perform(click())
+                onView(withText("Back")).perform(click())
                 await("Old displayed rows clear when new filters apply") { rows().isEmpty() && ListenerService.status.startsWith("Filters applied") }
                 batches.put("14225 K3CCC SSB\n14025 K4DDD CW\n14200 K5EEE SSB\n7225 K6FFF SSB")
                 await("Mode, license and band gates all apply") { rows().any { it.startsWith("K3CCC ") } && synchronized(ListenerService.hidden){ListenerService.hidden["Mode"]==1 && ListenerService.hidden["Outside selected license segments"]==1 && ListenerService.hidden["Band"]==1} }
@@ -85,7 +88,29 @@ class FilterFlowTests {
             }
         }finally{done.set(true);server.close();worker.interrupt();worker.join(1500);context.stopService(Intent(context,ListenerService::class.java))}
     }
-    @Test fun presetUnitsUseTheCanonicalDraftAndApplyStaysVisible() {
+    @Test fun modeTogglesPersistBeforeClosingAndUnknownIsExplicit() {
+        val prefs=context.getSharedPreferences("dx",Context.MODE_PRIVATE)
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            onView(withText("Filters")).perform(click())
+            onView(withText("Apply filters")).check(doesNotExist())
+            onView(withText("Modes: All known modes")).perform(scrollTo(),click())
+            onView(withText("CW")).perform(click())
+            assertEquals("CW",prefs.getString("filter_modes",""))
+            onView(withText("Include unknown")).perform(click())
+            assertEquals("CW,Unknown",prefs.getString("filter_modes",""))
+            onView(withText("CW")).perform(click())
+            assertEquals("Unknown",prefs.getString("filter_modes",""))
+            onView(withText("Include unknown")).perform(click())
+            assertEquals("None",prefs.getString("filter_modes",""))
+            onView(withText("Close")).perform(click())
+            scenario.recreate()
+            onView(withText("Modes: None")).check(matches(isDisplayed()))
+            onView(withText("Modes: None")).perform(click())
+            onView(withText("All known modes")).perform(click())
+            assertEquals("",prefs.getString("filter_modes",""))
+        }
+    }
+    @Test fun presetUnitsSaveImmediatelyWithoutAnApplyStep() {
         val prefs=context.getSharedPreferences("dx",Context.MODE_PRIVATE)
         val values=ListeningSettings.json { key -> if(key=="frequency_unit")"kHz"else ListeningSettings.defaults[key].orEmpty() }
         prefs.edit().putString("frequency_unit","MHz").putString("listening_presets",org.json.JSONObject().put("kHz preset",values).toString()).commit()
@@ -94,7 +119,7 @@ class FilterFlowTests {
             onView(allOf(withText("Listening presets"),isAssignableFrom(android.widget.Button::class.java))).perform(scrollTo(),click())
             onView(withContentDescription("Saved listening preset")).perform(scrollTo(),click());onData(equalTo("kHz preset")).perform(click())
             onView(withText("Load preset")).perform(scrollTo(),click())
-            onView(withText("Apply filters")).check(matches(isDisplayed())).perform(click())
+            onView(withText("Back")).perform(click())
             assertEquals("kHz",prefs.getString("frequency_unit",""))
             onView(withContentDescription("Change frequency units")).check(matches(withText("kHz")))
         }
