@@ -88,3 +88,7 @@ The 0.2.0a12 source batch expands local filters into license aware listening pre
 ## Next efficiency audit
 
 Review older PC performance in the next maintenance batch. Measure UI event work and redraw frequency, bounded spot burst handling, queue fairness, memory retained during long sessions, history/diagnostic disk writes and speech preparation or worker contention. Compare idle, connected, local listening and RF simulations with a recorded version baseline. Preserve cancellation, identification and source loss responsiveness while reducing resource use. Validate representative slower Windows hardware separately from hosted runner timing. Keep the automatic source/portable/installed performance budgets and deterministic rendering checks in release verification.
+
+## XP desktop acceptance
+
+The XP port targets the full maintained desktop core with private runtimes and separate 32 bit SP3 and 64 bit SP2 installers. Verify shared policies and UI with the actual bundled interpreters, native adapters with simulated devices and clean installation/upgrade/removal on hosted Windows. Then record named XP VM or hardware acceptance, selected endpoint routing, serial polarity, receive hold, stop, cable failure and long sessions before claiming supported XP operation. The older listener source kit is not the full port.

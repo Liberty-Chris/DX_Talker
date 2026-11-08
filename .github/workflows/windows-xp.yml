@@ -1,10 +1,9 @@
 name: Windows XP application checks
 on:
-  push:
-    branches: [feat/xp-core-installers]
-    paths: ['platforms/xp/**', 'dxtalker/**', 'tests/**', '.github/workflows/windows-xp.yml']
-  pull_request:
-    paths: ['platforms/xp/**', 'dxtalker/**', 'tests/**', '.github/workflows/windows-xp.yml']
+  workflow_call:
+    secrets:
+      DXTALKER_SPEECH_CONFIG:
+        required: false
   workflow_dispatch:
 permissions:
   contents: read
@@ -20,6 +19,10 @@ jobs:
       - uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.12'
+      - name: Configure the shared pilot speech endpoint
+        env:
+          DXTALKER_SPEECH_CONFIG: ${{ secrets.DXTALKER_SPEECH_CONFIG }}
+        run: python scripts/configure_speech_build.py
       - name: Stage official private XP runtime and shared application
         run: python platforms/xp/prepare.py --architecture ${{ matrix.architecture }} --out build/xp-${{ matrix.architecture }}
       - name: Compile native XP launcher and installer

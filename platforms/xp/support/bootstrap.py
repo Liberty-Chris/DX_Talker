@@ -42,3 +42,12 @@ if not hasattr(tkinter.Variable, 'trace_add'):
             return callback(name, index, full[operation])
         return self.trace_variable(short, changed)
     tkinter.Variable.trace_add = trace_add
+
+import tkinter.ttk as ttk
+if not hasattr(ttk, 'Spinbox'):
+    class Spinbox(ttk.Entry):
+        def __init__(self, master=None, **options):
+            ttk.Entry.__init__(self, master, 'ttk::spinbox', **options)
+        def set(self, value):
+            self.tk.call(self._w, 'set', value)
+    ttk.Spinbox = Spinbox

@@ -130,6 +130,11 @@ jobs:
           name: Piper-verification
           path: piper-smoke.json
 
+  xp_application:
+    uses: ./.github/workflows/windows-xp.yml
+    secrets:
+      DXTALKER_SPEECH_CONFIG: ${{ secrets.DXTALKER_SPEECH_CONFIG }}
+
   xp_source_kit:
     runs-on: ubuntu-latest
     steps:
@@ -146,7 +151,7 @@ jobs:
 
   publish:
     if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release && github.ref == 'refs/heads/main')
-    needs: [tests, windows, neural_speech, xp_source_kit]
+    needs: [tests, windows, neural_speech, xp_application]
     concurrency:
       group: dxtalker-release-publication
       cancel-in-progress: false
@@ -173,9 +178,12 @@ jobs:
           path: portable-x86/DXTalker
       - uses: actions/download-artifact@v8.0.2
         with:
-          name: DXTalker-XP-source-test-kit
-          path: xp-source-kit
-      - run: cd xp-source-kit && zip -qr ../release/DXTalker-XP-source-test-kit.zip .
+          name: Windows-XP-installer-x86
+          path: release
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: Windows-XP-installer-x64
+          path: release
       - uses: actions/download-artifact@v8.0.2
         with:
           name: DXTalker-VoicePack-LJ-high
@@ -216,4 +224,7 @@ jobs:
           fi
           extra=()
           if [[ "$RELEASE_TAG" =~ (a|b|rc)[0-9]+$ ]]; then extra+=(--prerelease); fi
-          gh release create "$RELEASE_TAG" release/* --verify-tag --title "DX Talker $RELEASE_TAG" --notes-file docs/releases/current.md "${extra[@]}"
+          python scripts/release_assets.py release > release-arguments.txt
+          mapfile -t assets < release-arguments.txt
+          python scripts/release_assets.py release --notes docs/releases/current.md --tag "$RELEASE_TAG" --output prepared-release-notes.md
+          gh release create "$RELEASE_TAG" "${assets[@]}" --verify-tag --title "DX Talker $RELEASE_TAG" --notes-file prepared-release-notes.md "${extra[@]}"

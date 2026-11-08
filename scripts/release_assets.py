@@ -1,6 +1,8 @@
 """Friendly download roles without renaming files required by installed updaters."""
 import argparse
 from pathlib import Path
+import re
+from urllib.parse import quote
 from urllib.parse import urlsplit
 
 REPOSITORY = 'Liberty-Chris/DX_Talker'
@@ -62,5 +64,16 @@ def arguments(directory):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('directory')
+    parser.add_argument('--notes')
+    parser.add_argument('--tag')
+    parser.add_argument('--output')
     options = parser.parse_args()
-    print('\n'.join(arguments(options.directory)))
+    prepared = arguments(options.directory)
+    if any((options.notes, options.tag, options.output)):
+        if not all((options.notes, options.tag, options.output)) or not re.fullmatch(r'v\d+\.\d+\.\d+(?:(?:a|b|rc)\d+)?', options.tag):
+            parser.error('Notes, a valid release tag and output must be supplied together')
+        assets = [{'name': Path(item.split('#', 1)[0]).name,
+                   'browser_download_url': 'https://github.com/' + REPOSITORY + '/releases/download/' + quote(options.tag) + '/' + quote(Path(item.split('#', 1)[0]).name)} for item in prepared]
+        Path(options.output).write_text(downloads(Path(options.notes).read_text(encoding='utf-8'), assets), encoding='utf-8')
+    else:
+        print('\n'.join(prepared))

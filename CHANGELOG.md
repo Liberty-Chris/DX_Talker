@@ -128,3 +128,7 @@ Added the project overview, roadmap, requirements, proposed architecture, decisi
 Started the Help and Info pages and added instructions for keeping them current during development.
 
 Reviewed the original archive without running its programs. Recorded the files found and the details useful for building the new application.
+
+## 0.2.0a17
+
+Prepare full shared desktop core XP 32 bit and 64 bit pilot installers with private runtimes, SAPI speech, WinMM audio/input and native serial PTT adapters. Preserve shared filters, profiles, queue and ID coordination, transfer and diagnostics. Add actual bundled interpreter checks, native adapter simulation and installer verification. Clarify download labels and tables while preserving modern updater filenames. Physical XP acceptance remains open.

@@ -1,6 +1,7 @@
 from pathlib import Path
 import importlib.util
 import sys
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import Mock
@@ -59,3 +60,21 @@ class ReleaseAssetTests(unittest.TestCase):
             self.assertIn('32 bit installer', args[0])
             (Path(folder)/'mystery.zip').write_text('synthetic')
             with self.assertRaises(ValueError): assets.arguments(folder)
+
+    def test_publication_notes_include_only_prepared_downloads(self):
+        with tempfile.TemporaryDirectory() as folder:
+            directory = Path(folder)/'release'; directory.mkdir()
+            name = 'DXTalker-Setup-Windows-XP-32bit.exe'
+            (directory/name).write_text('synthetic')
+            notes = Path(folder)/'notes.md'; notes.write_text('Original release prose.\n')
+            output = Path(folder)/'prepared.md'
+            command = [sys.executable, str(ROOT/'scripts/release_assets.py'), str(directory), '--notes', str(notes), '--tag', 'v0.2.0a17', '--output', str(output)]
+            subprocess.run(command, check=True, capture_output=True)
+            prepared = output.read_text()
+            self.assertTrue(prepared.startswith('Original release prose.\n'))
+            self.assertIn('/v0.2.0a17/'+name, prepared)
+            self.assertNotIn('source-test-kit', prepared)
+            (directory/'unlabelled.exe').write_text('synthetic')
+            failed = subprocess.run(command, capture_output=True)
+            self.assertNotEqual(failed.returncode, 0)
+            self.assertEqual(output.read_text(), prepared)
