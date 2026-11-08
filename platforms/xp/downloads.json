@@ -20,11 +20,15 @@
     "sha256": "60222a612b83231ed99e6cb36e55311227c395d0d0f62e41bb51ebbb84a9a22b"
   },
   "png": {
-    "url": "https://files.pythonhosted.org/packages/2f/b1/c8dfcf50feb12a30be7d95c5f45d638704682487d8e50419ef41463febcd/pypng-0.0.18.tar.gz",
-    "sha256": "985a1306319e3187e2cb3dabec95a7a0f0f281ae2e1fec04289bed520fecd932"
+    "url": "https://files.pythonhosted.org/packages/f7/24/36654d22e5750517f53b823fafe1c6f128f7ff9c319af811947f410b64d4/pypng-0.0.20-py3-none-any.whl",
+    "sha256": "1f9c9cc24030459abbb2813a62b2bbcdb43ad0867e2f2232a302655308b3d25f"
   },
   "six": {
     "url": "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl",
     "sha256": "4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274"
+  },
+  "qrcode_source": {
+    "url": "https://files.pythonhosted.org/packages/87/16/99038537dc58c87b136779c0e06d46887ff5104eb8c64989aac1ec8cba81/qrcode-5.3.tar.gz",
+    "sha256": "4115ccee832620df16b659d4653568331015c718a754855caf5930805d76924e"
   }
 }

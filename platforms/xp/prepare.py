@@ -99,9 +99,12 @@ def prepare(architecture, output):
     packages = runtime / 'Lib/site-packages'; packages.mkdir(exist_ok=True)
     for name in ('qrcode', 'six'):
         with zipfile.ZipFile(fetch(name, cache)) as wheel: wheel.extractall(packages)
-    with tarfile.open(fetch('png', cache)) as archive:
-        member = next(item for item in archive.getmembers() if item.name.endswith('/code/png.py'))
-        (packages / 'png.py').write_bytes(archive.extractfile(member).read())
+    with zipfile.ZipFile(fetch('png', cache)) as wheel:
+        wheel.extractall(packages)
+    notices = output / 'assets/licenses'; notices.mkdir(parents=True, exist_ok=True)
+    with tarfile.open(fetch('qrcode_source', cache)) as archive:
+        (notices / 'qrcode-5.3-LICENSE.txt').write_bytes(archive.extractfile('qrcode-5.3/LICENSE').read())
+    shutil.rmtree(packages / 'qrcode/tests', ignore_errors=True)
     certificates = output / 'assets/certificates'; certificates.mkdir(parents=True)
     with zipfile.ZipFile(fetch('certificates', cache)) as wheel:
         (certificates / 'cacert.pem').write_bytes(wheel.read('certifi/cacert.pem'))
