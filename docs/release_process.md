@@ -2,10 +2,14 @@
 
 ## Publish
 
+Open [Build and publish DX Talker](https://github.com/Liberty-Chris/DX_Talker/actions/workflows/windows.yml), choose Run workflow, select main and enable Publish release. Opening this link does not start a run. Include this link in every merge handoff that is ready for publication.
+
+The application is currently Alpha. The a suffix in its version identifies an alpha release. Beta will follow when feature scope and platform behavior have settled. The existing Pilot update channel includes prereleases and keeps its stored value for updater compatibility.
+
 1. Merge reviewed changes and choose the next version. Update dxtalker/__init__.py, scripts/installer.iss, scripts/windows_version.txt and docs/help/manifest.json together. Maintain numeric EXE version information too.
 2. Update CHANGELOG.md, operator help, status and docs/releases/current.md. Run the unit suite, documentation checker and scripts/check_versions.py.
 3. Build and test the Windows artifact. Confirm supported targets and known limitations. Create a matching version tag such as v0.2.0a1 and push it.
-4. The Windows pilot workflow runs core and desktop tests, source and packaged speech smoke checks, installer compilation and install/reinstall/removal checks. Only after both test and Windows jobs succeed does the publish job upload the setup executable, portable ZIP and SHA256SUMS.txt to GitHub Releases. The tag must exactly match the application version.
+4. The Build and publish DX Talker workflow runs core and desktop tests, source and packaged speech smoke checks, installer compilation and install/reinstall/removal checks. Only after both test and Windows jobs succeed does the publish job upload the setup executable, portable ZIP and SHA256SUMS.txt to GitHub Releases. The tag must exactly match the application version.
 5. Tags containing a, b or rc are published as prereleases. Pilot clients see these; Stable clients see final releases only. The updater looks for the fixed installer and checksum asset names. Failed builds do not publish an update.
 
 GitHub Actions contents write permission is restricted to the publish job. Branch and pull request builds produce artifacts but never publish releases. No credential, cluster or radio access is part of the release workflow.
@@ -27,7 +31,7 @@ The current installation remains intact until the operator opens setup. A checks
 
 ## Publish from the Actions page
 
-The Windows pilot workflow has an optional Publish the current main version after verification input. After merging the version changes, open Actions, choose Windows pilot, choose Run workflow, select main and enable that input. Leave it disabled for an ordinary verification build.
+The Build and publish DX Talker workflow has an optional Publish the current main version after verification input. After merging the version changes, open Actions, choose Windows pilot, choose Run workflow, select main and enable that input. Leave it disabled for an ordinary verification build.
 
 The publish job runs only on main or a version tag and requires core tests, Windows package and installer checks plus a real Piper render check. It derives the release version from the application, verifies version alignment and creates the version tag if needed. An existing tag pointing to a different commit fails publication. A successful run publishes the installer, portable ZIP, release notes and SHA256SUMS.txt. Preview versions remain prereleases for the Pilot channel.
 
@@ -57,7 +61,7 @@ Archived release descriptions live at docs/releases/vVERSION.md. The Release not
 
 ## XP installers and download labels
 
-The Windows pilot workflow includes a reusable XP x86/x64 job. Publication depends on both XP architectures as well as modern Windows, portable core and neural speech checks. Each XP job stages a hash verified private official runtime, executes shared fixtures with that interpreter, compiles a native launcher and setup, verifies UI/system speech/QR/DPAPI, checks public update HTTPS and exercises install, upgrade, desktop shortcut preservation and removal. Synthetic tests do not play audio or assert PTT. Hosted Windows is not actual XP acceptance.
+The Build and publish DX Talker workflow includes a reusable XP x86/x64 job. Publication depends on both XP architectures as well as modern Windows, portable core and neural speech checks. Each XP job stages a hash verified private official runtime, executes shared fixtures with that interpreter, compiles a native launcher and setup, verifies UI/system speech/QR/DPAPI, checks public update HTTPS and exercises install, upgrade, desktop shortcut preservation and removal. Synthetic tests do not play audio or assert PTT. Hosted Windows is not actual XP acceptance.
 
 Modern updater filenames stay unchanged. XP builds select only their separately named XP installer. The checksum file covers all prepared installers and ZIP files. Publication adds descriptive GitHub asset labels and a managed download table to the version specific notes. Release prose corrections retain that table and skip archived source versions that have never been published. Existing limited XP source kits remain labelled as developer material. New releases use the application installers instead.
 

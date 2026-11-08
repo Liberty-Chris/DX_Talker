@@ -144,3 +144,7 @@ Display and speech now share strict mode selection, including conservative CW fr
 ## 0.2.0a18
 
 Publish the tested Android pilot APK on the same GitHub Release as Windows and XP. Build from the publication commit, require Android build/unit and emulator checks, label the APK clearly and include its checksum. Keep existing desktop updater filenames and manual Android installation behavior.
+
+## 0.2.0a20. Unreleased
+
+Use Alpha in the shared desktop header and About label. Rename the multi platform workflow Build and publish DX Talker and link it prominently from the README and release guide. Preserve the existing Pilot update channel and installer filenames.

@@ -10,7 +10,9 @@ I'm starting with a modern Windows application, with a standalone hardware devic
 
 The first Windows pilot is now implemented in source. It includes cluster connections, incoming spots, audio previews, configurable radio outputs and station identification. Windows packaging and verification run through GitHub Actions. See [Windows setup](README_WINDOWS.md) for build and testing instructions and the [status record](docs/STATUS.md) for verification limits.
 
-[Pilot downloads in version order](docs/releases/README.md).
+[Downloads in version order](docs/releases/README.md). [Build and publish DX Talker](https://github.com/Liberty-Chris/DX_Talker/actions/workflows/windows.yml).
+
+DX Talker is currently an alpha release. The desktop header uses Alpha across platforms.
 
 The Ubuntu desktop pilot is being packaged for Ubuntu 22.04 and 24.04 on Intel and AMD computers using the same desktop core. See [Ubuntu setup and verification limits](docs/help/ubuntu.md). Raspberry Pi needs a separate ARM build.
 

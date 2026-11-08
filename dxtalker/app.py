@@ -214,7 +214,7 @@ class Application:
         identity = ttk.Frame(header, style="Header.TFrame")
         identity.pack(side="left", padx=16)
         ttk.Label(identity, text="DX TALKER", style="Header.TLabel", font=("Segoe UI", 11, "bold")).pack(anchor="w")
-        ttk.Label(identity, text=("Ubuntu" if sys.platform.startswith("linux") else "Windows") + " pilot  /  " + __version__, style="Header.TLabel").pack(anchor="w", pady=(4, 0))
+        ttk.Label(identity, text="Alpha  /  " + __version__, style="Header.TLabel").pack(anchor="w", pady=(4, 0))
         self.stop_button = ttk.Button(header, text="STOP ALL OUTPUT", style="Stop.TButton", command=self._stop)
         self.stop_button.pack(side="right")
         appearance = ttk.Frame(header, style="Header.TFrame")
@@ -1444,7 +1444,7 @@ class Application:
         self.help_text.configure(yscrollcommand=scrollbar.set)
         self.help_topic.set(self.help_topics[0]["title"])
         self._show_help()
-        ttk.Label(frame, text=f"DX Talker {__version__}  |  Desktop pilot  |  All rights reserved\nSettings: {settings_path()}", wraplength=900).grid(row=2, column=0, sticky="w", pady=10)
+        ttk.Label(frame, text=f"DX Talker {__version__}  |  Alpha  |  All rights reserved\nSettings: {settings_path()}", wraplength=900).grid(row=2, column=0, sticky="w", pady=10)
 
     def _show_help(self):
         topic = next(p for p in self.help_topics if p["title"] == self.help_topic.get())

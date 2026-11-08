@@ -9,3 +9,7 @@ The Windows pilot adds internet sources, configurable USB audio and serial PTT, 
 Standalone WiFi hardware and direct repeater integration for ASL3, Allmon and Asterisk are planned after the Windows application.
 
 All rights remain reserved under separate notices for the modern project and original archive. Historical programs, recordings and runtime components are not bundled in this pilot.
+
+## Alpha release status
+
+The shared desktop header identifies the application as Alpha. Version suffix a denotes alpha. The existing Pilot update channel continues receiving prereleases. Supported platform and physical radio acceptance limits remain in the corresponding help pages.
