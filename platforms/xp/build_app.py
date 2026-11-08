@@ -167,6 +167,9 @@ def build(destination, with_tests=False):
     if with_tests:
         shutil.copytree(ROOT / 'tests/fixtures', destination / 'tests/fixtures', dirs_exist_ok=True)
         shutil.copytree(ROOT / 'android/app/src/test/resources', destination / 'android/app/src/test/resources', dirs_exist_ok=True)
+        reference = Path('android/app/src/main/java/club/dxtalker/android/SpotFilters.kt')
+        (destination / reference).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / reference, destination / reference)
     (destination / 'sounddevice.py').write_text('from xp_support.sounddevice import query_devices, query_hostapis, RawInputStream\n',encoding='utf-8')
     (destination / 'run_xp.py').write_text("import os, sys\nsys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))\nimport xp_support.bootstrap\nif len(sys.argv)==3 and sys.argv[1]=='--self-test':\n from xp_support.selftest import run\n raise SystemExit(run(sys.argv[2]))\nfrom dxtalker.app import main\nmain()\n",encoding='utf-8')
     return destination
