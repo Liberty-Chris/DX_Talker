@@ -10,11 +10,17 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 
+def debian_version(version):
+    # Debian's tilde keeps every pilot older than the eventual stable version.
+    match = re.fullmatch(r'(\d+\.\d+\.\d+)((?:a|b|rc)\d+)', version)
+    if not match: raise ValueError('Ubuntu packaging currently targets pilot builds only')
+    return match[1] + '~' + match[2]
+
+
 def build():
     sys.path.insert(0, str(ROOT))
     from dxtalker import __version__
-    if not re.fullmatch(r'\d+\.\d+\.\d+(?:a|b|rc)\d+', __version__):
-        raise ValueError('Ubuntu packaging currently targets pilot builds only')
+    package_version = debian_version(__version__)
     if sys.platform != 'linux' or os.uname().machine != 'x86_64': raise ValueError('Build on Ubuntu amd64')
     (ROOT/'assets/voices').mkdir(exist_ok=True)
     command = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onedir', '--name', 'DXTalker', '--collect-all', 'sounddevice', '--hidden-import', '_cffi_backend']
@@ -41,7 +47,7 @@ def build():
         copyright_file = Path('/usr/share/doc')/name/'copyright'
         if copyright_file.is_file(): shutil.copy2(copyright_file, notices/(name+'-copyright.txt'))
     control = package/'DEBIAN'; control.mkdir()
-    (control/'control').write_text('Package: dxtalker\nVersion: '+__version__+'\nArchitecture: amd64\nMaintainer: DX Talker\nSection: hamradio\nPriority: optional\nDepends: libc6 (>= 2.35), libportaudio2, ca-certificates, espeak-ng, libsecret-tools, policykit-1, xdg-utils\nDescription: Spoken DX cluster assistant\n Profiles, local filters, speech, coordinated radio output and identification.\n')
+    (control/'control').write_text('Package: dxtalker\nVersion: '+package_version+'\nArchitecture: amd64\nMaintainer: DX Talker\nSection: hamradio\nPriority: optional\nDepends: libc6 (>= 2.35), libportaudio2, ca-certificates, espeak-ng, libsecret-tools, policykit-1, xdg-utils\nDescription: Spoken DX cluster assistant\n Profiles, local filters, speech, coordinated radio output and identification.\n')
     desktop = package/'usr/share/applications'; desktop.mkdir(parents=True)
     (desktop/'dxtalker.desktop').write_text('[Desktop Entry]\nType=Application\nName=DX Talker\nComment=Spoken DX cluster assistant\nExec=/opt/dxtalker/DXTalker\nIcon=dxtalker\nTerminal=false\nCategories=Network;HamRadio;\nStartupWMClass=DXTalker\n')
     icon = package/'usr/share/icons/hicolor/256x256/apps'; icon.mkdir(parents=True)

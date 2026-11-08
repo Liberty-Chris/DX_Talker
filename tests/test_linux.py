@@ -100,7 +100,7 @@ class LinuxTests(unittest.TestCase):
             with patch('dxtalker.models.settings_path', return_value=settings), patch('dxtalker.linux_desktop.Path.is_file', return_value=True), patch('dxtalker.linux_desktop.subprocess.Popen') as launched:
                 linux_desktop.install_update(path)
                 args, options = launched.call_args
-                self.assertEqual(args[0], ['/usr/bin/pkexec','/usr/bin/apt-get','-y','install',str(path)])
+                self.assertEqual(args[0], ['/usr/bin/pkexec','/usr/bin/apt-get','-y','install',str(path.resolve())])
                 self.assertNotIn('shell', options)
                 self.assertTrue(options['start_new_session'])
             with self.assertRaises(ValueError): linux_desktop.install_update(Path(folder)/'not-a-package.exe')
@@ -114,3 +114,10 @@ class LinuxTests(unittest.TestCase):
             forget.assert_called_with('secret-service:'+'1'*32)
             store.delete(item['id'])
             forget.assert_called_with('secret-service:'+'2'*32)
+
+    def test_debian_pilot_versions_sort_before_stable(self):
+        from platforms.linux.build import debian_version
+        self.assertEqual(debian_version('0.2.0a19'), '0.2.0~a19')
+        self.assertEqual(debian_version('0.2.0rc2'), '0.2.0~rc2')
+        for invalid in ['0.2.0', 'x', '0.2.0a19;touch /tmp/x']:
+            with self.assertRaises(ValueError): debian_version(invalid)

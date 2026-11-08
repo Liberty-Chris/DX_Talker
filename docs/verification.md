@@ -140,4 +140,4 @@ The native audio and serial tests use simulated APIs. There is no physical XP, a
 
 ## Ubuntu package verification
 
-The reusable Ubuntu workflow builds on 22.04 and installs that package on 22.04 and 24.04. It checks the desktop entry and executable, synthetic native keyring round trip, eSpeak NG WAV rendering, shared UI pages and retained performance budgets. It reinstalls and removes the package while preserving a user settings marker. Reports are uploaded as Ubuntu verification artifacts. No playback, serial access, public spotting or RF occurs. Physical Ubuntu and radio acceptance remains required.
+The reusable Ubuntu workflow builds on 22.04 and installs that package on 22.04 and 24.04. It checks the desktop entry and executable, synthetic native keyring round trip, eSpeak NG WAV rendering with measured pauses, verified public GitHub HTTPS, shared UI pages and retained performance budgets. It reinstalls and removes the package while preserving a user settings marker. Reports are uploaded as Ubuntu verification artifacts. No playback, serial access, public spotting or RF occurs. Physical Ubuntu and radio acceptance remains required.

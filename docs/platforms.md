@@ -29,7 +29,7 @@ The current Python 3.12 and Windows 10 installer floor are unchanged. Do not adv
 | Target | Next concrete gate | Current evidence |
 | :--- | :--- | :--- |
 | Windows x64 | Two successive release update and operator listening tests | CI core, packaging and installer checks |
-| Ubuntu amd64 desktop | Native package installation checks, then actual audio and radio acceptance | Shared core and adapter tests; package CI in progress |
+| Ubuntu amd64 desktop | Native package installation checks, then actual audio and radio acceptance | Shared core, adapter and hosted package installation checks |
 | macOS desktop | Package, native speech adapter and secure vault | Design only |
 | iOS | VoiceOver accessible local cluster listening prototype | Contract and lifecycle plan |
 | Android | TalkBack accessible local cluster listening prototype | Contract and lifecycle plan |
