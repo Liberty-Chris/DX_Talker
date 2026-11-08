@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.2.0a13. Unreleased
+## 0.2.0a14. Unreleased
+
+Remove the separate spot review action on desktop and Android while preserving validation, session binding and rate limits. Move the listening shortcut out of Frequency range and align Announcements panels. Add rounded ttk buttons and panel surfaces, keeping native window frames. Give Android an explicit camera permission flow and an owned QR scanner with camera lifecycle/error handling and diagnostic events. Add camera permission/return instrumentation coverage and an ordered release download index.
+
+## 0.2.0a13. November 7, 2026
 
 Move GitHub Actions to releases declaring the Node.js 24 runtime. Serialize release publication and recognize an already published complete release on an exact commit retry without replacing assets. Stop on incomplete releases or inspection errors. Preserve the existing protection against tags pointing at another commit. Correct the a12 release notes and require their version to match application metadata before building.
 

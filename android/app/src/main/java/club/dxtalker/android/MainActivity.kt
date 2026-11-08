@@ -3,7 +3,6 @@ package club.dxtalker.android
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
-import com.google.zxing.integration.android.IntentIntegrator
 import android.content.*
 import android.content.pm.PackageManager
 import android.content.res.Configuration
@@ -23,6 +22,7 @@ import org.json.JSONObject
 
 class MainActivity : Activity() {
     private val qrCollection = QrCollection()
+    private var cameraScanRequested = false
     private lateinit var status: TextView
     private lateinit var listenButton: Button
     private lateinit var muteButton: Button
@@ -105,6 +105,7 @@ class MainActivity : Activity() {
         savedInstanceState?.getStringArrayList("qr_pages")?.forEach {
             try { qrCollection.accept(it) } catch (_: Exception) { qrCollection.reset() }
         }
+        cameraScanRequested = savedInstanceState?.getBoolean("camera_scan_requested") ?: false
         page = savedInstanceState?.getString("page") ?: "Listen"
         savedInstanceState?.getStringArrayList("history")?.let { history.addAll(it) }
         savedInstanceState?.getBundle("drafts")?.let { b -> b.keySet().forEach { drafts[it] = b.getString(it).orEmpty() } }
@@ -114,6 +115,7 @@ class MainActivity : Activity() {
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 100)
     }
     override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean("camera_scan_requested", cameraScanRequested)
         outState.putStringArrayList("qr_pages", qrCollection.saved())
         outState.putString("page", page); outState.putStringArrayList("history", ArrayList(history))
         outState.putInt("edit_index", editIndex ?: -1)
@@ -200,14 +202,12 @@ class MainActivity : Activity() {
         val comment=edit(panel,"Comment (optional)","").apply { filters=arrayOf(android.text.InputFilter.LengthFilter(100)) }
         spotResult=label(ListenerService.spotStatus,14f,secondary).apply { accessibilityLiveRegion=View.ACCESSIBILITY_LIVE_REGION_POLITE };panel.addView(spotResult)
         panel.addView(label("Sends only to the TCP cluster you are monitoring. Cluster policy determines acceptance and propagation. A sent command is not confirmation of acceptance.",14f,secondary))
-        panel.addView(button("Review spot") {
+        panel.addView(button("Send spot") {
             try {
                 require(ListenerService.listeningActive && ListenerService.connected) { "Connect and sign in to a TCP cluster first" }
-                val text=SpotSubmission.command(call.text.toString(),frequency.text.toString(),unit.selectedItem.toString(),comment.text.toString())
+                SpotSubmission.command(call.text.toString(),frequency.text.toString(),unit.selectedItem.toString(),comment.text.toString())
                 val token=ListenerService.connectionToken
-                AlertDialog.Builder(this).setTitle("Send this spot?").setMessage(text).setNegativeButton("Cancel",null).setPositiveButton("Send to current cluster") { _,_ ->
-                    startService(Intent(this,ListenerService::class.java).setAction("submit_spot").putExtra("session",token).putExtra("call",call.text.toString()).putExtra("frequency",frequency.text.toString()).putExtra("unit",unit.selectedItem.toString()).putExtra("comment",comment.text.toString()))
-                }.show()
+                startService(Intent(this,ListenerService::class.java).setAction("submit_spot").putExtra("session",token).putExtra("call",call.text.toString()).putExtra("frequency",frequency.text.toString()).putExtra("unit",unit.selectedItem.toString()).putExtra("comment",comment.text.toString()))
             } catch(error:Exception) { spotResult.text=error.message ?: "Check the callsign and frequency" }
         })
     }
@@ -471,16 +471,43 @@ class MainActivity : Activity() {
         } catch (_: Exception) { Toast.makeText(this,"Invalid or unsupported DX Talker transfer",Toast.LENGTH_LONG).show() }
     }
     private fun scanQr() {
-        IntentIntegrator(this).setDesiredBarcodeFormats(IntentIntegrator.QR_CODE)
-            .setPrompt("Scan DX Talker QR. ${qrCollection.scanned} pages collected")
-            .setBeepEnabled(false).setOrientationLocked(false).initiateScan()
+        if (!packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
+            Toast.makeText(this,"No camera is available. Import a transfer file instead.",Toast.LENGTH_LONG).show(); return
+        }
+        if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            cameraScanRequested = true
+            requestPermissions(arrayOf(Manifest.permission.CAMERA), 303)
+            return
+        }
+        launchQrCamera()
+    }
+    private fun launchQrCamera() {
+        cameraScanRequested = false
+        try { startActivityForResult(Intent(this,QrScanActivity::class.java),304) }
+        catch (error:RuntimeException) {
+            MobileDiagnostics.record(this,"qr_camera_launch_failed",error)
+            Toast.makeText(this,"The scanner could not open. Import a transfer file or export diagnostics.",Toast.LENGTH_LONG).show()
+        }
+    }
+    override fun onRequestPermissionsResult(requestCode:Int, permissions:Array<out String>, grantResults:IntArray) {
+        super.onRequestPermissionsResult(requestCode,permissions,grantResults)
+        if (requestCode != 303) return
+        val requested = cameraScanRequested; cameraScanRequested = false
+        if (requested && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) launchQrCamera()
+        else {
+            MobileDiagnostics.record(this,"qr_camera_permission_denied")
+            AlertDialog.Builder(this).setTitle("Camera permission needed")
+                .setMessage("QR scanning needs camera access. Allow it in Android app settings or import a transfer file instead. Your collected QR pages are preserved.")
+                .setNegativeButton("Close",null).setPositiveButton("App settings") { _,_ ->
+                    startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,android.net.Uri.parse("package:$packageName")))
+                }.show()
+        }
     }
     @Deprecated("Legacy activity results are used by the QR scanner")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode,resultCode,data)
-        val result = IntentIntegrator.parseActivityResult(requestCode,resultCode,data)
-        if (result != null) {
-            result.contents?.let { text ->
+        if (requestCode == 304) {
+            data?.getStringExtra("qr_text")?.takeIf { resultCode == RESULT_OK }?.let { text ->
                 try {
                     val collection = qrCollection.accept(text)
                     if (collection != null) { qrCollection.reset(); reviewImportData(collection) }

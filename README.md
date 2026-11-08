@@ -10,6 +10,8 @@ I'm starting with a modern Windows application, with a standalone hardware devic
 
 The first Windows pilot is now implemented in source. It includes cluster connections, incoming spots, audio previews, configurable radio outputs and station identification. Windows packaging and verification run through GitHub Actions. See [Windows setup](README_WINDOWS.md) for build and testing instructions and the [status record](docs/STATUS.md) for verification limits.
 
+[Pilot downloads in version order](docs/releases/README.md).
+
 ## The modern application
 
 The Windows application will connect to an internet DX source, read spots aloud and send audio to a radio through a USB interface. A compatible interface will also handle push to talk (PTT), so the application can key the radio for announcements.
