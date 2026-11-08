@@ -20,4 +20,6 @@ assert f"StringStruct('ProductVersion', '{__version__}')" in metadata
 assert manual["version"] == __version__
 android=(ROOT / "android/app/build.gradle.kts").read_text()
 assert f'versionName = "{__version__}"' in android
+notes = (ROOT / "docs/releases/current.md").read_text().strip()
+assert notes.startswith(f"DX Talker {__version__} "), "Release notes must describe the application version"
 print("Release version aligned:", __version__)

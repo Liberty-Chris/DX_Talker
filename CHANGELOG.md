@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.2.0a12. Unreleased
+## Unreleased
+
+Move GitHub Actions to releases declaring the Node.js 24 runtime. Serialize release publication and recognize an already published complete release on an exact commit retry without replacing assets. Stop on incomplete releases or inspection errors. Preserve the existing protection against tags pointing at another commit. Correct the a12 release notes and require their version to match application metadata before building.
+
+## 0.2.0a12. November 8, 2026
 
 Add a single listening filter editor with saved presets, FCC license/emission eligibility, separate reporting/DX geography, explicit unknown handling and version 3 QR transfer. Make the Android spot list the main scrolling area above system navigation and move setup/spotting to separate pages. Add reviewed spotting to the current cluster only and curated directory browsing on Android.
 

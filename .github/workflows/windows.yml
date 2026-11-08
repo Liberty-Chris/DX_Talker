@@ -20,8 +20,8 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.12'
       - run: python -m pip install -r requirements.txt
@@ -40,8 +40,8 @@ jobs:
         architecture: [x64, x86]
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.12'
           architecture: ${{ matrix.architecture }}
@@ -67,19 +67,19 @@ jobs:
         run: ./scripts/build_installer.ps1 -Architecture ${{ matrix.architecture }}
       - name: Verify install, shortcuts, installed launch, reinstall and removal
         run: ./scripts/check_installer.ps1 -Architecture ${{ matrix.architecture }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: Windows-verification-${{ matrix.architecture }}
           path: |
             *-smoke.json
             *-smoke*.png
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: DXTalker-Windows-${{ matrix.architecture }}
           path: dist/DXTalker/
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: DXTalker-Setup-Windows-${{ matrix.architecture }}
           path: dist/DXTalker-Setup-Windows-${{ matrix.architecture }}.exe
@@ -91,12 +91,12 @@ jobs:
       ORT_DISABLE_TELEMETRY: '1'
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.12'
       - run: python -m pip install piper-tts==1.8.0
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6.1.0
         with:
           path: .piper-test-voices
           key: piper-english-packs-v2
@@ -111,11 +111,11 @@ jobs:
           Invoke-WebRequest 'https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/ljspeech/high/MODEL_CARD' -OutFile .piper-test-voices/en_US-ljspeech-high.MODEL_CARD
           python scripts/build_voicepacks.py --model .piper-test-voices/en_US-ljspeech-high.onnx --output voicepacks/en_US-ljspeech-high --license .piper-test-voices/en_US-ljspeech-high.MODEL_CARD --label 'LJ Speech English female'
           python scripts/check_voicepack.py voicepacks/en_US-ljspeech-high
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: DXTalker-VoicePack-LJ-high
           path: voicepacks/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: Piper-verification
@@ -124,13 +124,13 @@ jobs:
   xp_source_kit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.12'
       - run: python legacy/xp/listen.py --self-test
       - run: python -c "import ast,pathlib; ast.parse(pathlib.Path('legacy/xp/listen.py').read_text(), feature_version=(3,4))"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: DXTalker-XP-source-test-kit
           path: legacy/xp/
@@ -138,33 +138,36 @@ jobs:
   publish:
     if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release && github.ref == 'refs/heads/main')
     needs: [tests, windows, neural_speech, xp_source_kit]
+    concurrency:
+      group: dxtalker-release-publication
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/download-artifact@v8.0.2
         with:
           name: DXTalker-Setup-Windows-x64
           path: release
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8.0.2
         with:
           name: DXTalker-Windows-x64
           path: portable/DXTalker
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8.0.2
         with:
           name: DXTalker-Setup-Windows-x86
           path: release
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8.0.2
         with:
           name: DXTalker-Windows-x86
           path: portable-x86/DXTalker
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8.0.2
         with:
           name: DXTalker-XP-source-test-kit
           path: xp-source-kit
       - run: cd xp-source-kit && zip -qr ../release/DXTalker-XP-source-test-kit.zip .
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8.0.2
         with:
           name: DXTalker-VoicePack-LJ-high
           path: voicepacks
@@ -198,6 +201,12 @@ jobs:
               git tag "$RELEASE_TAG" "$GITHUB_SHA"
               git push origin "refs/tags/$RELEASE_TAG"
             fi
+          fi
+          if python scripts/check_published_release.py "$RELEASE_TAG" release; then
+            exit 0
+          else
+            result=$?
+            if [[ "$result" != 3 ]]; then exit "$result"; fi
           fi
           extra=()
           if [[ "$RELEASE_TAG" =~ (a|b|rc)[0-9]+$ ]]; then extra+=(--prerelease); fi
