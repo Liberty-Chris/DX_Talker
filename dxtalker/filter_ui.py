@@ -82,7 +82,7 @@ def build_filters(app,parent):
     ttk.Label(geo,text='Location comes from feed metadata or your known station list. A callsign alone does not establish current location. Leave a location field empty to accept all.',wraplength=620).grid(row=9,column=0,columnspan=3,sticky='w')
     def changed(key,*args):
         if resetting[0]:return
-        dirty.add(key);describe()
+        dirty.add(key);status.set("Pending changes. Apply listening filters or save settings.");describe()
     for key,var in staged.items():var.trace_add('write',lambda *args,k=key:changed(k))
     describe()
     footer=ttk.Frame(frame,padding=(0,12));footer.pack(fill='x')
