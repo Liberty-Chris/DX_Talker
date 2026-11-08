@@ -42,6 +42,32 @@ def machine(path):
     return struct.unpack_from('<H', data, offset + 4)[0]
 
 
+def enable_private_crt(source, destination):
+    # Administrative extraction otherwise omits both level-zero CRT features.
+    # Change only a disposable copy's feature selection, never binary payloads
+    # or the hash-pinned original MSI. No system-wide runtime is installed.
+    import ctypes as C
+    shutil.copy2(source, destination)
+    msi = C.WinDLL('msi')
+    msi.MsiOpenDatabaseW.argtypes=[C.c_wchar_p,C.c_void_p,C.POINTER(C.c_uint32)]
+    msi.MsiDatabaseOpenViewW.argtypes=[C.c_uint32,C.c_wchar_p,C.POINTER(C.c_uint32)]
+    msi.MsiViewExecute.argtypes=[C.c_uint32,C.c_uint32]
+    msi.MsiDatabaseCommit.argtypes=[C.c_uint32]
+    msi.MsiCloseHandle.argtypes=[C.c_uint32]
+    database=C.c_uint32()
+    if msi.MsiOpenDatabaseW(str(destination),C.c_void_p(1),C.byref(database)): raise ValueError('Cannot prepare the private CRT extraction')
+    try:
+        for sql in ("UPDATE `Feature` SET `Level`=1 WHERE `Feature`='PrivateCRT'",
+                    "DELETE FROM `Condition` WHERE `Feature`='PrivateCRT'"):
+            view=C.c_uint32()
+            if msi.MsiDatabaseOpenViewW(database,sql,C.byref(view)): raise ValueError('Cannot select the private CRT feature')
+            try:
+                if msi.MsiViewExecute(view,0): raise ValueError('Cannot apply the private CRT feature selection')
+            finally: msi.MsiCloseHandle(view)
+        if msi.MsiDatabaseCommit(database): raise ValueError('Cannot commit the private extraction metadata')
+    finally: msi.MsiCloseHandle(database)
+
+
 def prepare(architecture, output):
     if os.name != 'nt': raise ValueError('Runtime extraction requires a disposable Windows build runner')
     output = Path(output).resolve()
@@ -51,6 +77,9 @@ def prepare(architecture, output):
     image = output.parent / (output.name + '-msi-image')
     image.mkdir(parents=True, exist_ok=False)
     log = image.parent / (image.name + '.log')
+    private_msi = image.parent / (image.name + '.msi')
+    enable_private_crt(installer,private_msi)
+    installer = private_msi
     subprocess.run(['msiexec.exe', '/a', str(installer), '/qn', 'TARGETDIR=' + str(image), '/L*v', str(log)], check=True, timeout=180)
     build(output, with_tests=True)
     runtime = output / 'runtime'; runtime.mkdir()

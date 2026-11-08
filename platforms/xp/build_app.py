@@ -151,8 +151,6 @@ def build(destination, with_tests=False):
                 content += '\nfrom xp_support.serial import SerialPTT, serial_ports\n'
             if path.name == 'updates.py' and name == 'dxtalker':
                 content += '\nINSTALLER = "DXTalker-Setup-Windows-XP-" + ("32bit" if struct.calcsize("P") == 4 else "64bit") + ".exe"\n'
-            if path.name == 'receiver.py' and name == 'dxtalker':
-                content = content.replace('import sounddevice as sd', 'import xp_support.winmm as sd').replace('sd.RawInputStream(device=index,', 'sd.RawInputStream(device=device,')
             if path.name == 'app.py' and name == 'dxtalker':
                 content = content.replace('Windows pilot', 'Windows XP pilot')
             target.write_text(content, encoding='utf-8')
@@ -161,6 +159,7 @@ def build(destination, with_tests=False):
     if with_tests:
         shutil.copytree(ROOT / 'tests/fixtures', destination / 'tests/fixtures', dirs_exist_ok=True)
         shutil.copytree(ROOT / 'android/app/src/test/resources', destination / 'android/app/src/test/resources', dirs_exist_ok=True)
+    (destination / 'sounddevice.py').write_text('from xp_support.sounddevice import query_devices, query_hostapis, RawInputStream\n',encoding='utf-8')
     (destination / 'run_xp.py').write_text("import os, sys\nsys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))\nimport xp_support.bootstrap\nif len(sys.argv)==3 and sys.argv[1]=='--self-test':\n from xp_support.selftest import run\n raise SystemExit(run(sys.argv[2]))\nfrom dxtalker.app import main\nmain()\n",encoding='utf-8')
     return destination
 
