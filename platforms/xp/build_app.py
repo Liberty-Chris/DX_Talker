@@ -15,6 +15,10 @@ MODULES['re'] = 'xp_support.regex'
 
 
 class Target34(ast.NodeTransformer):
+    def __init__(self, filename):
+        self.filename = str(filename).replace('\\', '/')
+    def application_module(self, name):
+        return self.filename.endswith('/dxtalker/' + name + '.py')
     def visit_ImportFrom(self, node):
         if node.module == '__future__':
             node.names = [name for name in node.names if name.name != 'annotations']
@@ -33,7 +37,7 @@ class Target34(ast.NodeTransformer):
         return node
 
     def visit_FunctionDef(self, node):
-        if node.name == 'update_ssl_context':
+        if self.application_module('updates') and node.name == 'update_ssl_context':
             node.body = ast.parse('return ssl.create_default_context()').body
         if node.args.posonlyargs:
             raise ValueError('Positional-only parameters need an explicit XP adapter')
@@ -57,7 +61,7 @@ class Target34(ast.NodeTransformer):
 
     def visit_Expr(self, node):
         node = self.generic_visit(node)
-        if isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Attribute) and node.value.func.attr == 'SetCurrentProcessExplicitAppUserModelID':
+        if self.application_module('app') and isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Attribute) and node.value.func.attr == 'SetCurrentProcessExplicitAppUserModelID':
             return ast.Try(body=[node],handlers=[ast.ExceptHandler(type=ast.Name(id='AttributeError',ctx=ast.Load()),name=None,body=[ast.Pass()])],orelse=[],finalbody=[])
         return node
 
@@ -109,7 +113,7 @@ class Target34(ast.NodeTransformer):
         node = self.generic_visit(node)
         if isinstance(node.func, ast.Attribute) and node.func.attr == 'isascii' and not node.args and not node.keywords:
             return ast.Call(func=ast.Name(id='_xp_isascii',ctx=ast.Load()),args=[node.func.value],keywords=[])
-        if isinstance(node.func, ast.Attribute) and node.func.attr == 'OpenProcess' and len(node.args) == 3 and isinstance(node.args[0],ast.Constant) and node.args[0].value == 0x1000:
+        if self.application_module('diagnostics') and isinstance(node.func, ast.Attribute) and node.func.attr == 'OpenProcess' and len(node.args) == 3 and isinstance(node.args[0],ast.Constant) and node.args[0].value == 0x1000:
             node.args[0] = ast.Constant(0x400)
         if any(isinstance(value, ast.Starred) for value in node.args):
             pieces = [value.value if isinstance(value, ast.Starred) else ast.List(elts=[value], ctx=ast.Load()) for value in node.args]
@@ -121,7 +125,7 @@ class Target34(ast.NodeTransformer):
 
 
 def transform(text, filename='<generated>'):
-    tree = Target34().visit(ast.parse(text, filename=filename))
+    tree = Target34(filename).visit(ast.parse(text, filename=filename))
     helper = ast.parse('from xp_support.runtime import merge as _xp_merge, unpack as _xp_unpack, keywords as _xp_keywords, ordered as _xp_ordered, isascii as _xp_isascii').body[0]
     position = 1 if tree.body and isinstance(tree.body[0], ast.Expr) and isinstance(tree.body[0].value, ast.Constant) and isinstance(tree.body[0].value.value, str) else 0
     while position < len(tree.body) and isinstance(tree.body[position], ast.ImportFrom) and tree.body[position].module == '__future__':

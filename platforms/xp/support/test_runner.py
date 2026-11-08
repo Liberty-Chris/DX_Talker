@@ -27,7 +27,15 @@ def run(root):
     os.environ['PYTHONPATH'] = root
     names = ['test_models', 'test_protocol', 'test_spot_filters', 'test_engine',
              'test_source', 'test_profiles_history', 'test_diagnostics_transfer_packs',
-             'test_collection_qr', 'test_appearance', 'test_app', 'test_receiver', 'test_xp_native']
+             'test_collection_qr', 'test_personal_assistant.PrivilegeTests',
+             'test_personal_assistant.ReceiveHealthTests', 'test_personal_assistant.AssistantEngineTests',
+             'test_personal_assistant.SubmissionTests',
+             'test_personal_assistant.VoiceTests.test_pause_markers_are_silence_not_words_or_ssml',
+             'test_personal_assistant.VoiceTests.test_long_online_pause_is_local_and_compatible_with_existing_gateway',
+             'test_audio.AudioTests.test_paris_timing_and_word_spacing',
+             'test_audio.AudioTests.test_tone_has_silenced_edges_and_bounded_amplitude',
+             'test_audio.AudioTests.test_unsupported_or_excessively_long_morse_fails',
+             'test_audio.AudioTests.test_wav_contract_and_combined_ids', 'test_appearance', 'test_app', 'test_receiver', 'test_xp_native']
     suite = unittest.defaultTestLoader.loadTestsFromNames(names)
     return unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 

@@ -37,6 +37,8 @@ jobs:
           $process = Start-Process "$app/runtime/python.exe" -ArgumentList '-I', "`"$app/run_xp.py`"", '--self-test', "`"$PWD/xp-${{ matrix.architecture }}-smoke.json`"" -PassThru
           if (-not $process.WaitForExit(90000)) { $process.Kill(); throw 'XP UI check timed out' }
           if ($process.ExitCode -ne 0) { Get-Content xp-${{ matrix.architecture }}-smoke.json; throw 'XP UI check failed' }
+      - name: Check XP installation, native launch, upgrade, shortcuts and removal
+        run: ./platforms/xp/check_installer.ps1 -Architecture ${{ matrix.architecture }}
       - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:

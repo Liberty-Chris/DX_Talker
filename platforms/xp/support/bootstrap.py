@@ -29,3 +29,12 @@ if sys.platform == 'win32' and not os.environ.get('LOCALAPPDATA'):
     if ctypes.windll.shell32.SHGetFolderPathW(None, 28, None, 0, folder) != 0:
         raise OSError('Windows could not locate the local application data folder')
     os.environ['LOCALAPPDATA'] = folder.value
+
+# Tcl 8.6 supports variable traces; Python 3.4 lacks the later wrapper name.
+import tkinter
+if not hasattr(tkinter.Variable, 'trace_add'):
+    def trace_add(self, mode, callback):
+        name = self._register(callback)
+        self._tk.call('trace', 'add', 'variable', self._name, mode, (name,))
+        return name
+    tkinter.Variable.trace_add = trace_add

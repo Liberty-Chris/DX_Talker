@@ -3,6 +3,7 @@ import base64
 import io
 import json
 import os
+import platform
 import struct
 import tempfile
 import threading
@@ -12,6 +13,7 @@ import traceback
 
 def run(destination):
     report = {'ok': False, 'runtime': 'Python 3.4 XP compatibility', 'bits': struct.calcsize('P') * 8}
+    report['os'] = platform.platform()
     old_local = os.environ.get('LOCALAPPDATA')
     app = None
     try:
@@ -39,7 +41,7 @@ def run(destination):
             os.environ['LOCALAPPDATA'] = folder
             save_settings(Settings(check_updates=False))
             started = time.monotonic()
-            root = tk.Tk(); app = Application(root); root.update()
+            root = tk.Tk(); app = Application.__new__(Application); app.__init__(root); root.update()
             report['ui_startup_ms'] = (time.monotonic() - started) * 1000
             assert not app.engine.enabled and not app.engine.local_enabled
             assert set(app.variables) == {field.name for field in fields(Settings)}

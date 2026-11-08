@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import re
 import struct
+import shutil
 import subprocess
 import sys
 from prepare import ROOT, fetch, machine
@@ -18,10 +19,10 @@ def development_environment(architecture):
     # Capture rather than print the developer environment: it can contain build
     # secrets inherited from Actions. Compiler output never includes that data.
     output = subprocess.check_output('cmd.exe /d /s /c "' + command + '"',text=True)
-    result = dict(os.environ)
+    result = {name.upper(): value for name, value in os.environ.items()}
     for line in output.splitlines():
         name, equals, value = line.partition('=')
-        if equals and name: result[name] = value
+        if equals and name: result[name.upper()] = value
     return result
 
 
@@ -69,11 +70,15 @@ def build(architecture, stage):
     icon=str(stage/'assets/brand/dxt.ico').replace('\\','\\\\')
     resource.write_text('1 ICON "'+icon+'"\n1 VERSIONINFO\n FILEVERSION '+numeric+'\n PRODUCTVERSION '+numeric+'\n FILEOS 0x40004L\n FILETYPE 0x1L\nBEGIN\n BLOCK "StringFileInfo"\n BEGIN\n  BLOCK "040904b0"\n  BEGIN\n   VALUE "FileDescription", "DX Talker for Windows XP"\n   VALUE "FileVersion", "'+version+'"\n   VALUE "ProductName", "DX Talker"\n   VALUE "ProductVersion", "'+version+'"\n  END\n END\n BLOCK "VarFileInfo"\n BEGIN\n  VALUE "Translation", 0x409, 1200\n END\nEND\n',encoding='utf-8')
     env=development_environment(architecture)
-    subprocess.run(['cl.exe','/nologo','/c','/GS-','/Zl','/Od','/utf-8','/Fo'+str(stage/'launcher.obj'),str(ROOT/'platforms/xp/launcher.c')],env=env,check=True,timeout=60)
-    subprocess.run(['rc.exe','/nologo','/fo',str(stage/'launcher.res'),str(resource)],env=env,check=True,timeout=60)
+    def tool(name):
+        path = shutil.which(name, path=env.get('PATH', ''))
+        if not path: raise ValueError('Required build tool is missing: ' + name)
+        return path
+    subprocess.run([tool('cl.exe'),'/nologo','/c','/GS-','/Zl','/Od','/utf-8','/Fo'+str(stage/'launcher.obj'),str(ROOT/'platforms/xp/launcher.c')],env=env,check=True,timeout=60)
+    subprocess.run([tool('rc.exe'),'/nologo','/fo',str(stage/'launcher.res'),str(resource)],env=env,check=True,timeout=60)
     minimum='5.01' if architecture=='x86' else '5.02'
     executable=stage/'DXTalkerXP.exe'
-    subprocess.run(['link.exe','/nologo','/NODEFAULTLIB','/ENTRY:WinMainCRTStartup','/MANIFEST:NO','/SUBSYSTEM:WINDOWS,'+minimum,'/OSVERSION:'+minimum,'/MACHINE:'+architecture.upper(),'/OUT:'+str(executable),str(stage/'launcher.obj'),str(stage/'launcher.res'),'kernel32.lib','user32.lib'],env=env,check=True,timeout=60)
+    subprocess.run([tool('link.exe'),'/nologo','/NODEFAULTLIB','/ENTRY:WinMainCRTStartup','/MANIFEST:NO','/SUBSYSTEM:WINDOWS,'+minimum,'/OSVERSION:'+minimum,'/MACHINE:'+architecture.upper(),'/OUT:'+str(executable),str(stage/'launcher.obj'),str(stage/'launcher.res'),'kernel32.lib','user32.lib'],env=env,check=True,timeout=60)
     if machine(executable)!=expected:raise ValueError('Launcher bitness mismatch')
     if set(imports(executable))-{'kernel32.dll','user32.dll'}:raise ValueError('The XP launcher must not depend on a modern C runtime')
     data=executable.read_bytes(); header=struct.unpack_from('<I',data,60)[0]+24
