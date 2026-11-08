@@ -22,6 +22,10 @@ jobs:
       - uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.12'
+      - uses: actions/cache@v6.1.0
+        with:
+          path: build/xp-downloads
+          key: xp-dependencies-${{ runner.os }}-${{ matrix.architecture }}-${{ hashFiles('platforms/xp/downloads.json') }}
       - name: Configure the shared pilot speech endpoint
         env:
           DXTALKER_SPEECH_CONFIG: ${{ secrets.DXTALKER_SPEECH_CONFIG }}
@@ -31,12 +35,14 @@ jobs:
       - name: Compile native XP launcher and installer
         run: python platforms/xp/build_installer.py --architecture ${{ matrix.architecture }} --stage build/xp-${{ matrix.architecture }}
       - name: Run shared behavioral checks with the bundled Python 3.4
+        id: behavior
         if: ${{ !cancelled() }}
         run: |
           $app = "$PWD/build/xp-${{ matrix.architecture }}"
           & "$app/runtime/python.exe" -I -c "import sys;sys.path.insert(0,r'$app');from xp_support.test_runner import run;raise SystemExit(0 if run(r'$app') else 1)"
           if ($LASTEXITCODE -ne 0) { throw "XP shared behavior checks failed with exit code $LASTEXITCODE" }
       - name: Check complete UI, QR, private secrets and SAPI without playback or PTT
+        id: desktop
         if: ${{ !cancelled() }}
         run: |
           $app = "$PWD/build/xp-${{ matrix.architecture }}"
@@ -44,7 +50,7 @@ jobs:
           if (-not $process.WaitForExit(90000)) { $process.Kill(); throw 'XP UI check timed out' }
           if ($process.ExitCode -ne 0) { Get-Content xp-${{ matrix.architecture }}-smoke.json; throw 'XP UI check failed' }
       - name: Diagnose unexpected UI exits
-        if: failure()
+        if: failure() && (steps.behavior.conclusion == 'failure' || steps.desktop.conclusion == 'failure')
         run: |
           $app = "$PWD/build/xp-${{ matrix.architecture }}"
           & "$app/runtime/python.exe" -I platforms/xp/probe_ui.py "$app" "xp-${{ matrix.architecture }}-ui-trace.log"

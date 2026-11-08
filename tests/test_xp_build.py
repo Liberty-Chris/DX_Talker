@@ -1,5 +1,10 @@
 """Build transformations preserve values and evaluation order before XP staging."""
 import ast
+import hashlib
+import io
+import tempfile
+from pathlib import Path
+from urllib.error import URLError
 import sys
 import types
 import unittest
@@ -47,6 +52,9 @@ except TypeError:
         self.assertEqual(self.execute(source)['update_ssl_context'](), 42)
         generated = transform(source, '/repo/dxtalker/updates.py')
         self.assertIn('return ssl.create_default_context()', generated)
+        source = 'request.build_opener(NoRedirect())'
+        self.assertNotIn('HTTPSHandler', transform(source, '/repo/other.py'))
+        self.assertIn('HTTPSHandler(context=ssl.create_default_context())', transform(source, '/repo/dxtalker/source.py'))
         source = 'api.OpenProcess(4096, False, 3)'
         self.assertIn('4096', transform(source, '/repo/other.py'))
         self.assertIn('1024', transform(source, '/repo/dxtalker/diagnostics.py'))
@@ -54,3 +62,28 @@ except TypeError:
     def test_unsupported_parameter_syntax_stops_the_build(self):
         with self.assertRaisesRegex(ValueError, 'explicit XP adapter'):
             transform('def future(value, /): return value')
+
+    def test_dependency_timeout_retries_but_never_bypasses_pinned_hash(self):
+        from platforms.xp import prepare
+        content = b'synthetic runtime'
+        with tempfile.TemporaryDirectory() as folder, patch.dict(prepare.DOWNLOADS, {'fixture': {'url': 'https://example.org/runtime.exe', 'sha256': hashlib.sha256(content).hexdigest()}}):
+            with patch.object(prepare.urllib.request, 'urlopen', side_effect=[URLError(TimeoutError()), io.BytesIO(content)]) as opened, patch.object(prepare.time, 'sleep'):
+                result = prepare.fetch('fixture', Path(folder))
+                self.assertEqual(opened.call_count, 2)
+                self.assertEqual(result.read_bytes(), content)
+            result.unlink()
+            with patch.object(prepare.urllib.request, 'urlopen', return_value=io.BytesIO(b'corrupt')) as opened:
+                with self.assertRaisesRegex(ValueError, 'checksum mismatch'):
+                    prepare.fetch('fixture', Path(folder))
+                self.assertEqual(opened.call_count, 1)
+                self.assertFalse(result.exists())
+                self.assertFalse(list(Path(folder).glob('*.partial')))
+
+    def test_dependency_certificate_failure_is_not_retried(self):
+        from platforms.xp import prepare
+        with tempfile.TemporaryDirectory() as folder, patch.dict(prepare.DOWNLOADS, {'fixture': {'url': 'https://example.org/runtime.exe', 'sha256': '0'*64}}):
+            failure = URLError(prepare.ssl.SSLCertVerificationError('synthetic certificate failure'))
+            with patch.object(prepare.urllib.request, 'urlopen', side_effect=failure) as opened, patch.object(prepare.time, 'sleep') as sleep:
+                with self.assertRaises(URLError): prepare.fetch('fixture', Path(folder))
+                self.assertEqual(opened.call_count, 1)
+                sleep.assert_not_called()

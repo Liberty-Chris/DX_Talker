@@ -9,8 +9,14 @@ import struct
 import subprocess
 import tarfile
 import urllib.request
+import urllib.error
+import ssl
+import time
 import zipfile
-from build_app import ROOT, build
+try:
+    from .build_app import ROOT, build
+except ImportError:
+    from build_app import ROOT, build
 
 DOWNLOADS = json.loads((ROOT / 'platforms/xp/downloads.json').read_text())
 
@@ -20,14 +26,25 @@ def fetch(name, cache):
     path = cache / item['url'].rsplit('/', 1)[1]
     if path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == item['sha256']: return path
     temporary = path.with_suffix(path.suffix + '.partial')
-    with urllib.request.urlopen(item['url'], timeout=30) as source, temporary.open('wb') as output:
-        size = 0
-        while True:
-            block = source.read(1024 * 1024)
-            if not block: break
-            size += len(block)
-            if size > 64 * 1024 * 1024: raise ValueError('Build dependency exceeds its size limit')
-            output.write(block)
+    for attempt in range(3):
+        try:
+            query = urllib.request.Request(item['url'], headers={'User-Agent': 'DXTalker-build/1.0'})
+            with urllib.request.urlopen(query, timeout=30) as source, temporary.open('wb') as output:
+                size = 0
+                while True:
+                    block = source.read(1024 * 1024)
+                    if not block: break
+                    size += len(block)
+                    if size > 64 * 1024 * 1024: raise ValueError('Build dependency exceeds its size limit')
+                    output.write(block)
+            break
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as error:
+            temporary.unlink(missing_ok=True)
+            reason = getattr(error, 'reason', error)
+            if isinstance(reason, ssl.SSLCertVerificationError): raise
+            if isinstance(error, urllib.error.HTTPError) and error.code != 429 and not 500 <= error.code <= 599: raise
+            if attempt == 2: raise
+            time.sleep(2 ** attempt)
     if hashlib.sha256(temporary.read_bytes()).hexdigest() != item['sha256']:
         temporary.unlink(); raise ValueError('Dependency checksum mismatch: ' + name)
     temporary.replace(path)
