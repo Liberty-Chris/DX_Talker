@@ -368,21 +368,21 @@ class Application:
             self.filter_editor.focus()
         self.root.after_idle(reveal)
 
-    def _sync_listening_editor(self):
+    def _sync_listening_editor(self, reset_filters=True):
         from .listening import FIELDS
         previous=self.initializing;self.initializing=True
         try:
             for key in (*FIELDS,'listening_presets'):self.variables[key].set(getattr(self.settings,key))
         finally:self.initializing=previous
-        if hasattr(self,'filter_editor'):self.filter_editor.reset()
+        if reset_filters and hasattr(self,'filter_editor'):self.filter_editor.reset()
 
-    def _apply_listening(self,settings):
+    def _apply_listening(self,settings, sync_editor=True):
         from .listening import FIELDS
         updated=replace(self.settings,**{key:getattr(settings,key) for key in (*FIELDS,'listening_presets')}).validate()
         save_settings(updated)
         self.settings=updated
         self.engine.update_listening(updated)
-        self._sync_listening_editor()
+        self._sync_listening_editor(reset_filters=sync_editor)
         self._refresh_filtered_view()
         self._journal('Listening filters applied. Source connection preserved.')
 
@@ -390,7 +390,7 @@ class Application:
         from .filtering import rejection
         for item,spot in reversed(list(self.spots.items())):
             reason=rejection(spot,self.settings);self.spot_reasons[item]=reason
-            if self.show_all.get() or not reason:self.tree.move(item,'','end')
+            if not reason:self.tree.move(item,'','end')
             else:self.tree.detach(item)
 
     def _why_hidden(self):
@@ -443,8 +443,6 @@ class Application:
         ttk.Button(filters,text='Spot a station',command=lambda:self._spot_dialog(False)).pack(side='left',padx=(0,8))
         ttk.Button(filters,text='Spot myself',command=lambda:self._spot_dialog(True)).pack(side='left')
         self.filter_summary=tk.StringVar()
-        self.show_all=tk.BooleanVar(value=False)
-        ttk.Checkbutton(filters,text='All received',variable=self.show_all,command=self._refresh_filtered_view).pack(side='left',padx=8)
         ttk.Button(filters,text='Why hidden?',command=self._why_hidden).pack(side='left')
         self.live_hint = ttk.Label(frame, textvariable=self.filter_summary, text="Spots appear here before RF is enabled. Select one to preview it locally.")
         self.live_hint.grid(row=2, column=0, sticky="w", pady=(0, 8))
@@ -772,26 +770,6 @@ class Application:
                   wraplength=550).grid(row=0, column=0, sticky="w")
         ttk.Label(frame, text="Only validated spots are spoken. Comments and cluster commands are excluded.\nQueue: up to 100 spots. Starting output does not replay displayed history.",
                   wraplength=650).grid(row=3, column=0, sticky="w")
-
-    def _spot_filter_picker(self, key, title, values):
-        dialog = tk.Toplevel(self.root)
-        dialog.title(title)
-        dialog.configure(background=PALETTES[self.theme.get()]["bg"])
-        dialog.transient(self.root)
-        selected = set(self.variables[key].get().split(','))
-        flags = {value: tk.BooleanVar(value=value in selected) for value in values}
-        ttk.Label(dialog, text="Select the reports to announce. None selected accepts all.", wraplength=380).grid(row=0, column=0, columnspan=3, padx=12, pady=10)
-        for i, (value, flag) in enumerate(flags.items()):
-            ttk.Checkbutton(dialog, text=value, variable=flag).grid(row=1+i//3, column=i%3, sticky="w", padx=12, pady=5)
-        def apply():
-            self.variables[key].set(','.join(v for v, flag in flags.items() if flag.get()))
-            dialog.destroy()
-        ttk.Button(dialog, text="Apply selection", command=apply).grid(row=2+(len(values)+2)//3, column=0, columnspan=3, pady=12)
-        dialog.bind("<Escape>", lambda event: dialog.destroy())
-        dialog.bind("<Return>", lambda event: apply())
-        dialog.update_idletasks()
-        dialog.geometry(f"+{self.root.winfo_rootx()+80}+{self.root.winfo_rooty()+120}")
-        dialog.grab_set()
 
     FORMAT_FIELDS = ("announcement_order", "announcement_intro", "include_intro",
                      "include_callsign", "include_frequency", "speak_units")
@@ -1569,21 +1547,21 @@ class Application:
 
     def _samples(self):
         now = datetime.now(UTC)
-        for frequency, call in (("14025.0", "WB4IUY"), ("7074.0", "KT4BN"), ("50125.0", "KF4DBX")):
-            spot = parse_line(f"DX de N0CALL: {frequency} {call} Demo {now:%H%M}Z", "sample", now)
+        for frequency, call, mode in (("14025.0", "WB4IUY", "CW"), ("7074.0", "KT4BN", "FT8"), ("50125.0", "KF4DBX", "SSB")):
+            spot = parse_line(f"DX de N0CALL: {frequency} {call} {mode} Demo {now:%H%M}Z", "sample", now)
             self._add_spot(spot)
         self.emit("journal", "Three sample spots loaded. Samples can be previewed locally and never enter the RF queue.")
 
     def _add_spot(self, spot):
         from .filtering import mode_of
-        mode=mode_of(spot.comment,spot.mode)
+        mode=mode_of(spot.comment,spot.mode,spot.frequency_khz)
         item = self.tree.insert("", 0, values=(spot.timestamp.strftime("%H:%MZ"), spot.dx_call,
                                                 spot.frequency_text(self.settings.frequency_unit), spot.spotter, "" if mode=="Unknown" else mode, spot.source),
                                 tags=("alternate",) if len(self.spots) % 2 else ())
         self.spots[item] = spot
         from .filtering import rejection
         self.spot_reasons[item]=rejection(spot,self.settings)
-        if not self.show_all.get() and self.spot_reasons[item]:self.tree.detach(item)
+        if self.spot_reasons[item]:self.tree.detach(item)
         self._trim_spots()
 
     def _preview_spot(self):
@@ -1779,6 +1757,7 @@ class Application:
         self.log.configure(state="disabled")
 
     def close(self):
+        if hasattr(self,'filter_editor'):self.filter_editor.flush()
         self.closing = True
         for callback in self.root.tk.call("after", "info"):
             self.root.after_cancel(callback)

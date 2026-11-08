@@ -77,6 +77,24 @@ class EngineTests(unittest.TestCase):
 
         self.engine = Engine(self.settings, lambda *event: self.events.append(event), self.audio, self.speech, create)
 
+    def test_inferred_cw_and_opted_in_unknown_are_actually_announced(self):
+        self.engine.settings=replace(self.settings,filter_modes='CW',filter_bands='20m',spacing_seconds=0)
+        self.engine.listen_locally()
+        now=datetime.now(UTC)
+        cw=parse_line(f'DX de N0CALL: 14025 K1AAA 599 {now:%H%M}Z','fixture',now)
+        unknown=parse_line(f'DX de N0CALL: 14225 K2BBB {now:%H%M}Z','fixture',now)
+        digital=parse_line(f'DX de N0CALL: 14074 K3CCC FT8 {now:%H%M}Z','fixture',now)
+        self.assertTrue(self.engine.offer(cw))
+        self.assertFalse(self.engine.offer(unknown));self.assertFalse(self.engine.offer(digital))
+        wait_for(lambda:len(self.audio.played)==1 and not self.engine.busy)
+        self.engine.update_listening(replace(self.engine.settings,filter_modes='CW,Unknown'))
+        self.assertTrue(self.engine.offer(unknown))
+        self.assertFalse(self.engine.offer(replace(unknown,frequency_khz=__import__('decimal').Decimal('7225'))))
+        self.assertFalse(self.engine.offer(digital))
+        wait_for(lambda:len(self.audio.played)==2 and not self.engine.busy)
+        self.assertEqual(len(self.speech.texts),2)
+        self.assertFalse(self.ptts)
+
     def test_mode_and_activity_filter_rejects_before_audio_or_ptt(self):
         self.engine.settings = replace(self.settings, filter_modes='CW', filter_activities='POTA')
         self.engine.local_enabled = True
@@ -97,7 +115,7 @@ class EngineTests(unittest.TestCase):
     def spot(self, dx="KT4BN", minute_offset=0):
         now = datetime.now(UTC)
         stamp = now + timedelta(minutes=minute_offset)
-        return parse_line(f"DX de N0CALL: 7074 {dx} CQ {stamp:%H%M}Z", "test", now)
+        return parse_line(f"DX de N0CALL: 7074 {dx} FT8 {stamp:%H%M}Z", "test", now)
 
     def enable_and_id(self):
         self.engine.enable()

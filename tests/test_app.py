@@ -81,26 +81,25 @@ class AppTests(unittest.TestCase):
         self.assertEqual(self.app.notebook.index('current'),1)
         self.assertEqual(set(self.root.winfo_children()),before)
 
-    def test_inline_filters_stage_apply_and_reset_without_reconnecting(self):
+    def test_inline_filters_autosave_and_presets_without_reconnecting(self):
         from types import SimpleNamespace
         self.app.variables['host'].set('pending.invalid')
         source=SimpleNamespace();self.app.source=source;self.app.engine.local_enabled=True
         try:
             panel=self.app.filter_editor
             panel.variables['filter_bands'].set('20m')
-            self.assertEqual(self.app.settings.filter_bands,'')
+            self.assertEqual(self.app.settings.filter_bands,'20m')
             self.assertTrue(self.app.engine.local_enabled)
             saved=next(w for w in panel.frame.winfo_children() if w.winfo_class()=='TLabelframe' and w.cget('text')=='Listening presets')
             next(w for w in saved.winfo_children() if w.winfo_class()=='TCombobox').set('Portable 20m')
             next(w for w in saved.winfo_children() if w.winfo_class()=='TButton' and w.cget('text')=='Save').invoke()
-            panel.apply()
             import json
             self.assertEqual(json.loads(self.app.settings.listening_presets)['Portable 20m']['filter_bands'],'20m')
             self.assertEqual(self.app.settings.filter_bands,'20m')
             self.assertNotEqual(self.app.settings.host,'pending.invalid')
             self.assertIs(self.app.source,source);self.assertTrue(self.app.engine.local_enabled)
             panel.variables['filter_bands'].set('40m');panel.reset()
-            self.assertEqual(panel.variables['filter_bands'].get(),'20m')
+            self.assertEqual(panel.variables['filter_bands'].get(),'40m')
         finally:self.app.source=None;self.app.engine.local_enabled=False
         panel.variables['filter_bands'].set('40m')
         self.app._apply()
@@ -178,8 +177,8 @@ class AppTests(unittest.TestCase):
         self.assertEqual(len(self.app.spots),50)
         self.assertEqual(len(self.app.spot_reasons),50)
         self.assertEqual(len(self.app.tree.get_children()),0)
-        self.app.show_all.set(True);self.app._refresh_filtered_view()
-        self.assertEqual(len(self.app.tree.get_children()),50)
+        self.app._refresh_filtered_view()
+        self.assertEqual(len(self.app.tree.get_children()),0)
         self.app._clear_spots()
         self.assertFalse(self.app.spots);self.assertFalse(self.app.spot_reasons)
         self.assertFalse(self.app.tree.get_children())
@@ -217,18 +216,68 @@ class AppTests(unittest.TestCase):
         now = datetime.now(UTC)
         return parse_line(f"DX de N0CALL: 7074 WB4IUY CQ {now:%H%M}Z", "cluster", now)
 
-    def test_spot_filter_picker_saves_choices_and_applies_them(self):
-        from dxtalker.filtering import MODES
-        self.app._spot_filter_picker('filter_modes', 'Modes', MODES)
-        dialog = [w for w in self.root.winfo_children() if w.winfo_class() == 'Toplevel'][-1]
+    def test_mode_picker_autosaves_every_toggle_and_empty_means_none(self):
         from tkinter import ttk
-        for child in dialog.winfo_children():
-            if isinstance(child, ttk.Checkbutton) and child.cget('text') == 'FT8': child.invoke()
-        for child in dialog.winfo_children():
-            if isinstance(child, ttk.Button) and child.cget('text') == 'Apply selection': child.invoke()
-        self.app._apply()
-        self.assertEqual(self.app.settings.filter_modes, 'FT8')
-        self.assertFalse(self.app.engine.enabled)
+        panel=self.app.filter_editor
+        group=next(w for w in panel.frame.winfo_children() if w.winfo_class()=='TLabelframe' and w.cget('text')=='Choose your interests')
+        row=group.winfo_children()[1]
+        next(w for w in row.winfo_children() if isinstance(w,ttk.Button)).invoke()
+        dialog=next(w for w in self.root.winfo_children() if w.winfo_class()=='Toplevel')
+        flags={w.cget('text'):w for w in dialog.winfo_children() if isinstance(w,ttk.Checkbutton)}
+        flags['CW'].invoke()
+        self.assertEqual(load_settings().filter_modes,'CW')
+        flags['Include unknown'].invoke()
+        self.assertEqual(load_settings().filter_modes,'CW,Unknown')
+        flags['CW'].invoke()
+        self.assertEqual(load_settings().filter_modes,'Unknown')
+        flags['Include unknown'].invoke()
+        self.assertEqual(load_settings().filter_modes,'None')
+        flags['All known modes'].invoke()
+        self.assertEqual(load_settings().filter_modes,'')
+        self.assertNotIn('Apply selection',[w.cget('text') for w in dialog.winfo_children() if isinstance(w,ttk.Button)])
+        dialog.destroy()
+
+    def test_list_and_queue_share_all_mode_fixture_decisions(self):
+        import json
+        from unittest.mock import patch
+        from dxtalker.engine import Engine
+        now=datetime.now(UTC)
+        cases=json.loads((Path(__file__).parent/'fixtures/spot_filters.json').read_text())
+        # Stop worker startup so queue admission can be inspected without audio.
+        with patch('threading.Thread.start'):
+            engine=Engine(self.app.settings,lambda *args:None)
+        engine.local_enabled=True
+        for case in cases:
+            with self.subTest(case=case):
+                spot=parse_line(case['line'],'fixture',datetime(2026,11,6,12,34,tzinfo=UTC))
+                spot=replace(spot,timestamp=now,received=now)
+                self.app.settings=replace(Settings(),**case['filters'])
+                engine.settings=self.app.settings;engine.items.clear();engine.seen.clear()
+                self.app._clear_spots();self.app._add_spot(spot)
+                self.assertEqual(bool(self.app.tree.get_children()),case['match'])
+                self.assertEqual(engine.offer(spot),case['match'])
+                self.app._refresh_filtered_view()
+                self.assertEqual(bool(self.app.tree.get_children()),case['match'])
+
+    def test_valid_numeric_edits_flush_to_disk_without_an_apply_step(self):
+        panel=self.app.filter_editor
+        panel.variables['min_khz'].set('14000')
+        panel.variables['max_khz'].set('14350')
+        panel.flush()
+        self.assertEqual(load_settings().min_khz,14000)
+        self.assertEqual(load_settings().max_khz,14350)
+        panel.variables['min_khz'].set('15000')
+        panel.flush()
+        self.assertEqual(load_settings().min_khz,14000)
+
+    def test_invalid_text_does_not_block_immediate_mode_save(self):
+        panel=self.app.filter_editor
+        panel.variables['min_khz'].set('bad')
+        panel.variables['filter_modes'].set('CW')
+        self.assertEqual(load_settings().filter_modes,'CW')
+        self.assertEqual(load_settings().min_khz,1)
+        self.assertEqual(panel.variables['min_khz'].get(),'bad')
+        panel.reset()
 
     def test_settings_fields_acknowledgment_profiles_and_clear(self):
         from dataclasses import fields

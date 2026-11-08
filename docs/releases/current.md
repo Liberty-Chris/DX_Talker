@@ -7,3 +7,5 @@ Choose the XP 32 bit installer for Windows XP SP3 or the XP 64 bit installer for
 Windows 10 and 11 installers and portable downloads retain their existing filenames for updater compatibility. Release download labels and a download table distinguish system, architecture and package purpose. The older limited XP listener source kit remains a developer artifact rather than the XP application download.
 
 The a16 automatic desktop performance checks and the a15 rendering correction are retained. Android behavior is unchanged in this batch.
+
+This release also includes the mode filtering corrections merged from main: the spot list and speech use the same selection, missing modes are inferred as CW only in reviewed single mode segments and Include unknown explicitly controls uncertain reports. Filter selections save automatically on desktop and Android without reconnecting the cluster.

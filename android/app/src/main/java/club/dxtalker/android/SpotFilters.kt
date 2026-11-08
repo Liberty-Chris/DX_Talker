@@ -25,15 +25,24 @@ object SpotFilters {
     private val modeWord = Regex("(?<![A-Z0-9])(?:CW|SSB|USB|LSB|FT8|FT4|RTTY|PSK(?:31|63|125)?|FM|AM)(?![A-Z0-9])",RegexOption.IGNORE_CASE)
     fun clean(value: String) = value.filter { it.code in 32..126 }.take(160)
     private fun normalize(value: String): String = when(val v=value.uppercase(java.util.Locale.US)) { "USB","LSB" -> "SSB"; else -> if(v.startsWith("PSK")) "PSK" else v }
-    fun mode(comment: String,explicit: String = ""): String {
+    // Common single mode HF portions. See docs/mode_inference.md.
+    val modeSegments = listOf(
+        Triple(1810,1830,"CW"), Triple(3500,3535,"CW"), Triple(7000,7030,"CW"),
+        Triple(10110,10115,"CW"), Triple(14000,14070,"CW"), Triple(18068,18095,"CW"),
+        Triple(21000,21070,"CW"), Triple(24890,24915,"CW"), Triple(28000,28070,"CW"))
+    private val otherModeWord = Regex("(?<![A-Z0-9])(?:FT2|FT9|JT[0-9]+[A-Z]*|JS8(?:CALL)?|WSPR|Q65|QRA64|MSK144|FSK441|OLIVIA|MFSK[0-9]*|SSTV|FAX|DIGI(?:TAL)?|DATA|DMR|DSTAR|D-STAR|C4FM|FUSION|DV)(?![A-Z0-9])",RegexOption.IGNORE_CASE)
+    fun mode(comment: String,explicit: String = "",frequency: java.math.BigDecimal? = null): String {
         if(explicit.isNotEmpty())return if(modeWord.matches(explicit))normalize(explicit) else "Unknown"
         val found=modeWord.findAll(comment).map { normalize(it.value) }.toSet()
-        return found.singleOrNull() ?: "Unknown"
+        if(otherModeWord.containsMatchIn(comment))return "Unknown"
+        if(found.isNotEmpty())return found.singleOrNull() ?: "Unknown"
+        return modeSegments.firstOrNull { frequency!=null && frequency>=it.first.toBigDecimal() && frequency<it.second.toBigDecimal() }?.third ?: "Unknown"
     }
     fun tags(comment: String): Set<String> = activities.dropLast(1).filter {
         Regex("(?<![A-Z0-9])"+it+"(?![A-Z0-9])",RegexOption.IGNORE_CASE).containsMatchIn(comment)
     }.toSet().ifEmpty { setOf("General") }
     fun selection(value: String,allowed: Collection<String>): Set<String> {
+        if(value=="None")return setOf("None")
         val parts=if(value.isEmpty()) emptyList() else value.split(',')
         require(parts.size == parts.toSet().size && allowed.containsAll(parts)) { "Invalid spot filters" }
         return parts.toSet()
@@ -44,7 +53,8 @@ object SpotFilters {
         val selectedActivities=selection(get("filter_activities"),activities)
         val band=bands.entries.firstOrNull { spot.frequency>=it.value.first.toBigDecimal() && spot.frequency<it.value.second.toBigDecimal() }?.key ?: "Other"
         if(selectedBands.isNotEmpty() && band !in selectedBands)return "Band"
-        val mode=mode(spot.comment,spot.mode)
+        val mode=mode(spot.comment,spot.mode,spot.frequency)
+        if(mode=="Unknown" && "Unknown" !in selectedModes)return "Mode unknown"
         if(selectedModes.isNotEmpty() && mode !in selectedModes)return if(mode=="Unknown")"Mode unknown"else "Mode"
         if(selectedActivities.isNotEmpty() && tags(spot.comment).none { it in selectedActivities })return "Activity tag"
         val eligibility=UsPrivileges.eligibility(spot.frequency,mode,get("license_class").ifBlank { "Off" },get("license_region").ifBlank { "US Region 2" })
@@ -56,7 +66,7 @@ object SpotFilters {
     fun summary(get: (String)->String):String {
         val parts=mutableListOf<String>()
         if(get("license_class").isNotBlank() && get("license_class")!="Off")parts.add("License filter: "+get("license_class"))
-        for((key,default) in listOf("filter_bands" to "All bands","filter_modes" to "All modes","filter_activities" to "All activities"))parts.add(get(key).replace("General","No activity tag").ifBlank { default })
+        for((key,default) in listOf("filter_bands" to "All bands","filter_modes" to "All known modes","filter_activities" to "All activities"))parts.add(get(key).replace("General","No activity tag").replace("Unknown","Include unknown").ifBlank { default })
         for((key,title) in listOf("filter_spotter_countries" to "Reported from","filter_spotter_continents" to "Reporting continents","filter_spotter_regions" to "Reporting regions","filter_dx_countries" to "DX countries","filter_dx_continents" to "DX continents"))if(get(key).isNotBlank())parts.add(title+": "+get(key))
         return parts.joinToString(" · ")
     }

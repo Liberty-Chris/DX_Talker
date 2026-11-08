@@ -12,9 +12,12 @@ class SpotFilterTests {
         for(i in 0 until cases.length()) {
             val c=cases.getJSONObject(i)
             val spot=SpotPolicy.parse(c.getString("line"),Instant.parse("2026-11-06T12:34:00Z"))!!
-            assertEquals(c.getString("line"),c.getString("mode"),SpotFilters.mode(spot.comment))
+            assertEquals(c.getString("line"),c.getString("mode"),SpotFilters.mode(spot.comment,spot.mode,spot.frequency))
             assertEquals(c.getJSONArray("activities").let { tags -> (0 until tags.length()).map { tags.getString(it) }.toSet() },SpotFilters.tags(spot.comment))
             assertEquals(c.getBoolean("match"),SpotFilters.matches(spot) { key -> c.getJSONObject("filters").optString(key,"") })
+            val decision=SpotPresentation.decide(spot) { key -> c.getJSONObject("filters").optString(key,"") }
+            assertEquals(c.getBoolean("match"),decision.row.isNotEmpty())
+            assertEquals(c.getBoolean("match"),decision.speech.isNotEmpty())
             assertFalse(SpotPolicy.speak(spot,"{call}. {frequency} {unit}.","MHz").contains("POTA"))
         }
     }

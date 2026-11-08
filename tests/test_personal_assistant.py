@@ -66,7 +66,7 @@ class PrivilegeTests(unittest.TestCase):
     def test_license_unknown_does_not_override_known_outside(self):
         now=datetime.now(UTC)
         spot=parse_line(f'DX de WB4IUY: 14225 KF4DBX POTA {now:%H%M}Z','test',now)
-        settings=Settings(license_class='General',filter_bands='20m',filter_activities='POTA')
+        settings=Settings(license_class='General',filter_bands='20m',filter_activities='POTA',filter_modes='SSB,Unknown')
         self.assertFalse(matches(spot,settings))
         self.assertTrue(matches(spot,replace(settings,license_unknown=True)))
         self.assertFalse(matches(replace(spot,frequency_khz=Decimal('14190')),replace(settings,license_unknown=True)))

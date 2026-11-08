@@ -1,5 +1,6 @@
 """Local spot classification. Comments are metadata, never announcement text."""
 import re
+from decimal import Decimal, InvalidOperation
 
 BANDS = {"160m": (1800, 2000), "80m": (3500, 4000), "60m": (5250, 5450),
          "40m": (7000, 7300), "30m": (10100, 10150), "20m": (14000, 14350),
@@ -10,20 +11,40 @@ BANDS = {"160m": (1800, 2000), "80m": (3500, 4000), "60m": (5250, 5450),
 MODES = ("CW", "SSB", "FT8", "FT4", "RTTY", "PSK", "FM", "AM", "Unknown")
 ACTIVITIES = ("POTA", "SOTA", "FOTA", "General")
 MODE_WORD = re.compile(r"(?<![A-Z0-9])(?:CW|SSB|USB|LSB|FT8|FT4|RTTY|PSK(?:31|63|125)?|FM|AM)(?![A-Z0-9])", re.I)
+# Conservative common CW portions of the published IARU regional HF plans.
+# Exclude mixed portions, regional differences and the R3 30m phone exception.
+# Lower inclusive, upper exclusive, in kHz. Sources and limits: docs/mode_inference.md.
+MODE_SEGMENTS = (
+    (1810, 1830, 'CW'), (3500, 3535, 'CW'), (7000, 7030, 'CW'),
+    (10110, 10115, 'CW'), (14000, 14070, 'CW'), (18068, 18095, 'CW'),
+    (21000, 21070, 'CW'), (24890, 24915, 'CW'), (28000, 28070, 'CW'),
+)
+# Recognize unsupported modes as evidence against guessing CW from frequency.
+OTHER_MODE_WORD = re.compile(r'(?<![A-Z0-9])(?:FT2|FT9|JT\d+[A-Z]*|JS8(?:CALL)?|WSPR|Q65|QRA64|MSK144|FSK441|OLIVIA|MFSK\d*|SSTV|FAX|DIGI(?:TAL)?|DATA|DMR|DSTAR|D-STAR|C4FM|FUSION|DV)(?![A-Z0-9])', re.I)
 
 
 def clean_comment(value):
     return ''.join(c for c in value if 32 <= ord(c) <= 126)[:160] if isinstance(value, str) else ''
 
 
-def mode_of(comment, explicit=''):
+def mode_of(comment, explicit='', frequency_khz=None):
     def normalized(word):
         word = word.upper()
         return 'SSB' if word in ('USB', 'LSB') else 'PSK' if word.startswith('PSK') else word
     if explicit:
         return normalized(explicit) if MODE_WORD.fullmatch(explicit) else 'Unknown'
     found = {normalized(m.group()) for m in MODE_WORD.finditer(comment)}
-    return next(iter(found)) if len(found) == 1 else 'Unknown'
+    if OTHER_MODE_WORD.search(comment):
+        return 'Unknown'
+    if found:
+        return next(iter(found)) if len(found) == 1 else 'Unknown'
+    try:
+        frequency = Decimal(str(frequency_khz))
+        if frequency.is_finite():
+            return next((mode for low, high, mode in MODE_SEGMENTS if low <= frequency < high), 'Unknown')
+    except InvalidOperation:
+        pass
+    return 'Unknown'
 
 
 def activities_of(comment):
@@ -31,6 +52,8 @@ def activities_of(comment):
 
 
 def choices(value, allowed):
+    if value == 'None':
+        return {'None'}
     values = value.split(',') if value else []
     if len(values) != len(set(values)) or any(v not in allowed for v in values):
         raise ValueError('Invalid spot filter selection')
@@ -44,7 +67,8 @@ def rejection(spot, settings):
     band = next((name for name, (low, high) in BANDS.items() if low <= spot.frequency_khz < high), 'Other')
     if not settings.min_khz <= spot.frequency_khz <= settings.max_khz:return 'Frequency range'
     if bands and band not in bands:return 'Band'
-    mode=mode_of(spot.comment, spot.mode)
+    mode=mode_of(spot.comment, spot.mode, spot.frequency_khz)
+    if mode=='Unknown' and 'Unknown' not in modes:return 'Mode unknown'
     if modes and mode not in modes:return 'Mode unknown' if mode=='Unknown' else 'Mode'
     if activities and not activities & activities_of(spot.comment):return 'Activity tag'
     from .privileges import eligibility
@@ -60,8 +84,8 @@ def matches(spot,settings):return not rejection(spot,settings)
 
 def summary(settings):
     parts=['License filter: '+settings.license_class] if settings.license_class!='Off' else []
-    for key,default in (('filter_bands','All bands'),('filter_modes','All modes'),('filter_activities','All activities')):
-        parts.append(getattr(settings,key).replace('General','No activity tag') or default)
+    for key,default in (('filter_bands','All bands'),('filter_modes','All known modes'),('filter_activities','All activities')):
+        parts.append(getattr(settings,key).replace('General','No activity tag').replace('Unknown','Include unknown') or default)
     for key,title in (('filter_spotter_countries','Reported from'),('filter_spotter_continents','Reporting continents'),('filter_spotter_regions','Reporting regions'),('filter_dx_countries','DX countries'),('filter_dx_continents','DX continents')):
         if getattr(settings,key):parts.append(title+': '+getattr(settings,key))
     return ' · '.join(parts)

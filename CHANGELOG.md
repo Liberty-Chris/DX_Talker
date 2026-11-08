@@ -132,3 +132,7 @@ Reviewed the original archive without running its programs. Recorded the files f
 ## 0.2.0a17
 
 Prepare full shared desktop core XP 32 bit and 64 bit pilot installers with private runtimes, SAPI speech, WinMM audio/input and native serial PTT adapters. Preserve shared filters, profiles, queue and ID coordination, transfer and diagnostics. Add actual bundled interpreter checks, native adapter simulation and installer verification. Clarify download labels and tables while preserving modern updater filenames. Physical XP acceptance remains open.
+
+## Pending release. Consistent mode filtering
+
+Display and speech now share strict mode selection, including conservative CW frequency inference and explicit Include unknown. The desktop All received bypass is removed. Mixed frequency portions stay Unknown for every mode. Filter selections and presets take effect and save automatically on desktop and Android, with no Apply step. Clearing the final selection accepts no spots.
