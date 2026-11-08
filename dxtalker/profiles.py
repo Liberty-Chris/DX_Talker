@@ -14,6 +14,9 @@ SOURCE_FIELDS = ("source_type", "host", "port", "login", "feed_url", "poll_secon
 
 
 def protect_secret(value, decrypt=False):
+    if sys.platform.startswith('linux'):
+        from .linux_desktop import protect_secret as linux_secret
+        return linux_secret(value, decrypt)
     if sys.platform != "win32":
         raise ValueError("Remembering passwords requires Windows account protection. Leave Remember password or token unchecked.")
 
@@ -84,7 +87,13 @@ class ProfileStore:
         item = {"id": profile_id or uuid.uuid4().hex, "name": name,
                 "connection": {k: asdict(settings)[k] for k in SOURCE_FIELDS},
                 "secret": self.protector(secret) if remember and secret else ""}
-        self._write([p for p in self.profiles if p["id"] != item["id"]] + [item])
+        previous = next((p['secret'] for p in self.profiles if p['id'] == item['id']), '')
+        try:
+            self._write([p for p in self.profiles if p["id"] != item["id"]] + [item])
+        except Exception:
+            self._forget(item['secret'])
+            raise
+        if previous != item['secret']: self._forget(previous)
         return item
 
     def load(self, profile_id, settings):
@@ -92,5 +101,13 @@ class ProfileStore:
         secret = self.protector(item["secret"], decrypt=True) if item["secret"] else ""
         return replace(settings, **item["connection"]), secret
 
+    @staticmethod
+    def _forget(reference):
+        if sys.platform.startswith('linux'):
+            from .linux_desktop import forget_secret
+            forget_secret(reference)
+
     def delete(self, profile_id):
+        previous = next((p['secret'] for p in self.profiles if p['id'] == profile_id), '')
         self._write([p for p in self.profiles if p["id"] != profile_id])
+        self._forget(previous)

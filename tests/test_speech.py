@@ -33,7 +33,7 @@ class SpeechTests(unittest.TestCase):
     def test_windows_provider_receives_voice_gender_speed_and_ssml(self):
         now = datetime.now(UTC)
         spot = parse_line(f"DX de N0CALL: 7074 KT4BN {now:%H%M}Z", "cluster", now)
-        settings = Settings(voice_gender="Female", speech_rate=-3)
+        settings = Settings(speech_provider="Windows", voice_gender="Female", speech_rate=-3)
         with patch("dxtalker.speech.WindowsSpeech") as provider:
             SpeechService().render_spot(spot, settings, threading.Event())
             args, kwargs = provider.return_value.render.call_args

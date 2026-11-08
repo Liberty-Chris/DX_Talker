@@ -16,6 +16,7 @@ ROLES = {
     'DXTalker-XP-source-test-kit.zip': (8, 'Developers only', 'Limited XP listener source. Not an installer or full application'),
     'DXTalker-VoicePack-LJ-high.zip': (7, 'Optional voice pack', 'Recorded English LJ voice. ZIP'),
     'DXTalker-Android.apk': (4, 'Android phones and tablets', 'Pilot APK for manual installation'),
+    'DXTalker-Ubuntu-amd64.deb': (5, 'Ubuntu 22.04 and 24.04', '64 bit Intel/AMD desktop installer. Not for Raspberry Pi'),
     'SHA256SUMS.txt': (9, 'Download verification', 'SHA256 checksums'),
 }
 # Original modern releases were x64 only. Preserve their existing filenames.

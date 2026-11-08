@@ -23,9 +23,9 @@ class Cancelled(Exception):
 class AudioPlaybackError(RuntimeError):
     """Fixed local messages and numeric evidence, safe for diagnostics and the UI."""
     MESSAGES = {
-        'audio_stream_stopped': 'Audio output stopped before playback completed. Check the selected audio device, its connection and Windows sound settings.',
+        'audio_stream_stopped': 'Audio output stopped before playback completed. Check the selected audio device, its connection and system sound settings.',
         'audio_finish_unconfirmed': 'Audio output stopped without confirming completion. Check the selected audio device and try a local preview again.',
-        'audio_stream_fault': 'The audio device reported a playback fault. Check its connection and Windows sound settings before restarting output.',
+        'audio_stream_fault': 'The audio device reported a playback fault. Check its connection and system sound settings before restarting output.',
         'audio_incomplete': 'Audio output ended before all samples were delivered. Check the selected audio device before restarting output.',
     }
 

@@ -18,6 +18,7 @@ from tkinter import filedialog, messagebox, ttk
 from . import __version__
 from .appearance import PALETTES, load_appearance, save_appearance
 from .audio import AudioOutput, WindowsSpeech
+from .linux_speech import EspeakSpeech
 from .engine import Engine
 from .models import UTC, Settings, load_settings, parse_line, save_settings, settings_path
 from .ptt import serial_ports
@@ -213,7 +214,7 @@ class Application:
         identity = ttk.Frame(header, style="Header.TFrame")
         identity.pack(side="left", padx=16)
         ttk.Label(identity, text="DX TALKER", style="Header.TLabel", font=("Segoe UI", 11, "bold")).pack(anchor="w")
-        ttk.Label(identity, text="Windows pilot  /  " + __version__, style="Header.TLabel").pack(anchor="w", pady=(4, 0))
+        ttk.Label(identity, text=("Ubuntu" if sys.platform.startswith("linux") else "Windows") + " pilot  /  " + __version__, style="Header.TLabel").pack(anchor="w", pady=(4, 0))
         self.stop_button = ttk.Button(header, text="STOP ALL OUTPUT", style="Stop.TButton", command=self._stop)
         self.stop_button.pack(side="right")
         appearance = ttk.Frame(header, style="Header.TFrame")
@@ -579,7 +580,7 @@ class Application:
         self.secret_toggle = ttk.Button(secret_field, text="Show", command=self._toggle_secret, width=7)
         self.secret_toggle.grid(row=0, column=1, padx=(8, 0))
         ttk.Checkbutton(details, text="Remember password or token on this PC", variable=self.remember_secret).grid(row=4, column=0, columnspan=3, sticky="w", pady=(8, 0))
-        ttk.Label(details, text="Optional. Save the profile to keep its password or token encrypted for this Windows account. Unchecked means session only.",
+        ttk.Label(details, text="Optional. Save the profile to keep its password or token protected for this account. Unchecked means session only.",
                   wraplength=610).grid(row=5, column=0, columnspan=3, sticky="w", pady=(4, 8))
         self.source_hint = tk.StringVar()
         ttk.Label(details, textvariable=self.source_hint, wraplength=610).grid(row=6, column=0, columnspan=3, sticky="w")
@@ -1147,16 +1148,16 @@ class Application:
         ttk.Label(frame, text="Set announcement format in Announcements.").grid(row=0, column=0, sticky="w", pady=(0, 10))
         delivery = ttk.LabelFrame(frame, text="Speech delivery", padding=12)
         delivery.grid(row=1, column=0, sticky="w", pady=(0, 12))
-        self._field(delivery, 0, "Provider", "speech_provider", ["Windows", "Piper", "Recorded", "ElevenLabs"], compact=True)
+        self._field(delivery, 0, "Provider", "speech_provider", ["eSpeak NG" if sys.platform.startswith("linux") else "Windows", "Piper", "Recorded", "ElevenLabs"], compact=True)
         self._field(delivery, 1, "Frequency units", "frequency_unit", ["kHz", "MHz"],
                     note="Used by announcements and the live view.", compact=True)
         self._field(delivery, 2, "Speed", "speech_rate", note="Minus 10 to 10. Zero is normal.", compact=True)
         self._field(delivery, 3, "Character pause (ms)", "character_pause_ms", note="0 to 1000. Zero keeps natural spacing.", compact=True)
         self._field(delivery, 4, "Group pause (ms)", "group_pause_ms", note="0 to 3000. Intro, frequency and callsign.", compact=True)
-        self.windows_speech_fields = ttk.LabelFrame(frame, text="Windows voice", padding=12)
+        self.windows_speech_fields = ttk.LabelFrame(frame, text="System voice", padding=12)
         self.windows_speech_fields.grid(row=2, column=0, sticky="w", pady=(0, 12))
         self._field(self.windows_speech_fields, 0, "Voice", "voice", [""], compact=True)
-        self.resolved_voice=tk.StringVar(value="Preview to identify the actual Windows voice.")
+        self.resolved_voice=tk.StringVar(value="Preview to identify the actual system voice.")
         ttk.Label(self.windows_speech_fields,textvariable=self.resolved_voice,wraplength=610).grid(row=2,column=0,columnspan=3,sticky="w",pady=8)
         self._field(self.windows_speech_fields, 1, "Gender preference", "voice_gender", ["Any", "Male", "Female"],
                     note="Used when Voice is blank. Installed voices determine availability.", compact=True)
@@ -1213,7 +1214,7 @@ class Application:
         ElevenLabsDialog(self)
 
     def _speech_provider_changed(self):
-        windows = self.variables["speech_provider"].get() == "Windows"
+        windows = self.variables["speech_provider"].get() in ("Windows", "eSpeak NG")
         self.windows_speech_fields.grid() if windows else self.windows_speech_fields.grid_remove()
         piper = self.variables["speech_provider"].get() == "Piper"
         recorded = self.variables["speech_provider"].get() == "Recorded"
@@ -1345,7 +1346,7 @@ class Application:
         if sys.platform == "win32":
             os.startfile(str(directory))
         else:
-            webbrowser.open(directory.as_uri())
+            subprocess.Popen(["xdg-open", str(directory)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def _startup_update_check(self):
         if self.settings.check_updates and not self.closing:
@@ -1379,8 +1380,8 @@ class Application:
             raise ValueError("Wait for the current update operation")
         if not self.update_release:
             raise ValueError("Check for an available update first")
-        if sys.platform != "win32":
-            raise ValueError("This installer is for Windows x64. Use the release page on other systems.")
+        if sys.platform != "win32" and not sys.platform.startswith("linux"):
+            raise ValueError("Use the release page for this operating system.")
         self.update_busy = True
         self.update_download = None
         release = self.update_release
@@ -1393,10 +1394,10 @@ class Application:
         threading.Thread(target=task, daemon=True, name="DX update download").start()
 
     def _install_update(self):
-        if sys.platform != "win32" or not self.update_download:
+        if not self.update_download:
             raise ValueError("Download and verify an update first")
         if not getattr(sys, "frozen", False):
-            raise ValueError("Install updates from the packaged Windows app. Source checkouts use Git.")
+            raise ValueError("Install updates from the packaged app. Source checkouts use Git.")
         path, checksum = self.update_download
         if not updates.verify_download(path, checksum):
             self.update_download = None
@@ -1417,7 +1418,11 @@ class Application:
         try:
             if not updates.verify_download(path, checksum):
                 raise ValueError("Installer verification failed")
-            subprocess.Popen([str(path)], shell=False)
+            if sys.platform.startswith('linux'):
+                from .linux_desktop import install_update
+                install_update(path)
+            else:
+                subprocess.Popen([str(path)], shell=False)
         except Exception:
             messagebox.showerror("Update", "Could not open the verified installer. Download it again or use the release page.")
             return
@@ -1439,7 +1444,7 @@ class Application:
         self.help_text.configure(yscrollcommand=scrollbar.set)
         self.help_topic.set(self.help_topics[0]["title"])
         self._show_help()
-        ttk.Label(frame, text=f"DX Talker {__version__}  |  Windows pilot  |  All rights reserved\nSettings: {settings_path()}", wraplength=900).grid(row=2, column=0, sticky="w", pady=10)
+        ttk.Label(frame, text=f"DX Talker {__version__}  |  Desktop pilot  |  All rights reserved\nSettings: {settings_path()}", wraplength=900).grid(row=2, column=0, sticky="w", pady=10)
 
     def _show_help(self):
         topic = next(p for p in self.help_topics if p["title"] == self.help_topic.get())
@@ -1618,7 +1623,7 @@ class Application:
     def _load_voices(self):
         def task():
             try:
-                self.emit("voices", WindowsSpeech().voices(self.background_cancel))
+                self.emit("voices", (EspeakSpeech() if sys.platform.startswith("linux") else WindowsSpeech()).voices(self.background_cancel))
             except Exception:
                 self.emit("journal", "Windows voices could not be enumerated. The default voice remains available on Windows.")
         threading.Thread(target=task, daemon=True).start()
@@ -1785,7 +1790,7 @@ def main():
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("DXTalker.Desktop")
     app = None
     try:
-        root = tk.Tk()
+        root = tk.Tk(className="DXTalker")
         app = Application(root)
         app.diagnostics.enable_native_faults()
         root.mainloop()
