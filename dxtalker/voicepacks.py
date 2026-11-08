@@ -1,5 +1,6 @@
 """Offline PCM voice packs. No model inference, network, fallback or executable code."""
 import hashlib
+from collections import OrderedDict
 import json
 from pathlib import Path
 import re
@@ -56,10 +57,11 @@ class VoicePack:
         if self.data.get('schema')!='dxtalker-voice' or self.data.get('version')!=1 or not isinstance(self.data.get('clips'),dict):
             raise ValueError('Invalid recorded voice pack')
         self.label=str(self.data.get('label','Recorded voice'))[:100]
-        self.cache={}
+        self.cache=OrderedDict();self.cache_bytes=0
 
     def clip(self,key):
-        if key in self.cache:return self.cache[key]
+        if key in self.cache:
+            self.cache.move_to_end(key);return self.cache[key]
         item=self.data['clips'].get(key)
         if not isinstance(item,dict): raise ValueError('Recorded voice lacks a required word. Regenerate the pack with your custom intro or use system speech.')
         name=item.get('file','')
@@ -70,12 +72,18 @@ class VoicePack:
         if hashlib.sha256(raw).hexdigest()!=item.get('sha256'):raise ValueError('Recorded clip checksum mismatch')
         clip=wav_clip(path)
         if clip.rate!=22050 or clip.channels!=1:raise ValueError('Recorded clips must be mono 22050 Hz PCM16')
-        self.cache[key]=clip
+        while self.cache and self.cache_bytes+len(clip.pcm)>16*1024*1024:
+            _,old=self.cache.popitem(last=False);self.cache_bytes-=len(old.pcm)
+        self.cache[key]=clip;self.cache_bytes+=len(clip.pcm)
         return clip
 
     def render(self,plan,settings,cancel):
         chunks=[];size=0
         for text,pause in plan:
+            if not text.strip():
+                silence=b'\0\0'*round(22050*pause/1000);chunks.append(silence);size+=len(silence)
+                if size>22050*2*120:raise ValueError('Recorded speech exceeds two minutes')
+                continue
             phrase='phrase:'+text.strip().lower()
             keys=[phrase] if phrase in self.data['clips'] else keys_for(text)
             if not keys: raise ValueError('Recorded voice text contains no supported words')

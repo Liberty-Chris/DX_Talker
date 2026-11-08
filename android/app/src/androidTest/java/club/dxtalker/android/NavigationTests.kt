@@ -48,7 +48,7 @@ class NavigationTests {
             androidx.test.espresso.Espresso.pressBack()
             onView(withText("Bring your clusters along")).check(matches(isDisplayed()))
             onView(withText("Settings")).perform(click())
-            onView(withText("Bands, modes and activities")).perform(click())
+            onView(withText("What do you want to hear?")).perform(click())
             onView(withText("Bands: All")).perform(click())
             onView(withText("20m")).perform(click())
             onView(withText("Use selection")).perform(click())
@@ -98,18 +98,35 @@ class NavigationTests {
                 assertTrue(accepted.await(5,java.util.concurrent.TimeUnit.SECONDS))
                 onView(withText("Settings")).perform(click())
                 onView(withText("Stop listening")).check(matches(isDisplayed()))
-                onView(withText("Bands, modes and activities")).perform(click())
+                onView(withText("What do you want to hear?")).perform(click())
                 onView(withText("Save filters")).perform(scrollTo(),click())
                 assertTrue(ListenerService.listeningActive)
                 assertFalse("Navigation or filtering closed the original TCP session",closed.get())
                 assertTrue(probed.await(3,java.util.concurrent.TimeUnit.SECONDS))
                 assertFalse("A spotter callsign or spot comment triggered an unsolicited command",received.get())
-                androidx.test.espresso.Espresso.pressBack()
-                onView(withText("Listen")).perform(click())
+                onView(withText("Recent spots")).check(matches(isDisplayed()))
                 onView(withText("Stop listening")).perform(click())
             }
         } finally { release.countDown();server.close();worker.join(1000);context.stopService(Intent(context,ListenerService::class.java)) }
     }
+    @Test fun liveListKeepsUsefulSpaceAboveSystemNavigation() {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val decor=activity.window.decorView
+                val all=mutableListOf<android.view.View>()
+                fun collect(view:android.view.View) { all.add(view);if(view is android.view.ViewGroup)for(i in 0 until view.childCount)collect(view.getChildAt(i)) }
+                collect(decor)
+                val list=all.filterIsInstance<android.widget.ScrollView>().single()
+                val visible=android.graphics.Rect();list.getGlobalVisibleRect(visible)
+                assertTrue("Live spots must retain a useful scrolling area",visible.height()>=decor.height/4)
+                val navigation=all.filterIsInstance<android.widget.Button>().first { it.text=="Settings" }
+                val position=IntArray(2);navigation.getLocationOnScreen(position)
+                assertTrue("System navigation must not overlap app navigation",position[1]+navigation.height<=decor.height)
+            }
+            screenshot("live-list-space")
+        }
+    }
+
     @Test fun lightAppearanceHasWorkingNavigation() {
         context.getSharedPreferences("dx",Context.MODE_PRIVATE).edit().putString("appearance","Light").commit()
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->

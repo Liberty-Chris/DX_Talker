@@ -53,6 +53,50 @@ class AppTests(unittest.TestCase):
             self.env.stop()
             self.folder.cleanup()
 
+    def test_filter_changes_preserve_source_and_local_listening(self):
+        from types import SimpleNamespace
+        source=SimpleNamespace()
+        self.app.source=source
+        generation=self.app.source_generation
+        self.app.engine.local_enabled=True
+        updated=replace(self.app.settings,filter_bands='20m',filter_modes='SSB',filter_activities='POTA',license_class='General')
+        try:
+            self.app._apply_listening(updated)
+            self.assertIs(self.app.source,source)
+            self.assertEqual(self.app.source_generation,generation)
+            self.assertTrue(self.app.engine.local_enabled)
+            self.assertEqual(self.app.engine.settings.filter_bands,'20m')
+        finally:self.app.source=None
+
+    def test_hidden_reports_are_bounded_and_clear_removes_detached_rows(self):
+        self.app.settings=replace(self.app.settings,display_limit=50,filter_activities='POTA')
+        now=datetime.now(UTC)
+        for i in range(65):self.app._add_spot(parse_line(f'DX de N0CALL: 14225 K{i}ABC SSB {now:%H%M}Z','fixture',now))
+        self.assertEqual(len(self.app.spots),50)
+        self.assertEqual(len(self.app.spot_reasons),50)
+        self.assertEqual(len(self.app.tree.get_children()),0)
+        self.app.show_all.set(True);self.app._refresh_filtered_view()
+        self.assertEqual(len(self.app.tree.get_children()),50)
+        self.app._clear_spots()
+        self.assertFalse(self.app.spots);self.assertFalse(self.app.spot_reasons)
+        self.assertFalse(self.app.tree.get_children())
+
+    def test_ptt_test_ignores_pending_cluster_and_id_edits(self):
+        self.app.variables['port'].set('not a port')
+        self.app.variables['cw_text'].set('')
+        self.app.variables['ptt_method'].set('RTS')
+        self.app.variables['serial_port'].set('COM8')
+        with patch.object(self.app.engine,'test_ptt') as test:
+            self.app._test_ptt()
+            self.assertEqual(test.call_args.args[0].serial_port,'COM8')
+            self.assertEqual(test.call_args.args[0].port,self.app.settings.port)
+
+    def test_output_fault_notice_does_not_open_a_modal_dialog(self):
+        with patch('dxtalker.app.messagebox.showerror',side_effect=AssertionError('Blocking error dialog')):
+            self.app.emit('error','Synthetic output fault')
+            self.app._poll()
+        self.assertIn('Synthetic output fault',self.app.error_notice.get())
+
     def test_close_finishes_deferred_cleanup_before_releasing_the_log(self):
         # Force the normal deferred path even when the worker stops quickly.
         with patch.object(self.app.engine.worker, 'is_alive', side_effect=[True, False]):

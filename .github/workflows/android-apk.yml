@@ -2,9 +2,9 @@ name: Android APK
 on:
   push:
     branches: [main, feat/android-listener]
-    paths: ['android/**', '.github/workflows/android-apk.yml']
+    paths: ['android/**', 'dxtalker/privileges.py', 'scripts/sync_privileges.py', '.github/workflows/android-apk.yml']
   pull_request:
-    paths: ['android/**', '.github/workflows/android-apk.yml']
+    paths: ['android/**', 'dxtalker/privileges.py', 'scripts/sync_privileges.py', '.github/workflows/android-apk.yml']
   workflow_dispatch:
 jobs:
   build:

@@ -107,7 +107,8 @@ class Diagnostics:
         for frame in sys._current_frames().values():
             stacks.append([dict(file=Path(f.filename).name, line=f.lineno, function=f.name)
                            for f in traceback.extract_stack(frame)[-20:]])
-        self.record('ui_stall', seconds=round(delay), threads=stacks)
+        dialog=any(frame['file'] in ('commondialog.py','messagebox.py') for stack in stacks for frame in stack)
+        self.record('ui_dialog_wait' if dialog else 'ui_stall', seconds=round(delay), threads=stacks)
 
     def _watch(self):
         while not self.closed.wait(2): self.sample_stall()

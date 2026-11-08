@@ -38,12 +38,26 @@ object SpotFilters {
         require(parts.size == parts.toSet().size && allowed.containsAll(parts)) { "Invalid spot filters" }
         return parts.toSet()
     }
-    fun matches(spot: DxSpot,get: (String)->String): Boolean {
+    fun rejection(spot:DxSpot,get:(String)->String):String {
         val selectedBands=selection(get("filter_bands"),bands.keys+"Other")
         val selectedModes=selection(get("filter_modes"),modes)
         val selectedActivities=selection(get("filter_activities"),activities)
-        val band=bands.entries.firstOrNull { spot.frequency>=it.value.first.toBigDecimal() && spot.frequency<=it.value.second.toBigDecimal() }?.key ?: "Other"
-        return (selectedBands.isEmpty() || band in selectedBands) && (selectedModes.isEmpty() || mode(spot.comment,spot.mode) in selectedModes) && (selectedActivities.isEmpty() || tags(spot.comment).any { it in selectedActivities })
+        val band=bands.entries.firstOrNull { spot.frequency>=it.value.first.toBigDecimal() && spot.frequency<it.value.second.toBigDecimal() }?.key ?: "Other"
+        if(selectedBands.isNotEmpty() && band !in selectedBands)return "Band"
+        val mode=mode(spot.comment,spot.mode)
+        if(selectedModes.isNotEmpty() && mode !in selectedModes)return if(mode=="Unknown")"Mode unknown"else "Mode"
+        if(selectedActivities.isNotEmpty() && tags(spot.comment).none { it in selectedActivities })return "Activity tag"
+        val eligibility=UsPrivileges.eligibility(spot.frequency,mode,get("license_class").ifBlank { "Off" },get("license_region").ifBlank { "US Region 2" })
+        if(eligibility=="outside")return "Outside selected license segments"
+        if(eligibility=="unknown" && get("license_unknown")!="true")return "License eligibility unverified"
+        return SpotLocations.rejection(spot,get)
     }
-    fun summary(get: (String)->String) = listOf("filter_bands" to "All bands","filter_modes" to "All modes","filter_activities" to "All activities").joinToString(" · ") { get(it.first).ifBlank { it.second } }
+    fun matches(spot:DxSpot,get:(String)->String)=rejection(spot,get).isEmpty()
+    fun summary(get: (String)->String):String {
+        val parts=mutableListOf<String>()
+        if(get("license_class").isNotBlank() && get("license_class")!="Off")parts.add(get("license_class")+" class")
+        for((key,default) in listOf("filter_bands" to "All bands","filter_modes" to "All modes","filter_activities" to "All activities"))parts.add(get(key).replace("General","No activity tag").ifBlank { default })
+        for((key,title) in listOf("filter_spotter_countries" to "Reported from","filter_spotter_continents" to "Reporting continents","filter_spotter_regions" to "Reporting regions","filter_dx_countries" to "DX countries","filter_dx_continents" to "DX continents"))if(get(key).isNotBlank())parts.add(title+": "+get(key))
+        return parts.joinToString(" · ")
+    }
 }

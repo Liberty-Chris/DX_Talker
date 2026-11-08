@@ -31,12 +31,21 @@ def run(report_path):
         voices = speech.voices(threading.Event())
         clip = speech.render("DX Talker. Kilo Foxtrot four Delta Bravo Xray.", "", 0, threading.Event())
         assert clip.duration > 0
+        process_id=speech.process.pid
+        again=speech.render('Second render. Same speech process.', '', 0, threading.Event())
+        assert again.duration>0 and speech.process.pid==process_id
+        report['persistent_windows_speech']=True
+        report['resolved_windows_voice']=speech.last_voice
+        speech.close()
+        assert speech.process is None
         secret = protect_secret("synthetic-test-secret")
         assert "synthetic-test-secret" not in secret
         assert protect_secret(secret, decrypt=True) == "synthetic-test-secret"
         now = datetime.now(UTC)
         spot = parse_line(f"DX de N0CALL: 14025.5 WB4IUY/P {now:%H%M}Z", "test", now)
-        paced = SpeechService().render_spot(spot, Settings(character_pause_ms=50, group_pause_ms=450), threading.Event())
+        service=SpeechService()
+        try:paced = service.render_spot(spot, Settings(character_pause_ms=50, group_pause_ms=450), threading.Event())
+        finally:service.close()
         assert paced.duration > 0
         report["ssml_speech_seconds"] = paced.duration
         report["protected_secret_roundtrip"] = True

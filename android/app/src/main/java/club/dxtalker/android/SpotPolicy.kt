@@ -5,7 +5,7 @@ import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 
-data class DxSpot(val call: String, val frequency: BigDecimal, val time: Instant, val comment: String = "", val mode: String = "") {
+data class DxSpot(val call: String, val frequency: BigDecimal, val time: Instant, val comment: String = "", val mode: String = "", val spotter: String = "", val location: Map<String,String> = emptyMap()) {
     fun frequency(unit: String): String = (if(unit=="MHz") frequency.divide(BigDecimal(1000)) else frequency).stripTrailingZeros().toPlainString()
 }
 object SpotPolicy {
@@ -21,7 +21,7 @@ object SpotPolicy {
             val frequency=match.groupValues[2].toBigDecimal(); val stamp=match.groupValues[5]
             val day=now.atZone(ZoneOffset.UTC).withHour(stamp.take(2).toInt()).withMinute(stamp.takeLast(2).toInt()).withSecond(0).withNano(0).toInstant()
             val time=listOf(day.minus(1,ChronoUnit.DAYS),day,day.plus(1,ChronoUnit.DAYS)).minBy{ kotlin.math.abs(it.epochSecond-now.epochSecond) }
-            if(!validCall(call)||!validCall(spotter)||frequency<BigDecimal.ONE||frequency>BigDecimal(10000000)||time>now.plusSeconds(120)) null else DxSpot(call,frequency,time,SpotFilters.clean(match.groupValues[4]))
+            if(!validCall(call)||!validCall(spotter)||frequency<BigDecimal.ONE||frequency>BigDecimal(10000000)||time>now.plusSeconds(120)) null else DxSpot(call,frequency,time,SpotFilters.clean(match.groupValues[4]),spotter=spotter)
         }
     } catch(_:Exception){null}
     fun speak(spot:DxSpot, template:String, unit:String):String {

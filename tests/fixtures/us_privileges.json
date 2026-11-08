@@ -1,0 +1,205 @@
+[
+  [
+    "General",
+    "SSB",
+    "14225",
+    "US Region 2",
+    "eligible"
+  ],
+  [
+    "General",
+    "SSB",
+    "14224.9999",
+    "US Region 2",
+    "outside"
+  ],
+  [
+    "Advanced",
+    "SSB",
+    "14175",
+    "US Region 2",
+    "eligible"
+  ],
+  [
+    "Extra",
+    "CW",
+    "14200",
+    "US Region 2",
+    "eligible"
+  ],
+  [
+    "General",
+    "CW",
+    "14200",
+    "US Region 2",
+    "outside"
+  ],
+  [
+    "Technician",
+    "CW",
+    "7074",
+    "US Region 2",
+    "eligible"
+  ],
+  [
+    "Technician",
+    "FT8",
+    "7074",
+    "US Region 2",
+    "outside"
+  ],
+  [
+    "Novice",
+    "SSB",
+    "28300",
+    "US Region 2",
+    "eligible"
+  ],
+  [
+    "Novice",
+    "AM",
+    "28300",
+    "US Region 2",
+    "outside"
+  ],
+  [
+    "Novice",
+    "CW",
+    "28500",
+    "US Region 2",
+    "outside"
+  ],
+  [
+    "General",
+    "SSB",
+    "10130",
+    "US Region 2",
+    "outside"
+  ],
+  [
+    "General",
+    "CW",
+    "10130",
+    "US Region 2",
+    "eligible"
+  ],
+  [
+    "General",
+    "SSB",
+    "5330.5",
+    "US Region 2",
+    "eligible"
+  ],
+  [
+    "General",
+    "CW",
+    "5330.5",
+    "US Region 2",
+    "outside"
+  ],
+  [
+    "General",
+    "CW",
+    "5332",
+    "US Region 2",
+    "eligible"
+  ],
+  [
+    "General",
+    "FT8",
+    "5357",
+    "US Region 2",
+    "eligible"
+  ],
+  [
+    "General",
+    "FT8",
+    "5366.5",
+    "US Region 2",
+    "outside"
+  ],
+  [
+    "General",
+    "FT8",
+    "221000",
+    "US Region 2",
+    "outside"
+  ],
+  [
+    "General",
+    "FM",
+    "146520",
+    "US Region 2",
+    "eligible"
+  ],
+  [
+    "Novice",
+    "FM",
+    "146520",
+    "US Region 2",
+    "outside"
+  ],
+  [
+    "Novice",
+    "FM",
+    "223500",
+    "US Region 2",
+    "eligible"
+  ],
+  [
+    "Technician",
+    "SSB",
+    "50050",
+    "US Region 2",
+    "outside"
+  ],
+  [
+    "Technician",
+    "CW",
+    "50050",
+    "US Region 2",
+    "eligible"
+  ],
+  [
+    "General",
+    "Unknown",
+    "14225",
+    "US Region 2",
+    "unknown"
+  ],
+  [
+    "General",
+    "CW",
+    "1900",
+    "US Region 1",
+    "outside"
+  ],
+  [
+    "General",
+    "CW",
+    "1900",
+    "US Region 3",
+    "eligible"
+  ],
+  [
+    "General",
+    "SSB",
+    "3950",
+    "US Region 3",
+    "outside"
+  ],
+  [
+    "General",
+    "SSB",
+    "7080",
+    "US Region 3",
+    "eligible"
+  ],
+  [
+    "General",
+    "SSB",
+    "7080",
+    "US Region 2",
+    "unknown"
+  ]
+]

@@ -9,8 +9,8 @@ android {
         applicationId = "club.dxtalker.android"
         minSdk = 29
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.2.0a11"
+        versionCode = 6
+        versionName = "0.2.0a12"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
@@ -32,3 +32,10 @@ val syncBrand by tasks.registering(Copy::class) {
 }
 android.sourceSets.getByName("main").res.srcDir(layout.buildDirectory.dir("generated/brand-res"))
 tasks.matching { it.name == "preBuild" }.configureEach { dependsOn(syncBrand) }
+
+val syncCatalog by tasks.registering(Copy::class) {
+    from(rootProject.file("../assets/catalog")) { include("clusters.json") }
+    into(layout.buildDirectory.dir("generated/catalog-assets/catalog"))
+}
+android.sourceSets.getByName("main").assets.srcDir(layout.buildDirectory.dir("generated/catalog-assets"))
+tasks.matching { it.name == "preBuild" }.configureEach { dependsOn(syncCatalog) }

@@ -28,3 +28,7 @@ Optional comment and mode strings are retained as bounded printable metadata for
 ## Limits
 
 The pilot supports HTTPS polling only for this adapter. Provider specific schemas, OAuth, pagination, streaming JSON and HTML scraping are not included. A provider can implement this contract directly or use a separately maintained adapter service. The bundled help explains operator settings.
+
+## Optional location metadata
+
+Each spot may include dx_country, dx_continent, spotter_country, spotter_continent and spotter_region as strings. Countries use two uppercase country code letters. Continents use AF, AN, AS, EU, NA, OC or SA. Region labels use up to 30 uppercase letters, numbers or spaces, such as NC. Missing or invalid values become unknown. These fields are for local filtering; they are excluded from spoken announcements, history and diagnostics. Do not substitute a node's location for the reporting station's location. Telnet spot lines do not inherently provide this metadata.

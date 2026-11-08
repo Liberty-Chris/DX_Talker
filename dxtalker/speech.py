@@ -3,6 +3,7 @@ from array import array
 from html import escape
 from pathlib import Path
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -57,25 +58,73 @@ def normalize_clip(clip):
     return Clip(result.tobytes())
 
 
+def voice_plan(text):
+    """Operator-only pause markers. No SSML or executable markup is accepted."""
+    pattern=re.compile(r'\[pause(?:\s+(\d{1,5})(ms|s)?)?\]',re.I)
+    plan=[];start=0
+    for match in pattern.finditer(text):
+        pause=int(match[1] or 1000)*(1000 if (match[2] or '').lower()=='s' else 1)
+        if not 0<=pause<=10000:raise ValueError('Each voice pause must be between zero and ten seconds')
+        phrase=text[start:match.start()].strip()
+        if phrase:plan.append((phrase,pause))
+        elif plan:plan[-1]=(plan[-1][0],plan[-1][1]+pause)
+        else:plan.append(('',pause))
+        start=match.end()
+    tail=text[start:].strip()
+    if tail:plan.append((tail,0))
+    if not any(phrase for phrase,_ in plan):raise ValueError('Enter spoken words for the voice ID')
+    if sum(pause for _,pause in plan)>120000:raise ValueError('Voice pauses exceed two minutes')
+    return plan
+
+
 class SpeechService:
+    def __init__(self):
+        self.windows = None
+        self.packs = {}
+        self.resolved_voice = ''
+
+    def close(self):
+        if self.windows:self.windows.close()
+        self.packs.clear()
+
     def render_configured(self, text, settings, cancel):
-        return self._render([(text, 0)], settings, cancel, structured=False)
+        plan=voice_plan(text)
+        return self._render(plan, settings, cancel, structured=len(plan)>1 or any(pause for _,pause in plan))
 
     def render_spot(self, spot, settings, cancel):
         return self._render(spot_plan(spot, settings), settings, cancel)
 
     def _render(self, plan, settings, cancel, structured=True):
+        self.resolved_voice=''
         if settings.speech_provider == "ElevenLabs":
             from .cloud_speech import SharedSpeech
-            return SharedSpeech().render_plan(plan, settings.eleven_voice, cancel)
+            client=SharedSpeech()
+            # Older deployed gateways accept pauses through 3000 ms and require
+            # text in every part. Longer/leading pauses are assembled locally.
+            if any(pause>3000 or not text for text,pause in plan):
+                chunks=[];size=0
+                for text,pause in plan:
+                    if cancel.is_set():raise Cancelled()
+                    pcm=client.render_plan([(text,0)],settings.eleven_voice,cancel).pcm if text else b''
+                    silence=b'\0\0'*round(22050*pause/1000);size+=len(pcm)+len(silence)
+                    if size>22050*2*120:raise ValueError('Speech exceeds two minutes')
+                    chunks.extend([pcm,silence])
+                return Clip(b''.join(chunks))
+            return client.render_plan(plan, settings.eleven_voice, cancel)
         if settings.speech_provider == "Recorded":
             from .voicepacks import VoicePack
             if not settings.voice_pack or Path(settings.voice_pack).name != settings.voice_pack:
                 raise ValueError('Choose an installed recorded voice pack')
-            return VoicePack(Path(settings.voice_pack_root)/settings.voice_pack).render(plan,settings,cancel)
+            key=(settings.voice_pack_root,settings.voice_pack)
+            if key not in self.packs:
+                if len(self.packs)>=4:self.packs.pop(next(iter(self.packs)))
+                self.packs[key]=VoicePack(Path(settings.voice_pack_root)/settings.voice_pack)
+            return self.packs[key].render(plan,settings,cancel)
         if settings.speech_provider == "Windows":
-            return WindowsSpeech().render(plan_ssml(plan) if structured else plan[0][0], settings.voice,
-                                          settings.speech_rate, cancel, settings.voice_gender, ssml=structured)
+            if self.windows is None:self.windows=WindowsSpeech()
+            clip=self.windows.render(plan_ssml(plan) if structured else plan[0][0],settings.voice,settings.speech_rate,cancel,settings.voice_gender,ssml=structured)
+            self.resolved_voice=getattr(self.windows,'last_voice','')
+            return clip
         if not Path(settings.piper_executable).is_file() or not Path(settings.piper_model).is_file():
             raise ValueError("Choose an installed Piper executable and an ONNX voice model in Speech and access")
         if not Path(settings.piper_model + ".json").is_file():
@@ -85,6 +134,8 @@ class SpeechService:
         with tempfile.TemporaryDirectory(prefix="DXTalker_neural_") as folder:
             output = Path(folder) / "voice.wav"
             for text, pause in plan:
+                if not text:
+                    chunks.append(b'\0\0'*round(22050*pause/1000));continue
                 if cancel.is_set():
                     raise Cancelled()
                 # No shell, no network and no provider access to PTT/audio devices.

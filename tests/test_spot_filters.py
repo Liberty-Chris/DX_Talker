@@ -42,7 +42,7 @@ class SpotFilterTests(unittest.TestCase):
         settings=replace(Settings(),filter_modes='FT8,Unknown',filter_activities='POTA,SOTA',filter_bands='20m,40m')
         profiles=[dict(name='Test',connection={key:getattr(settings,key) for key in transfer.SOURCE_FIELDS})]
         data=transfer.document(profiles,settings)
-        self.assertEqual(data['version'],2)
+        self.assertEqual(data['version'],3)
         self.assertEqual(transfer.decode(transfer.encode(data,qr=True)),data)
         spot=parse_line('DX de N0CALL: 14074 WB4IUY FT8 POTA private-comment 1234Z','test',datetime(2026,11,6,12,34,tzinfo=UTC))
         with tempfile.TemporaryDirectory() as folder:

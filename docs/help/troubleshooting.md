@@ -63,3 +63,13 @@ Version 0.2.0a10 fixes a confirmed completion race: the stream could finish afte
 Known playback failures show readable messages. Their exported cause codes are audio_stream_stopped for an inactive stream before all frames were queued, audio_finish_unconfirmed for missing completion confirmation, audio_stream_fault for a reported audio stream fault and audio_incomplete for completion with missing frames. Reports include numeric frame counts, sample rate, channels and local/radio route. Queued frames measure submission to the audio API, not confirmed physical sound output. Reports do not include audio samples or device names.
 
 For a genuine device failure, check the selected output, USB connection and Windows sound settings. Refresh devices, select the intended local or radio output again and save and apply while output is stopped. Try a local preview before resuming. No automatic retry, default device switch or RF reenable occurs. Actual device faults still stop output and attempt PTT release.
+
+## Quiet input reported as faulty
+
+A receive level below the threshold means the measured samples were quiet. It does not mean the input stream is healthy. No current measurement, no samples, inactive device and stale samples are separate states. Use Test receive input to inspect the input health explanation. Check the exact selected device, permissions and other audio apps, then reopen the test. See [Radio audio and PTT](radio.md). Do not lower the threshold to repair a device fault.
+
+## Output errors and delays
+
+Runtime output faults now appear in a dismissible in app notice and Activity, preserving the UI event loop instead of blocking it behind an error dialog. Output still stops and must be deliberately restarted. Export the local diagnostic ZIP from History / Updates if a fault recurs. It includes fixed receive input fault codes and speech preparation/audio duration measurements without synthesis text, provider credentials or spot comments. There is no automatic upload.
+
+An older report from 0.2.0a8 contained audio stop errors along the completion path addressed in the subsequent playback timing correction. Its stall traces were inside modal error dialogs. That does not establish the cause of a new version's fault. Include the current version and a fresh export when reporting a recurrence.

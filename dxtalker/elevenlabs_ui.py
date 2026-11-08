@@ -21,16 +21,22 @@ class ElevenLabsDialog:
         frame=ttk.Frame(self.window,padding=16);frame.pack(fill='both',expand=True)
         self.values={}
         fields=[('Voice label','ElevenLabs pilot voice'),('Voice pack folder',app.variables['voice_pack_root'].get() or str(settings_path().parent/'voices')),
-                ('Pack name','elevenlabs-voice'),('Custom intro',app.variables['announcement_intro'].get())]
+                ('Pack name',__import__('datetime').datetime.now().strftime('elevenlabs-%Y%m%d-%H%M%S')),('Custom intro',app.variables['announcement_intro'].get())]
+        self.advanced_widgets=[]
         for row,(label,value) in enumerate(fields):
-            ttk.Label(frame,text=label).grid(row=row,column=0,sticky='w',padx=(0,12),pady=4)
+            caption=ttk.Label(frame,text=label);caption.grid(row=row,column=0,sticky='w',padx=(0,12),pady=4)
             var=tk.StringVar(value=value);self.values[label]=var
-            ttk.Entry(frame,textvariable=var,width=42).grid(row=row,column=1,sticky='w',pady=4)
+            entry=ttk.Entry(frame,textvariable=var,width=42);entry.grid(row=row,column=1,sticky='w',pady=4)
+            if label in ('Voice pack folder','Pack name'):self.advanced_widgets.extend([caption,entry])
             if label=='Voice pack folder':
                 def browse():
                     folder=filedialog.askdirectory(parent=self.window,title='Choose parent voice pack folder')
                     if folder:self.values['Voice pack folder'].set(folder)
-                ttk.Button(frame,text='Browse',command=browse).grid(row=row,column=2,padx=8)
+                browse_button=ttk.Button(frame,text='Browse',command=browse);browse_button.grid(row=row,column=2,padx=8)
+                self.advanced_widgets.append(browse_button)
+        for widget in self.advanced_widgets:widget.grid_remove()
+        advanced=tk.BooleanVar(value=False)
+        ttk.Checkbutton(frame,text='Advanced storage options',variable=advanced,command=lambda:[w.grid() if advanced.get() else w.grid_remove() for w in self.advanced_widgets]).grid(row=11,column=0,columnspan=3,sticky='w',pady=8)
         self.voice_names={};self.voice_choice=tk.StringVar()
         self.voices=ttk.Combobox(frame,textvariable=self.voice_choice,state='readonly',width=42)
         self.voices.grid(row=4,column=1,sticky='w',pady=8)
@@ -41,13 +47,13 @@ class ElevenLabsDialog:
             words=vocabulary(self.values['Custom intro'].get())
             self.estimate.set(f'Generate {len(words)} clips, about {sum(map(len,words.values()))} text characters. Interrupted jobs can resume with the same folder, name, voice and intro.')
         self.values['Custom intro'].trace_add('write',estimate);estimate()
-        self.status=tk.StringVar(value='Choose a destination, then Generate voice pack.')
+        self.status=tk.StringVar(value='Choose a voice and Generate. DX Talker saves the pack automatically.')
         ttk.Label(frame,textvariable=self.status,wraplength=600).grid(row=7,column=0,columnspan=3,sticky='w',pady=10)
         self.progress=ttk.Progressbar(frame,length=420,mode='determinate');self.progress.grid(row=8,column=0,columnspan=3,sticky='ew')
         self.generate=ttk.Button(frame,text='Generate voice pack',command=lambda:self.begin('generate'));self.generate.grid(row=9,column=1,sticky='w',pady=10)
         self.cancel_button=ttk.Button(frame,text='Close',command=self.close);self.cancel_button.grid(row=9,column=2,pady=10)
         self.use=ttk.Button(frame,text='Use this voice',command=self.use_pack);self.destination=None
-        self.window.protocol('WM_DELETE_WINDOW',self.close);self.window.after(100,self.poll)
+        self.window.protocol('WM_DELETE_WINDOW',self.close);self.window.after(100,self.poll);self.window.after(150,lambda:self.begin('voices'))
 
     def begin(self,action):
         if self.busy:return

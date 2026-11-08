@@ -131,7 +131,77 @@ try {
 '''
 
 
+PERSISTENT_SPEECH_SCRIPT = r'''
+$ErrorActionPreference = 'Stop'
+[Console]::InputEncoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+Add-Type -AssemblyName System.Speech
+$synth = New-Object System.Speech.Synthesis.SpeechSynthesizer
+$defaultVoice = $synth.Voice.Name
+try {
+  while (($line = [Console]::ReadLine()) -ne $null) {
+    try {
+      $config = $line | ConvertFrom-Json
+      $synth.SelectVoice($defaultVoice)
+      $synth.Rate = [int]$config.rate
+      if ($config.voice) { $synth.SelectVoice([string]$config.voice) }
+      elseif ($config.gender -and $config.gender -ne 'Any') {
+        $synth.SelectVoiceByHints([System.Speech.Synthesis.VoiceGender]([string]$config.gender))
+      }
+      $format = New-Object System.Speech.AudioFormat.SpeechAudioFormatInfo -ArgumentList 22050, ([System.Speech.AudioFormat.AudioBitsPerSample]::Sixteen), ([System.Speech.AudioFormat.AudioChannel]::Mono)
+      $synth.SetOutputToWaveFile([string]$config.output, $format)
+      if ($config.ssml) { $synth.SpeakSsml([string]$config.text) }
+      else { $synth.Speak([string]$config.text) }
+      $synth.SetOutputToNull()
+      [Console]::WriteLine((@{ok=$true;voice=$synth.Voice.Name} | ConvertTo-Json -Compress))
+    } catch {
+      $synth.SetOutputToNull()
+      [Console]::WriteLine('{"ok":false}')
+    }
+  }
+} finally { $synth.Dispose() }
+'''
+
+
 class WindowsSpeech:
+    def __init__(self):
+        self.process = None
+        self.last_voice = ''
+
+    def __enter__(self):return self
+
+    def __exit__(self,*args):self.close()
+
+    def __del__(self):
+        try:self.close()
+        except Exception:pass
+
+    def close(self):
+        proc,self.process=self.process,None
+        if proc is not None:
+            if proc.poll() is None:
+                proc.terminate()
+                try:proc.wait(timeout=2)
+                except subprocess.TimeoutExpired:proc.kill();proc.wait(timeout=2)
+            for stream in (proc.stdin,proc.stdout):
+                if stream:stream.close()
+
+    def _start(self):
+        import os,queue,threading
+        if sys.platform!='win32':raise RuntimeError('Windows speech synthesis requires Windows')
+        if self.process is not None and self.process.poll() is None:return
+        self.close()
+        shell=str(Path(os.environ['SystemRoot'])/'System32/WindowsPowerShell/v1.0/powershell.exe')
+        self.responses=queue.Queue()
+        self.process=subprocess.Popen([shell,'-NoLogo','-NoProfile','-NonInteractive','-Command',PERSISTENT_SPEECH_SCRIPT],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,encoding='utf-8',creationflags=subprocess.CREATE_NO_WINDOW,bufsize=1)
+        proc,responses=self.process,self.responses
+        def read():
+            try:
+                for line in proc.stdout:responses.put(line)
+            except (OSError,ValueError):pass
+            finally:responses.put(None)
+        threading.Thread(target=read,daemon=True,name='Windows speech responses').start()
+
     def _run(self, env, cancel, timeout=30):
         import os
         if sys.platform != "win32":
@@ -162,13 +232,34 @@ class WindowsSpeech:
         return result if isinstance(result, list) else [result]
 
     def render(self, text, voice, rate, cancel, gender="Any", ssml=False):
-        if not text.strip() or len(text) > (12000 if ssml else 1000):
-            raise ValueError("Speech text must contain 1 to 1000 characters")
-        with tempfile.TemporaryDirectory(prefix="DXTalker_") as folder:
-            config, output = Path(folder) / "speech.json", Path(folder) / "speech.wav"
-            config.write_text(json.dumps({"text": text, "voice": voice, "rate": rate, "gender": gender, "ssml": ssml}), encoding="utf-8")
-            self._run({"DX_MODE": "speech", "DX_CONFIG": str(config), "DX_WAV": str(output)}, cancel)
-            return wav_clip(output)
+        import queue
+        if not text.strip() or len(text)>(12000 if ssml else 1000):raise ValueError('Speech text must contain 1 to 1000 characters')
+        if cancel.is_set():raise Cancelled()
+        with tempfile.TemporaryDirectory(prefix='DXTalker_') as folder:
+            output=Path(folder)/'speech.wav'
+            try:
+                self._start()
+                import threading
+                payload=json.dumps(dict(text=text,voice=voice,rate=rate,gender=gender,ssml=ssml,output=str(output)))+'\n'
+                proc,responses=self.process,self.responses
+                def write():
+                    try:proc.stdin.write(payload);proc.stdin.flush()
+                    except (OSError,ValueError):responses.put(None)
+                deadline=time.monotonic()+30
+                threading.Thread(target=write,daemon=True,name='Windows speech request').start()
+                while True:
+                    if cancel.is_set():raise Cancelled()
+                    if time.monotonic()>deadline:raise TimeoutError('Speech synthesis timed out')
+                    try:line=self.responses.get(timeout=.05)
+                    except queue.Empty:continue
+                    if line is None:raise ValueError('Windows speech process stopped. Check the installed voice and try again.')
+                    reply=json.loads(line.lstrip('\ufeff'))
+                    if not reply.get('ok'):raise ValueError('Windows speech failed. Check the selected voice and installed speech support.')
+                    self.last_voice=reply.get('voice','System default')
+                    return wav_clip(output)
+            except BaseException:
+                self.close()
+                raise
 
 
 class AudioOutput:

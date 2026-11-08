@@ -18,4 +18,6 @@ assert f'#define AppVersion "{__version__}"' in installer
 assert f"StringStruct('FileVersion', '{__version__}')" in metadata
 assert f"StringStruct('ProductVersion', '{__version__}')" in metadata
 assert manual["version"] == __version__
+android=(ROOT / "android/app/build.gradle.kts").read_text()
+assert f'versionName = "{__version__}"' in android
 print("Release version aligned:", __version__)
