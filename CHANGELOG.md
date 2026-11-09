@@ -152,3 +152,7 @@ Use Alpha in the shared desktop header and About label. Rename the multi platfor
 ## 0.2.0a21. Unreleased
 
 Improve modern desktop buffering and recover bounded isolated spot/preview underruns. Keep persistent faults, interrupted station IDs, cancellation, device loss and deadlines as stop conditions. Add optional Windows native keep awake controls with automatic release and no keyboard injection. Record sampled screensaver transitions and fixed audio timing/status metadata for diagnosis.
+
+## 0.2.0a22. Unreleased
+
+Unify desktop live row and speech queue admission. Add correlated green completion and red rejection checks, explanatory details and separate bounded incoming rejection review. Preserve explicit outcomes for expiry, stop, faults and queue discards. Collapse the unfiltered console and separate manual sample previews. Add All modes, including unknown and Known modes only actions with accurate mode checkbox states. Preserve saved filters, CW inference data and existing output safety controls.

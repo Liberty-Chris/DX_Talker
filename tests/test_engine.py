@@ -381,3 +381,60 @@ class EngineTests(unittest.TestCase):
             self.engine.shutdown();self.engine.worker.join(2)
         self.assertEqual([flags for thread,flags in calls],[CONTINUOUS|SYSTEM,CONTINUOUS,CONTINUOUS|SYSTEM,CONTINUOUS])
         self.assertEqual(len({thread for thread,flags in calls}),1)
+
+    def test_live_receipt_turns_green_only_after_completed_audio_and_cleanup(self):
+        self.enable_and_id()
+        self.audio.block=True
+        spot=self.spot()
+        self.assertEqual(self.engine.admit(spot,'receipt-one'),'')
+        wait_for(lambda:self.audio.entered.is_set() and self.engine.current_spot is spot)
+        self.assertFalse(any(k=='spot_status' and v['state']=='announced' for k,v in self.events))
+        self.engine.stop('Stopped by operator')
+        wait_for(lambda:not self.engine.busy)
+        receipts=[v for k,v in self.events if k=='spot_status' and v['token']=='receipt-one']
+        self.assertEqual(receipts[-1]['state'],'rejected')
+        self.assertEqual(receipts[-1]['reason'],'Stopped by operator')
+        self.assertFalse(self.engine.spot_tokens)
+        self.assertEqual(self.ptts[-1].calls[-2:],[False,'close'])
+
+    def test_completed_receipt_and_duplicate_share_one_final_admission(self):
+        self.enable_and_id()
+        spot=self.spot()
+        self.assertEqual(self.engine.admit(spot,'completed'),'')
+        wait_for(lambda:any(k=='spot_status' and v['state']=='announced' for k,v in self.events))
+        self.assertIn('Duplicate',self.engine.admit(spot,'duplicate'))
+        self.assertFalse(self.engine.spot_tokens)
+        self.assertEqual(sum(k=='spot_status' and v['state']=='announced' for k,v in self.events),1)
+        self.assertEqual(self.ptts[-1].calls[-2:],[False,'close'])
+
+    def test_every_discarded_pending_receipt_gets_a_reason(self):
+        self.enable_and_id()
+        for operation in ('catch_up','update_listening','stop'):
+            spot=replace(self.spot(),dx_call='K1'+operation[:2].upper())
+            with self.engine.lock:
+                self.engine.next_spot=time.monotonic()+60
+                self.assertEqual(self.engine.admit(spot,operation),'')
+                if operation=='update_listening':self.engine.update_listening(self.settings)
+                else:getattr(self.engine,operation)()
+            receipt=next(v for k,v in self.events if k=='spot_status' and v['token']==operation)
+            self.assertEqual(receipt['state'],'rejected');self.assertTrue(receipt['reason'])
+        self.assertFalse(self.engine.spot_tokens)
+
+    def test_active_spot_reserves_its_retry_slot_and_expiry_has_a_receipt(self):
+        self.enable_and_id()
+        with self.engine.lock:
+            self.engine.next_spot=time.monotonic()+60
+            self.engine.current_spot=self.spot('K1ACT')
+            for i in range(99):
+                self.assertEqual(self.engine.admit(self.spot('K'+str(i)+'ABC'),str(i)),'')
+            self.assertEqual(self.engine.admit(self.spot('K1FULL'),'full'),'Announcement queue is full')
+            self.engine.current_spot=None
+            self.engine.items[0]=('spot',replace(self.engine.items[0][1],timestamp=datetime.now(UTC)-timedelta(seconds=601)))
+            # Retain the same receipt identity for the synthetic aged object.
+            expired=self.engine.items[0][1]
+            original_id=next(key for key,token in self.engine.spot_tokens.items() if token=='0')
+            self.engine.spot_tokens[id(expired)]=self.engine.spot_tokens.pop(original_id)
+            self.engine._select()
+        receipt=next(v for k,v in self.events if k=='spot_status' and v['token']=='0')
+        self.assertEqual(receipt['state'],'rejected')
+        self.assertIn('Expired',receipt['reason'])

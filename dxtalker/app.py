@@ -54,6 +54,9 @@ class Application:
         self.source_ready = False
         self.spots = {}
         self.spot_reasons = {}
+        self.spot_states = {}
+        self.rejected_spots = []
+        self.spot_serial = 0
         self.log_lines = 0
         self.closing = False
         self.initializing = True
@@ -397,9 +400,10 @@ class Application:
     def _why_hidden(self):
         from collections import Counter
         from .filtering import rejection
-        counts=Counter(rejection(v,self.settings) or 'Matching' for v in self.spots.values())
+        counts=Counter(reason for spot,reason in self.rejected_spots)
+        counts.update(rejection(v,self.settings) for v in self.spots.values() if rejection(v,self.settings))
         window=tk.Toplevel(self.root);window.title('Why spots are hidden');window.transient(self.root)
-        ttk.Label(window,text='Counts describe the retained reports, before age and repeat suppression.',wraplength=500).pack(padx=16,pady=12)
+        ttk.Label(window,text='Recent rejections before announcement admission. Rejected spots are excluded from the main list. Retained admitted rows: '+str(sum(not reason for reason in self.spot_reasons.values())),wraplength=500).pack(padx=16,pady=12)
         for reason,count in counts.most_common():ttk.Label(window,text=f'{reason}: {count}').pack(anchor='w',padx=16,pady=4)
         ttk.Button(window,text='Close',command=window.destroy).pack(pady=12)
 
@@ -431,7 +435,7 @@ class Application:
         toolbar = ttk.Frame(frame)
         toolbar.grid(row=1, column=0, sticky="ew", pady=(0, 8))
         self._connection_control(toolbar).grid(row=0, column=0, sticky="ew", padx=(0, 6), pady=(0, 6))
-        for index, (text, action) in enumerate((("Load sample spots", self._samples), ("Preview selected", self._preview_spot),
+        for index, (text, action) in enumerate((("Sample preview", self._sample_preview), ("Preview selected", self._preview_spot),
                              ("Listen locally (F8)", self._listen), ("Clear view", self._clear_spots),
                              ("Enable RF", self._enable), ("Send ID now", self.engine.identify)), start=1):
             control = (self._listening_control(toolbar) if action == self._listen else
@@ -445,12 +449,22 @@ class Application:
         ttk.Button(filters,text='Spot myself',command=lambda:self._spot_dialog(True)).pack(side='left')
         self.filter_summary=tk.StringVar()
         ttk.Button(filters,text='Why hidden?',command=self._why_hidden).pack(side='left')
+        self.rejected_button = ttk.Button(filters, text='Rejected spots', command=self._show_rejected_spots)
+        self.rejected_button.pack(side='left', padx=6)
+        ttk.Button(filters, text='Announcement details', command=self._show_spot_status).pack(side='left')
         self.live_hint = ttk.Label(frame, textvariable=self.filter_summary, text="Spots appear here before RF is enabled. Select one to preview it locally.")
+        self.live_hint.configure(wraplength=900)
         self.live_hint.grid(row=2, column=0, sticky="w", pady=(0, 8))
         columns = ("time", "dx", "frequency", "spotter", "mode", "source")
         table = ttk.Frame(frame)
         table.grid(row=3, column=0, sticky="nsew")
-        self.tree = ttk.Treeview(table, columns=columns, show="headings", height=10, selectmode="browse")
+        self.tree = ttk.Treeview(table, columns=columns, show="tree headings", height=10, selectmode="browse",
+                                 displaycolumns=('dx','time','frequency','spotter','mode','source'))
+        self.tree.heading('#0', text='State')
+        self.tree.column('#0', width=44, minwidth=44, stretch=False)
+        self.status_images = self._make_status_images()
+        self.tree.bind('<ButtonRelease-1>', self._status_click)
+        self.tree.bind('<Return>', lambda event:self._show_spot_status())
         for key, title, width in zip(columns, ("UTC", "DX callsign", "Frequency kHz", "Spotted by", "Mode", "Source"), (90, 150, 140, 140, 65, 100)):
             self.tree.heading(key, text=title)
             self.tree.column(key, width=width, minwidth=55 if key=="mode" else 80)
@@ -585,11 +599,13 @@ class Application:
         self.source_hint = tk.StringVar()
         ttk.Label(details, textvariable=self.source_hint, wraplength=610).grid(row=6, column=0, columnspan=3, sticky="w")
         self._command_bar(frame, 2)
-        console = ttk.LabelFrame(frame, text="Cluster console", padding=8)
+        console = ttk.LabelFrame(frame, text="Unfiltered diagnostic console", padding=8)
         console.grid(row=3, column=0, sticky="w", pady=8)
-        ttk.Label(console, text="Latest 15 lines. Session only, never spoken or logged.").grid(row=0, column=0, sticky="w")
+        self.console_visible=tk.BooleanVar(value=False)
+        ttk.Checkbutton(console,text='Show raw cluster traffic. Bypasses listening filters; not an announcement list.',variable=self.console_visible,command=lambda:self.raw_console.grid() if self.console_visible.get() else self.raw_console.grid_remove()).grid(row=0,column=0,sticky='w')
         self.raw_console = tk.Text(console, height=5, width=76, wrap="word", state="disabled", font=("Consolas", 10))
         self.raw_console.grid(row=1, column=0, pady=(6, 0))
+        self.raw_console.grid_remove()
         self.raw_lines = []
         self._refresh_profiles()
         self.combos["source_type"].bind("<<ComboboxSelected>>", lambda event: self._source_type_changed(clear_secret=True))
@@ -1050,6 +1066,9 @@ class Application:
             self.tree.delete(row)
         self.spots.clear()
         self.spot_reasons.clear()
+        self.spot_states.clear()
+        self.rejected_spots.clear()
+        if hasattr(self,'rejected_button'):self.rejected_button.configure(text='Rejected spots')
 
     def _trim_spots(self):
         rows = list(self.spots)
@@ -1057,6 +1076,7 @@ class Application:
             self.tree.delete(row)
             self.spots.pop(row, None)
             self.spot_reasons.pop(row,None)
+            self.spot_states.pop(row,None)
 
     def _refresh_profiles(self):
         names = sorted((p["name"] for p in self.profile_store.profiles), key=str.casefold) if self.profile_store else []
@@ -1556,6 +1576,10 @@ class Application:
         self.command.set("")
         self.emit("journal", "Manual cluster response sent. Contents are not logged.")
 
+    def _sample_preview(self):
+        from .spot_status_ui import sample_preview
+        return sample_preview(self)
+
     def _samples(self):
         now = datetime.now(UTC)
         for frequency, call, mode in (("14025.0", "WB4IUY", "CW"), ("7074.0", "KT4BN", "FT8"), ("50125.0", "KF4DBX", "SSB")):
@@ -1563,13 +1587,56 @@ class Application:
             self._add_spot(spot)
         self.emit("journal", "Three sample spots loaded. Samples can be previewed locally and never enter the RF queue.")
 
-    def _add_spot(self, spot):
+    def _make_status_images(self):
+        from .spot_status_ui import images
+        return images(self.root)
+
+    def _status_click(self, event):
+        if self.tree.identify_column(event.x)=='#0':
+            row=self.tree.identify_row(event.y)
+            if row:self._show_spot_status(row)
+
+    def _show_spot_status(self, row=None):
+        selected=self.tree.selection()
+        row=row or (selected[0] if selected else None)
+        if row not in self.spots:return
+        from .spot_status_ui import details
+        state,reason=self.spot_states.get(row,('sample','Sample for manual preview only'))
+        return details(self,self.spots[row],state,reason)
+
+    def _show_rejected_spots(self):
+        from .spot_status_ui import rejected
+        return rejected(self)
+
+    def _receive_spot(self, spot):
+        self.spot_serial+=1
+        token='spot_'+str(self.source_generation)+'_'+str(self.spot_serial)
+        reason=self.engine.admit(spot,token)
+        if reason:
+            self.rejected_spots.append((spot,reason))
+            self.rejected_spots=self.rejected_spots[-self.settings.display_limit:]
+            self.rejected_button.configure(text='Rejected spots ('+str(len(self.rejected_spots))+')')
+            return reason
+        self._add_spot(spot, token)
+        return ''
+
+    def _spot_status(self, receipt):
+        row=receipt['token']
+        if row not in self.spots:return
+        self.spot_states[row]=(receipt['state'],receipt['reason'])
+        image=self.status_images.get(receipt['state'],self.status_images['queued'])
+        self.tree.item(row,image=image)
+
+    def _add_spot(self, spot, token=None):
         from .filtering import mode_of
         mode=mode_of(spot.comment,spot.mode,spot.frequency_khz)
+        options=dict(image=self.status_images['queued'])
+        if token:options['iid']=token
         item = self.tree.insert("", 0, values=(spot.timestamp.strftime("%H:%MZ"), spot.dx_call,
                                                 spot.frequency_text(self.settings.frequency_unit), spot.spotter, "" if mode=="Unknown" else mode, spot.source),
-                                tags=("alternate",) if len(self.spots) % 2 else ())
+                                tags=("alternate",) if len(self.spots) % 2 else (), **options)
         self.spots[item] = spot
+        self.spot_states[item]=('queued','Accepted into the announcement queue') if token else ('sample','Sample or manual preview. Not automatically queued')
         from .filtering import rejection
         self.spot_reasons[item]=rejection(spot,self.settings)
         if self.spot_reasons[item]:self.tree.detach(item)
@@ -1673,8 +1740,7 @@ class Application:
                         continue
                     if kind == "spot":
                         self._history_spot(value)
-                        self._add_spot(value)
-                        self.engine.offer(value)
+                        self._receive_spot(value)
                         continue
                     if kind == "source_ready":
                         self.source_ready = True
@@ -1699,6 +1765,9 @@ class Application:
                     continue
                 elif kind == 'speech_voice':
                     self.resolved_voice.set('Speaking voice: '+value)
+                    continue
+                elif kind == 'spot_status':
+                    self._spot_status(value)
                     continue
                 elif kind == "announcement":
                     self._history_record("announcement", profile=self.connected_profile, **value)
@@ -1757,7 +1826,7 @@ class Application:
         self.queue_summary.set(f'{count} pending. Oldest {age}s. Expired {expired}. Last preparation {self.engine.preparation_seconds:.2f}s.')
         from .filtering import summary
         visible=sum(not reason for reason in self.spot_reasons.values())
-        self.filter_summary.set(summary(self.settings)+f' · {visible} matching / {len(self.spots)} retained')
+        self.filter_summary.set(summary(self.settings)+f' · {visible} live rows · Green check: announced. Red check: open for reason.')
         self.root.after(75, self._poll)
 
     def _journal(self, text):

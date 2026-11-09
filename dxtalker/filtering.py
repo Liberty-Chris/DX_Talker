@@ -82,10 +82,18 @@ def rejection(spot, settings):
 def matches(spot,settings):return not rejection(spot,settings)
 
 
+def mode_summary(value):
+    selected=choices(value,MODES)
+    if selected==set(MODES):return 'All modes, including unknown'
+    if not selected or selected==set(MODES)-{'Unknown'}:return 'Known modes only'
+    if selected=={'None'}:return 'No modes'
+    return value.replace('Unknown','Include unknown')
+
+
 def summary(settings):
     parts=['License filter: '+settings.license_class] if settings.license_class!='Off' else []
     for key,default in (('filter_bands','All bands'),('filter_modes','All known modes'),('filter_activities','All activities')):
-        parts.append(getattr(settings,key).replace('General','No activity tag').replace('Unknown','Include unknown') or default)
+        parts.append(mode_summary(settings.filter_modes) if key=='filter_modes' else getattr(settings,key).replace('General','No activity tag') or default)
     for key,title in (('filter_spotter_countries','Reported from'),('filter_spotter_continents','Reporting continents'),('filter_spotter_regions','Reporting regions'),('filter_dx_countries','DX countries'),('filter_dx_continents','DX continents')):
         if getattr(settings,key):parts.append(title+': '+getattr(settings,key))
     return ' · '.join(parts)

@@ -141,3 +141,7 @@ On the XP pilot, Windows speech uses installed SAPI 5 voices through a persisten
 ## Ubuntu system speech
 
 On Ubuntu, eSpeak NG replaces the Windows provider. It renders offline WAV audio through the same coordinator, including character/group pauses and speed controls. A named voice overrides the gender preference. Piper requires its Linux executable and local model. Recorded packs and configured ElevenLabs speech remain available. See [Ubuntu desktop](ubuntu.md).
+
+## Desktop live row checks
+
+Live rows are admitted only while local listening or RF output is enabled. The admission includes the listening filters and speech queue conditions. Green checks confirm completed playback. Red checks open a reason for an admitted row that did not complete; queued rows have a neutral marker. Select a row and press Enter for text details. Rejected spots is a separate review of incoming rejections. Manual samples use Sample preview instead of filling the live list. See [Listening filters and receipts](listening_filters.md).

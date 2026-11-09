@@ -6,7 +6,7 @@ import tkinter as tk
 from tkinter import ttk, simpledialog
 from .models import Settings
 from .listening import FIELDS, snapshot, validate_presets
-from .filtering import BANDS, MODES, ACTIVITIES, summary
+from .filtering import BANDS, MODES, ACTIVITIES, summary, mode_summary
 from .privileges import CLASSES, REGIONS
 
 
@@ -44,7 +44,27 @@ def build_filters(app,parent):
         presets.pop(name.get(),None);preset_dirty[0]=True;app._apply_listening(current());picker.configure(values=list(presets));name.set('');status.set('Preset removed.')
     for label,action in (('Load',load),('Save',save),('Remove',remove)):ttk.Button(saved,text=label,command=app.guard(action)).pack(side='left',padx=3)
     filters=ttk.LabelFrame(frame,text='Choose your interests',padding=12);filters.pack(fill='x',pady=6)
+    def choose_modes():
+        dialog=tk.Toplevel(window);dialog.title('Modes');dialog.transient(window)
+        dialog.configure(background=PALETTES[app.theme.get()]['bg'])
+        stored=staged['filter_modes'].get()
+        selected=set(stored.split(',')) if stored else set(MODES)-{'Unknown'}
+        flags={value:tk.BooleanVar(value=value in selected) for value in MODES}
+        def use():
+            staged['filter_modes'].set(','.join(value for value in MODES if flags[value].get()) or 'None')
+        def select(values):
+            for value,flag in flags.items():flag.set(value in values)
+            use()
+        ttk.Button(dialog,text='All modes, including unknown',command=lambda:select(MODES)).grid(row=0,column=0,columnspan=3,padx=12,pady=8,sticky='ew')
+        ttk.Button(dialog,text='Known modes only',command=lambda:select(set(MODES)-{'Unknown'})).grid(row=1,column=0,columnspan=2,padx=12,pady=4,sticky='ew')
+        ttk.Button(dialog,text='None',command=lambda:select(set())).grid(row=1,column=2,padx=12,pady=4)
+        for i,(value,flag) in enumerate(flags.items()):
+            ttk.Checkbutton(dialog,text='Include unknown' if value=='Unknown' else value,variable=flag,command=use).grid(row=2+i//3,column=i%3,padx=12,pady=6,sticky='w')
+        ttk.Label(dialog,text='Saves immediately. Band, activity, location and license filters still apply.',wraplength=310).grid(row=5,column=0,columnspan=3,padx=12,pady=8)
+        ttk.Button(dialog,text='Close',command=dialog.destroy).grid(row=6,column=0,columnspan=3,pady=12)
+
     def choose(key,title,values):
+        if key=='filter_modes':return choose_modes()
         dialog=tk.Toplevel(window);dialog.title(title);dialog.transient(window);dialog.configure(background=PALETTES[app.theme.get()]['bg'])
         all_values=tk.BooleanVar(value=not staged[key].get());selected=set(staged[key].get().split(','))
         ttk.Checkbutton(dialog,text='All known modes' if key=='filter_modes' else 'All '+title.lower(),variable=all_values,command=lambda:use()).grid(row=0,column=0,columnspan=3,sticky='w',padx=12,pady=10)
@@ -68,7 +88,7 @@ def build_filters(app,parent):
         row=ttk.Frame(filters);row.pack(fill='x',pady=3)
         ttk.Button(row,text='Choose '+title.lower(),command=lambda k=key,t=title,v=values:choose(k,t,v)).pack(side='left')
         label=tk.StringVar()
-        def update_label(*args,k=key,t=title,var=label):var.set(staged[k].get().replace('General','No activity tag').replace('Unknown','Include unknown') or ('All known modes' if k=='filter_modes' else 'All '+t.lower()))
+        def update_label(*args,k=key,t=title,var=label):var.set(mode_summary(staged[k].get()) if k=='filter_modes' else staged[k].get().replace('General','No activity tag') or 'All '+t.lower())
         staged[key].trace_add('write',update_label);update_label()
         ttk.Label(row,textvariable=label,wraplength=430).pack(side='left',padx=12)
     ttk.Label(filters,text='The same filters select displayed and announced spots. Mode comes from a reported tag or a single mode band segment. Include unknown admits uncertain modes within your other selections.',wraplength=620).pack(anchor='w',pady=8)
