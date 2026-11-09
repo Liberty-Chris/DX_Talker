@@ -56,6 +56,11 @@ object SpotFilters {
         require(parts.size == parts.toSet().size && allowed.containsAll(parts)) { "Invalid spot filters" }
         return parts.toSet()
     }
+    fun activityTags(comment:String)=listOf("POTA","FOTA","SOTA").filter { it in tags(comment) }
+    fun activityStyle(get:(String)->String):Boolean {
+        val selected=selection(get("filter_activities"),activities)
+        return get("activity_announcements")=="true" || selected.isNotEmpty() && selected.all { it in listOf("POTA","FOTA","SOTA") }
+    }
     fun rejection(spot:DxSpot,get:(String)->String):String {
         val selectedBands=selection(get("filter_bands"),bands.keys+"Other")
         val selectedModes=selection(get("filter_modes"),modes)

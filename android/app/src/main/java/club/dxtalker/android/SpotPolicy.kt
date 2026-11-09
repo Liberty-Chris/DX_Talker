@@ -24,9 +24,19 @@ object SpotPolicy {
             if(!validCall(call)||!validCall(spotter)||frequency<BigDecimal.ONE||frequency>BigDecimal(10000000)||time>now.plusSeconds(120)) null else DxSpot(call,frequency,time,SpotFilters.clean(match.groupValues[4]),spotter=spotter)
         }
     } catch(_:Exception){null}
-    fun speak(spot:DxSpot, template:String, unit:String):String {
+    fun speak(spot:DxSpot, template:String, unit:String,activityStyle:Boolean=false):String {
         val call=spot.call.map { c-> when { c in 'A'..'Z' -> phonetics[c-'A']; c.isDigit()->digits[c-'0']; c=='/'->"stroke"; else->"dash" } }.joinToString(" ")
         val frequency=spot.frequency(unit).map{if(it=='.')"point" else digits[it-'0']}.joinToString(" ")
+        val tags=SpotFilters.activityTags(spot.comment)
+        if(tags.isNotEmpty() && activityStyle) {
+            val parts=tags.toMutableList()
+            val mode=SpotFilters.mode(spot.comment,spot.mode,spot.frequency)
+            if(mode!="Unknown")parts.add(mode)
+            // Preserve the selected spoken-unit preference in the saved format.
+            parts.add(frequency+if(template.contains("{unit}",true))" "+(if(unit=="MHz")"megahertz"else "kilohertz")else "")
+            parts.add(call)
+            return parts.joinToString(". ")+"."
+        }
         return template.replace("{call}",call,true).replace("{frequency}",frequency,true).replace("{unit}",if(unit=="MHz")"megahertz" else "kilohertz",true)
     }
 }

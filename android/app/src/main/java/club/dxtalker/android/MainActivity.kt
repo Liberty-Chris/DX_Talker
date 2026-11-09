@@ -482,6 +482,8 @@ class MainActivity : Activity() {
             panel.addView(button(title+": "+staged(key).replace("General","No activity tag").replace("Unknown","Include unknown").ifBlank { if(key=="filter_modes")"All known modes"else "All" }) { chooseFilter(key,title,values) })
         }
         panel.addView(label("Choose POTA, 20m and SSB to require all three. Selecting several bands accepts any of those bands. Mode comes from a reported tag or a single mode band segment. Include unknown admits uncertain modes within your other selections.",14f,secondary))
+        panel.addView(CheckBox(this).apply { text="Use POTA / FOTA / SOTA wording during mixed listening";setTextColor(ink);isChecked=staged("activity_announcements")=="true";setOnCheckedChangeListener { _,checked -> drafts["Filters:activity_announcements"]=checked.toString();saveFilter("activity_announcements") } })
+        panel.addView(label("Activity-only selections use this wording automatically: activity, mode, frequency, callsign. Unknown modes are omitted. All listening filters still apply.",14f,secondary))
         val license=section("My operating privileges (optional)")
         spinner(license,"FCC license class",UsPrivileges.classes,staged("license_class"),key="license_class").apply {
             onItemSelectedListener=object:AdapterView.OnItemSelectedListener { override fun onNothingSelected(p:AdapterView<*>?){};override fun onItemSelected(p:AdapterView<*>?,v:View?,position:Int,id:Long){drafts["Filters:license_class"]=UsPrivileges.classes[position];saveFilter("license_class")} }

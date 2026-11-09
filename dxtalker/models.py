@@ -70,6 +70,13 @@ class Spot:
                 frequency += " " + settings.frequency_unit
         elif not settings.speak_units:
             frequency = frequency.rsplit(" ", 1)[0]
+        from .filtering import activity_tags, activity_style, mode_of
+        tags=activity_tags(self.comment)
+        if tags and activity_style(settings):
+            mode=mode_of(self.comment,self.mode,self.frequency_khz)
+            groups=[("intro",tag) for tag in tags]
+            if mode!='Unknown':groups.append(("mode",mode))
+            return groups+[("frequency",frequency),("callsign",call)]
         content = {"intro": settings.announcement_intro.strip(), "frequency": frequency, "callsign": call}
         included = {"intro": settings.include_intro, "frequency": settings.include_frequency,
                     "callsign": settings.include_callsign}
@@ -175,6 +182,7 @@ class Settings:
     filter_bands: str = ""
     filter_modes: str = ""
     filter_activities: str = ""
+    activity_announcements: bool = False
     license_class: str = "Off"
     license_region: str = "US Region 2"
     license_unknown: bool = False
@@ -274,7 +282,7 @@ class Settings:
         if (not isinstance(self.announcement_order, str) or
                 sorted(self.announcement_order.split(",")) != ["callsign", "frequency", "intro"]):
             raise ValueError("Announcement order must contain Intro, Callsign and Frequency once each")
-        for name in ("include_intro", "include_callsign", "include_frequency", "speak_units"):
+        for name in ("include_intro", "include_callsign", "include_frequency", "speak_units", "activity_announcements"):
             if type(getattr(self, name)) is not bool:
                 raise ValueError("Choose whether to include each announcement section")
         if not isinstance(self.announcement_intro, str) or len(self.announcement_intro) > 80 or any(

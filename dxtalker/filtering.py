@@ -68,6 +68,15 @@ def choices(value, allowed):
     return set(values)
 
 
+def activity_tags(comment):
+    return tuple(name for name in ("POTA", "FOTA", "SOTA") if name in activities_of(comment))
+
+
+def activity_style(settings):
+    selected=choices(settings.filter_activities,ACTIVITIES)
+    return settings.activity_announcements or bool(selected) and selected <= {'POTA','FOTA','SOTA'}
+
+
 def rejection(spot, settings):
     bands = choices(settings.filter_bands, (*BANDS, 'Other'))
     modes = choices(settings.filter_modes, MODES)

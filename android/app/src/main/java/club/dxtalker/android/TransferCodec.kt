@@ -9,7 +9,7 @@ import java.util.zip.Inflater
 object TransferCodec {
     private const val MAX = 65536
     private val connectionKeys = setOf("source_type","host","port","login","feed_url","poll_seconds")
-    private val filterKeys = setOf("min_khz","max_khz","max_age_seconds","repeat_seconds","spacing_seconds","frequency_unit","filter_bands","filter_modes","filter_activities","license_class","license_region","license_unknown","filter_dx_countries","filter_dx_continents","filter_spotter_countries","filter_spotter_continents","filter_spotter_regions","geography_unknown","location_overrides","listening_presets")
+    private val filterKeys = setOf("min_khz","max_khz","max_age_seconds","repeat_seconds","spacing_seconds","frequency_unit","filter_bands","filter_modes","filter_activities","activity_announcements","license_class","license_region","license_unknown","filter_dx_countries","filter_dx_continents","filter_spotter_countries","filter_spotter_continents","filter_spotter_regions","geography_unknown","location_overrides","listening_presets")
     private fun keys(value: JSONObject) = value.keys().asSequence().toSet()
     fun decode(text: String): JSONObject {
         var raw = text.toByteArray(Charsets.UTF_8)
@@ -47,7 +47,7 @@ object TransferCodec {
         for(key in keys(f)){
             val value=f.get(key)
             if(value is String)require(value.length <= (if(key=="listening_presets")32768 else if(key=="location_overrides")8192 else 2048) && value.none { it.code<32 })
-            if(key in setOf("license_unknown","geography_unknown"))require(value is Boolean)
+            if(key in setOf("activity_announcements","license_unknown","geography_unknown"))require(value is Boolean)
             else if(key=="frequency_unit" || key.startsWith("filter_") || key in setOf("license_class","license_region","location_overrides","listening_presets"))require(value is String) else {
                 require(value is Number && value.toDouble().isFinite()) { "Filter numbers must be numeric" }
                 if(key in setOf("max_age_seconds","repeat_seconds","spacing_seconds")) require(value is Int) { "Timing values must be integers" }
@@ -106,7 +106,7 @@ object TransferCodec {
         val editor = prefs.edit().putString("profiles",existing.toString())
         val f = data.getJSONObject("filters")
         for (key in filterKeys) if (f.has(key)) editor.putString(key,f.get(key).toString())
-        for(key in filterKeys) if(!f.has(key))editor.putString(key,when(key) { "license_class"->"Off";"license_region"->"US Region 2";"listening_presets"->"{}";"license_unknown","geography_unknown"->"false";"min_khz"->"1";"max_khz"->"10000000";"max_age_seconds"->"180";"repeat_seconds"->"300";"spacing_seconds"->"5";"frequency_unit"->"kHz";else->"" })
+        for(key in filterKeys) if(!f.has(key))editor.putString(key,when(key) { "license_class"->"Off";"license_region"->"US Region 2";"listening_presets"->"{}";"activity_announcements","license_unknown","geography_unknown"->"false";"min_khz"->"1";"max_khz"->"10000000";"max_age_seconds"->"180";"repeat_seconds"->"300";"spacing_seconds"->"5";"frequency_unit"->"kHz";else->"" })
         check(editor.commit()) { "Could not save imported profiles" }
     }
 }

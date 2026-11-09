@@ -160,3 +160,7 @@ Unify desktop live row and speech queue admission. Add correlated green completi
 ## 0.2.0a23. US mode inference
 
 Replace the common regional intersection with documented US CW inference on desktop and Android. Expand 160m, 80m, 40m and 30m and add the FCC CW exclusive lower 6m and 2m portions. Keep documented digital overlaps Unknown and preserve explicit mode evidence, license filters and final display/speech admission. Explain the difference between class specific CW privileges and identifying the remote station's mode. Add shared boundary and mode override regression cases.
+
+## 0.2.0a24. Activity announcement wording
+
+Add optional POTA/FOTA/SOTA wording for mixed listening and automatic activity wording for activity only selections on desktop and Android. Speak activity, identified mode, frequency and callsign while preserving every listening filter. Save the preference immediately and transfer it with listening presets. Omit unknown modes and untrusted comments and retain ordinary announcement customization for other spots.

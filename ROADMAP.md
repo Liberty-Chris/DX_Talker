@@ -104,3 +104,7 @@ Retest CW and all modes listening with the same cluster reports on desktop. Each
 ## US mode inference acceptance
 
 The a23 correction replaces the regional intersection with the US default on desktop and Android. Replay untagged 3540 and 7035 kHz spots and confirm CW admission and speech on both. Confirm explicit digital tags override inference and mixed digital portions remain Unknown. Keep US license permissions independent from the remote mode guess.
+
+## Activity wording acceptance
+
+For a24, test optional activity wording during mixed listening and automatic wording with activity only selections on desktop and Android. Verify selected units, omitted unknown modes, multiple tags and normal DX formatting for ordinary spots. Confirm rejected spots remain rejected and transferred presets preserve the switch.
