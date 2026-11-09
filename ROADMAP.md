@@ -100,3 +100,7 @@ The a19 source adds an amd64 Debian installer for Ubuntu 22.04 and 24.04 using t
 ## Desktop receipt acceptance
 
 Retest CW and all modes listening with the same cluster reports on desktop. Each newly admitted live row must complete playback or expose a red reason; excluded incoming reports remain outside the main list. Check stop, changed filters, duplicates, age, receive hold, required ID priority, queue pressure, faults and clear/source switching. Verify the new atomic all modes choice alongside existing license and band filters. Android receipt UI remains separate work.
+
+## US mode inference acceptance
+
+The a23 correction replaces the regional intersection with the US default on desktop and Android. Replay untagged 3540 and 7035 kHz spots and confirm CW admission and speech on both. Confirm explicit digital tags override inference and mixed digital portions remain Unknown. Keep US license permissions independent from the remote mode guess.

@@ -885,7 +885,7 @@ class AppTests(unittest.TestCase):
     def test_unknown_mode_rejection_and_all_modes_selection_are_consistent(self):
         from tests.test_engine import FakeAudio
         spot=self._arm_receipt_test(FakeAudio())
-        unknown=replace(spot,frequency_khz=__import__('decimal').Decimal('7035'))
+        unknown=replace(spot,frequency_khz=__import__('decimal').Decimal('7050'))
         self.assertEqual(self.app._receive_spot(unknown),'Mode unknown')
         self.assertFalse(self.app.tree.get_children())
         window=self.app._show_rejected_spots()

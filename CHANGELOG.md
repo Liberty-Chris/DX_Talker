@@ -156,3 +156,7 @@ Improve modern desktop buffering and recover bounded isolated spot/preview under
 ## 0.2.0a22. Unreleased
 
 Unify desktop live row and speech queue admission. Add correlated green completion and red rejection checks, explanatory details and separate bounded incoming rejection review. Preserve explicit outcomes for expiry, stop, faults and queue discards. Collapse the unfiltered console and separate manual sample previews. Add All modes, including unknown and Known modes only actions with accurate mode checkbox states. Preserve saved filters, CW inference data and existing output safety controls.
+
+## 0.2.0a23. US mode inference
+
+Replace the common regional intersection with documented US CW inference on desktop and Android. Expand 160m, 80m, 40m and 30m and add the FCC CW exclusive lower 6m and 2m portions. Keep documented digital overlaps Unknown and preserve explicit mode evidence, license filters and final display/speech admission. Explain the difference between class specific CW privileges and identifying the remote station's mode. Add shared boundary and mode override regression cases.

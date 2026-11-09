@@ -304,3 +304,7 @@ Optional Windows keep awake controls use thread scoped native requests and prese
 ## 0.2.0a22. Final desktop admission and announcement receipts
 
 The live desktop receive path now adds a row only after the coordinator accepts the same report for speech. Rejected incoming reports have a separate bounded review. Per row tokens track completion or explicit postadmission rejection, including stop, faults, expiry, filter changes and catch up. Green/red icons are adjacent to callsigns with keyboard accessible textual details. Raw traffic is collapsed and labelled unfiltered; manual samples use a separate preview window. The Modes picker exposes All modes, including unknown with accurate checkbox states while preserving other filters. CW inference data is unchanged. Local regression and hosted package verification accompany this change; physical audio acceptance remains an operator test.
+
+## 0.2.0a23. US operating inference
+
+The US default supersedes the regional intersection in a21 and a22. Desktop and Android share expanded 160m/80m/40m/30m ranges and lower 6m/2m CW exclusive ranges. Digital overlaps, explicit mode priority and independent FCC license eligibility remain intact. Shared fixtures cover all boundaries, Dad's 3540/7035 examples and class specific privilege ambiguity. Local and hosted verification accompany the PR. No live RF or remote station mode is verified by these tests.

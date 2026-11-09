@@ -25,11 +25,20 @@ object SpotFilters {
     private val modeWord = Regex("(?<![A-Z0-9])(?:CW|SSB|USB|LSB|FT8|FT4|RTTY|PSK(?:31|63|125)?|FM|AM)(?![A-Z0-9])",RegexOption.IGNORE_CASE)
     fun clean(value: String) = value.filter { it.code in 32..126 }.take(160)
     private fun normalize(value: String): String = when(val v=value.uppercase(java.util.Locale.US)) { "USB","LSB" -> "SSB"; else -> if(v.startsWith("PSK")) "PSK" else v }
-    // Common single mode HF portions. See docs/mode_inference.md.
+    // US operating practice inference, separate from license privileges.
+    // Digital overlaps remain Unknown. Sources: docs/mode_inference.md.
     val modeSegments = listOf(
-        Triple(1810,1830,"CW"), Triple(3500,3535,"CW"), Triple(7000,7030,"CW"),
-        Triple(10110,10115,"CW"), Triple(14000,14070,"CW"), Triple(18068,18095,"CW"),
-        Triple(21000,21070,"CW"), Triple(24890,24915,"CW"), Triple(28000,28070,"CW"))
+        Triple(1810,1836,"CW"),
+        Triple(3500,3570,"CW"),
+        Triple(7000,7040,"CW"),
+        Triple(10100,10130,"CW"),
+        Triple(14000,14070,"CW"),
+        Triple(18068,18095,"CW"),
+        Triple(21000,21070,"CW"),
+        Triple(24890,24915,"CW"),
+        Triple(28000,28070,"CW"),
+        Triple(50000,50100,"CW"),
+        Triple(144000,144100,"CW"))
     private val otherModeWord = Regex("(?<![A-Z0-9])(?:FT2|FT9|JT[0-9]+[A-Z]*|JS8(?:CALL)?|WSPR|Q65|QRA64|MSK144|FSK441|OLIVIA|MFSK[0-9]*|SSTV|FAX|DIGI(?:TAL)?|DATA|DMR|DSTAR|D-STAR|C4FM|FUSION|DV)(?![A-Z0-9])",RegexOption.IGNORE_CASE)
     fun mode(comment: String,explicit: String = "",frequency: java.math.BigDecimal? = null): String {
         if(explicit.isNotEmpty())return if(modeWord.matches(explicit))normalize(explicit) else "Unknown"
