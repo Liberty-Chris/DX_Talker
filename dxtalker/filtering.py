@@ -11,13 +11,21 @@ BANDS = {"160m": (1800, 2000), "80m": (3500, 4000), "60m": (5250, 5450),
 MODES = ("CW", "SSB", "FT8", "FT4", "RTTY", "PSK", "FM", "AM", "Unknown")
 ACTIVITIES = ("POTA", "SOTA", "FOTA", "General")
 MODE_WORD = re.compile(r"(?<![A-Z0-9])(?:CW|SSB|USB|LSB|FT8|FT4|RTTY|PSK(?:31|63|125)?|FM|AM)(?![A-Z0-9])", re.I)
-# Conservative common CW portions of the published IARU regional HF plans.
-# Exclude mixed portions, regional differences and the R3 30m phone exception.
+# US operating practice inference, separate from FCC license privileges.
+# ARRL preferred ranges with documented digital overlaps left Unknown.
 # Lower inclusive, upper exclusive, in kHz. Sources and limits: docs/mode_inference.md.
 MODE_SEGMENTS = (
-    (1810, 1830, 'CW'), (3500, 3535, 'CW'), (7000, 7030, 'CW'),
-    (10110, 10115, 'CW'), (14000, 14070, 'CW'), (18068, 18095, 'CW'),
-    (21000, 21070, 'CW'), (24890, 24915, 'CW'), (28000, 28070, 'CW'),
+    (1810, 1836, 'CW'),
+    (3500, 3570, 'CW'),
+    (7000, 7040, 'CW'),
+    (10100, 10130, 'CW'),
+    (14000, 14070, 'CW'),
+    (18068, 18095, 'CW'),
+    (21000, 21070, 'CW'),
+    (24890, 24915, 'CW'),
+    (28000, 28070, 'CW'),
+    (50000, 50100, 'CW'),
+    (144000, 144100, 'CW'),
 )
 # Recognize unsupported modes as evidence against guessing CW from frequency.
 OTHER_MODE_WORD = re.compile(r'(?<![A-Z0-9])(?:FT2|FT9|JT\d+[A-Z]*|JS8(?:CALL)?|WSPR|Q65|QRA64|MSK144|FSK441|OLIVIA|MFSK\d*|SSTV|FAX|DIGI(?:TAL)?|DATA|DMR|DSTAR|D-STAR|C4FM|FUSION|DV)(?![A-Z0-9])', re.I)

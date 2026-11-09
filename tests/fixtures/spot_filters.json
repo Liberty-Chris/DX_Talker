@@ -170,14 +170,14 @@
   },
   {
     "line": "DX de N0CALL: 1830.0000 WB4IUY 1234Z",
-    "mode": "Unknown",
+    "mode": "CW",
     "activities": [
       "General"
     ],
     "filters": {
       "filter_modes": "CW"
     },
-    "match": false
+    "match": true
   },
   {
     "line": "DX de N0CALL: 3499.9999 WB4IUY 1234Z",
@@ -214,14 +214,14 @@
   },
   {
     "line": "DX de N0CALL: 3535.0000 WB4IUY 1234Z",
-    "mode": "Unknown",
+    "mode": "CW",
     "activities": [
       "General"
     ],
     "filters": {
       "filter_modes": "CW"
     },
-    "match": false
+    "match": true
   },
   {
     "line": "DX de N0CALL: 6999.9999 WB4IUY 1234Z",
@@ -258,25 +258,25 @@
   },
   {
     "line": "DX de N0CALL: 7030.0000 WB4IUY 1234Z",
-    "mode": "Unknown",
+    "mode": "CW",
     "activities": [
       "General"
     ],
     "filters": {
       "filter_modes": "CW"
     },
-    "match": false
+    "match": true
   },
   {
     "line": "DX de N0CALL: 10109.9999 WB4IUY 1234Z",
-    "mode": "Unknown",
+    "mode": "CW",
     "activities": [
       "General"
     ],
     "filters": {
       "filter_modes": "CW"
     },
-    "match": false
+    "match": true
   },
   {
     "line": "DX de N0CALL: 10110.0000 WB4IUY 1234Z",
@@ -302,14 +302,14 @@
   },
   {
     "line": "DX de N0CALL: 10115.0000 WB4IUY 1234Z",
-    "mode": "Unknown",
+    "mode": "CW",
     "activities": [
       "General"
     ],
     "filters": {
       "filter_modes": "CW"
     },
-    "match": false
+    "match": true
   },
   {
     "line": "DX de N0CALL: 13999.9999 WB4IUY 1234Z",
@@ -1180,6 +1180,441 @@
     "filters": {
       "filter_modes": "CW,Unknown",
       "filter_bands": "None"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 1835.9999 WB4IUY 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 1836.0000 WB4IUY 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 3569.9999 WB4IUY 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 3570.0000 WB4IUY 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 7039.9999 WB4IUY 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 7040.0000 WB4IUY 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 10099.9999 WB4IUY 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 10100.0000 WB4IUY 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 10129.9999 WB4IUY 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 10130.0000 WB4IUY 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 49999.9999 WB4IUY 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 50000.0000 WB4IUY 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 50099.9999 WB4IUY 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 50100.0000 WB4IUY 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 143999.9999 WB4IUY 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 144000.0000 WB4IUY 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 144099.9999 WB4IUY 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 144100.0000 WB4IUY 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 3540 WB4IUY  1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 7035 WB4IUY  1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 10105 WB4IUY  1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 1832 WB4IUY  1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 1836 WB4IUY  1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 1840 WB4IUY  1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 18097 WB4IUY  1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 24915 WB4IUY  1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 28160 WB4IUY  1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 3540 WB4IUY FT8 1234Z",
+    "mode": "FT8",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 7035 WB4IUY RTTY 1234Z",
+    "mode": "RTTY",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 7035 WB4IUY CW FT8 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 7035 WB4IUY JS8 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 3540 WB4IUY RTTY 1234Z",
+    "mode": "RTTY",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW,RTTY",
+      "license_class": "General",
+      "license_region": "US Region 2"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 3540 WB4IUY RTTY 1234Z",
+    "mode": "RTTY",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW,RTTY",
+      "license_class": "Technician",
+      "license_region": "US Region 2"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 3540 WB4IUY CW 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW,RTTY",
+      "license_class": "Technician",
+      "license_region": "US Region 2"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 3540 WB4IUY  1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW,RTTY",
+      "license_class": "Technician",
+      "license_region": "US Region 2"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 7050 WB4IUY 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW,Unknown",
+      "license_class": "General",
+      "license_region": "US Region 2",
+      "license_unknown": false
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 7050 WB4IUY 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW,Unknown",
+      "license_class": "General",
+      "license_region": "US Region 2",
+      "license_unknown": true
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 7050 WB4IUY 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW",
+      "license_class": "General",
+      "license_region": "US Region 2",
+      "license_unknown": true
     },
     "match": false
   }
