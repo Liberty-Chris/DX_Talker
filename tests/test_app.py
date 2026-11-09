@@ -224,6 +224,8 @@ class AppTests(unittest.TestCase):
         next(w for w in row.winfo_children() if isinstance(w,ttk.Button)).invoke()
         dialog=next(w for w in self.root.winfo_children() if w.winfo_class()=='Toplevel')
         flags={w.cget('text'):w for w in dialog.winfo_children() if isinstance(w,ttk.Checkbutton)}
+        buttons={w.cget('text'):w for w in dialog.winfo_children() if isinstance(w,ttk.Button)}
+        buttons['None'].invoke()
         flags['CW'].invoke()
         self.assertEqual(load_settings().filter_modes,'CW')
         flags['Include unknown'].invoke()
@@ -232,8 +234,10 @@ class AppTests(unittest.TestCase):
         self.assertEqual(load_settings().filter_modes,'Unknown')
         flags['Include unknown'].invoke()
         self.assertEqual(load_settings().filter_modes,'None')
-        flags['All known modes'].invoke()
-        self.assertEqual(load_settings().filter_modes,'')
+        buttons['Known modes only'].invoke()
+        self.assertEqual(set(load_settings().filter_modes.split(',')),{'CW','SSB','FT8','FT4','RTTY','PSK','FM','AM'})
+        buttons['All modes, including unknown'].invoke()
+        self.assertIn('Unknown',load_settings().filter_modes.split(','))
         self.assertNotIn('Apply selection',[w.cget('text') for w in dialog.winfo_children() if isinstance(w,ttk.Button)])
         dialog.destroy()
 
@@ -492,10 +496,11 @@ class AppTests(unittest.TestCase):
             self.assertTrue(source.ready.is_set())
             self.assertEqual(self.app.source_generation, generation)
             source.stop.assert_not_called()
-            # Incoming source data still reaches the live view while listening is off.
+            # Incoming source data is rejected before display when output is stopped.
             self.app.emit('source_event', (generation, 'spot', self.spot()))
             self.app._poll()
-            self.assertEqual(len(self.app.spots), 1)
+            self.assertEqual(len(self.app.spots), 0)
+            self.assertEqual(self.app.rejected_spots[-1][1], 'Listening and RF are stopped')
         self.assertEqual(self.app.variables['host'].get(), 'pending.example')
         self.app.source = None
 
@@ -771,9 +776,11 @@ class AppTests(unittest.TestCase):
         app._apply()
         app._listen()
         self.assertTrue(app.engine.local_enabled)
-        with patch('dxtalker.app.SourceClient',Source),patch.object(app.engine,'offer') as offer:
+        with patch('dxtalker.app.SourceClient',Source),patch.object(app.engine,'admit',return_value='') as admit:
             app._connect();app._poll()
-        offer.assert_called_once_with(app_test_spot)
+        admit.assert_called_once()
+        self.assertIs(admit.call_args[0][0],app_test_spot)
+        self.assertIn(admit.call_args[0][1],app.spots)
         self.assertTrue(app.engine.local_enabled)
         self.assertFalse(app.engine.enabled)
 
@@ -823,3 +830,79 @@ class AppTests(unittest.TestCase):
             while self.app.shared_voices_loading and time.monotonic()<deadline:
                 self.app._poll();time.sleep(.01)
         self.assertEqual(self.app.eleven_voices,{'Pilot voice (voiceA)':'voiceA'})
+
+    def _arm_receipt_test(self, audio):
+        from tests.test_engine import FakeSpeech
+        self.app.settings=replace(self.app.settings,preview_device='local',filter_bands='40m',filter_modes='CW')
+        self.app.engine.configure(self.app.settings)
+        self.app.engine.audio=audio;self.app.engine.speech=FakeSpeech()
+        self.app.engine.listen_locally()
+        return replace(self.spot(),frequency_khz=__import__('decimal').Decimal('7026.8'),comment='')
+
+    def test_live_list_is_created_only_after_final_admission_and_completes_green(self):
+        from tests.test_engine import FakeAudio,wait_for
+        entered=threading.Event();release=threading.Event()
+        class ControlledAudio(FakeAudio):
+            def play(self,*args):entered.set();release.wait(2)
+        spot=self._arm_receipt_test(ControlledAudio())
+        try:
+            self.assertEqual(self.app._receive_spot(spot),'')
+            row=next(iter(self.app.spots))
+            self.assertTrue(entered.wait(2));self.app._poll()
+            self.assertNotEqual(self.app.spot_states[row][0],'announced')
+            self.assertIn('Duplicate',self.app._receive_spot(spot))
+            self.assertEqual(len(self.app.spots),1)
+            self.assertEqual(len(self.app.rejected_spots),1)
+            release.set();wait_for(lambda:not self.app.engine.busy);self.app._poll()
+            self.assertEqual(self.app.spot_states[row][0],'announced')
+            self.assertEqual(self.app.tree.item(row,'image')[0],str(self.app.status_images['announced']))
+            detail=self.app._show_spot_status(row)
+            self.assertIn('Playback completed',' '.join(str(w.cget('text')) for w in detail.winfo_children()))
+            detail.destroy()
+            self.app._clear_spots()
+            self.app._spot_status(dict(token=row,state='rejected',reason='Late receipt'))
+            self.assertFalse(self.app.spots);self.assertFalse(self.app.spot_states)
+        finally:release.set()
+
+    def test_fault_turns_admitted_row_red_and_click_opens_the_reason(self):
+        from tests.test_engine import FakeAudio,wait_for
+        class FailedAudio(FakeAudio):
+            def play(self,*args):raise ValueError('Synthetic playback failure')
+        spot=self._arm_receipt_test(FailedAudio())
+        self.assertEqual(self.app._receive_spot(spot),'')
+        row=next(iter(self.app.spots));wait_for(lambda:not self.app.engine.local_enabled and not self.app.engine.busy)
+        self.app._poll()
+        self.assertEqual(self.app.spot_states[row][0],'rejected')
+        self.assertIn('Synthetic playback failure',self.app.spot_states[row][1])
+        self.assertEqual(self.app.tree.item(row,'image')[0],str(self.app.status_images['rejected']))
+        from types import SimpleNamespace
+        with patch.object(self.app.tree,'identify_column',return_value='#0'),patch.object(self.app.tree,'identify_row',return_value=row),patch.object(self.app,'_show_spot_status') as show:
+            self.app._status_click(SimpleNamespace(x=2,y=2));show.assert_called_once_with(row)
+        detail=self.app._show_spot_status(row)
+        self.assertIn('Synthetic playback failure',' '.join(str(w.cget('text')) for w in detail.winfo_children()))
+        detail.destroy()
+
+    def test_unknown_mode_rejection_and_all_modes_selection_are_consistent(self):
+        from tests.test_engine import FakeAudio
+        spot=self._arm_receipt_test(FakeAudio())
+        unknown=replace(spot,frequency_khz=__import__('decimal').Decimal('7035'))
+        self.assertEqual(self.app._receive_spot(unknown),'Mode unknown')
+        self.assertFalse(self.app.tree.get_children())
+        window=self.app._show_rejected_spots()
+        self.assertIn('Rejected spots',self.app.rejected_button.cget('text'))
+        window.destroy()
+        from dxtalker.filtering import MODES,mode_summary
+        settings=replace(self.app.settings,filter_modes=','.join(MODES))
+        self.app._apply_listening(settings)
+        self.assertEqual(mode_summary(self.app.settings.filter_modes),'All modes, including unknown')
+        self.assertEqual(self.app._receive_spot(unknown),'')
+        self.assertEqual(len(self.app.tree.get_children()),1)
+
+    def test_raw_console_and_manual_samples_are_separate_from_live_receipts(self):
+        self.assertFalse(self.app.console_visible.get())
+        self.assertEqual(self.app.raw_console.winfo_manager(),'')
+        self.app._append_raw('DX de TEST: raw unfiltered diagnostic')
+        self.assertFalse(self.app.spots)
+        window=self.app._sample_preview()
+        self.assertFalse(self.app.spots)
+        window.destroy()

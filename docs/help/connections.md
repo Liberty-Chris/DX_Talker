@@ -85,3 +85,7 @@ On Android, Scan desktop QR collection requests camera access when needed. Denia
 ## Ubuntu remembered passwords
 
 Ubuntu profiles use the desktop Secret Service keyring. Unlock it before saving a remembered secret, or leave Remember unchecked for session only credentials. Exported collections still exclude secrets. See [Ubuntu desktop](ubuntu.md) for platform paths and recovery.
+
+## Raw console versus announcements
+
+The Source page has a collapsed Unfiltered diagnostic console. Show raw cluster traffic explicitly opens it for sign in and troubleshooting. It bypasses listening filters and is not a list of accepted announcements. Its latest 15 lines remain redacted, session only and excluded from speech and logs. Use Live spots for admitted announcements and Rejected spots for individual exclusion reasons.

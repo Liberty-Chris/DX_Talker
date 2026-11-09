@@ -96,3 +96,7 @@ The XP port targets the full maintained desktop core with private runtimes and s
 ## Ubuntu desktop pilot
 
 The a19 source adds an amd64 Debian installer for Ubuntu 22.04 and 24.04 using the shared desktop core. Verify the private runtime, offline speech, keyring, menu integration, retained settings and package replacement/removal in hosted Ubuntu checks. Then test real local audio, receive hold and the selected serial or VOX radio interface. Raspberry Pi requires its own ARM package and performance measurements. This work does not complete the standalone hardware milestone.
+
+## Desktop receipt acceptance
+
+Retest CW and all modes listening with the same cluster reports on desktop. Each newly admitted live row must complete playback or expose a red reason; excluded incoming reports remain outside the main list. Check stop, changed filters, duplicates, age, receive hold, required ID priority, queue pressure, faults and clear/source switching. Verify the new atomic all modes choice alongside existing license and band filters. Android receipt UI remains separate work.

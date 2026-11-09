@@ -34,12 +34,14 @@ class Engine:
         self.lock = threading.RLock()
         self.wake, self.cancel, self.quit = threading.Event(), threading.Event(), threading.Event()
         self.items = deque(maxlen=100)
+        self.spot_tokens = {}
         self.seen = {}
         self.enabled = self.busy = False
         self.local_enabled = False
         self.next_id, self.next_spot, self.alternate = 0, 0, 0
         self.next_voice_id = 0
         self.pending_voice_clip = None
+        self.stop_reason = ''
         self.expired_spots = 0
         self.preparation_seconds = 0
         self.worker = threading.Thread(target=self._run, daemon=True, name="DX transmission")
@@ -51,7 +53,7 @@ class Engine:
                 raise ValueError("Stop output and wait for Idle before applying settings")
             self.settings = settings
             self.pending_voice_clip = None
-            self.items.clear()
+            self._clear_pending('Settings changed before announcement')
             self.seen.clear()
 
     def enable(self):
@@ -65,7 +67,8 @@ class Engine:
             self.gate_state = None
             self.local_enabled = False
             self.cancel.clear()
-            self.items.clear()
+            self.stop_reason = ''
+            self._clear_pending('Output restarted before announcement')
             self.seen.clear()
             self.enabled, self.next_id, self.next_spot, self.alternate = True, self.clock(), 0, 0
             self.next_voice_id = self.clock()
@@ -74,11 +77,12 @@ class Engine:
         self.wake.set()
 
     def stop(self, message="RF disabled. Output stopped."):
+        self.stop_reason = message
         with self.lock:
             self.enabled = self.local_enabled = False
             self.pending_voice_clip = None
             self.cancel.set()
-            self.items.clear()
+            self._clear_pending(message)
         if not self.busy:
             self.monitor.close()
         self.wake.set()
@@ -89,26 +93,49 @@ class Engine:
         self.quit.set()
         self.wake.set()
 
-    def offer(self, spot):
+    def _finish_spot(self, spot, state, reason):
+        with self.lock:
+            token = self.spot_tokens.pop(id(spot), None)
+        if token is not None:
+            self.emit('spot_status', dict(token=token, state=state, reason=reason))
+
+    def _clear_pending(self, reason):
+        for kind, value in self.items:
+            if kind == 'spot':
+                self._finish_spot(value, 'rejected', reason)
+        self.items.clear()
+
+    def offer(self, spot, token=None):
+        return not self.admit(spot, token)
+
+    def admit(self, spot, token=None):
+        """One final admission for live display and speech. Empty reason accepts."""
         now = self.clock()
         with self.lock:
             s = self.settings
             if not (self.enabled or self.local_enabled):
-                return False
-            from .filtering import matches
-            if not s.min_khz <= spot.frequency_khz <= s.max_khz or not matches(spot, s):
-                return False
+                return 'Listening and RF are stopped'
+            from .filtering import rejection
+            reason = rejection(spot, s)
+            if reason:
+                return reason
+            if (s.local_volume_percent if self.local_enabled else s.volume_percent) == 0:
+                return 'Spot output volume is zero'
             age = (datetime.now(UTC) - spot.timestamp).total_seconds()
             if age > s.max_age_seconds or age < -120:
-                return False
+                return 'Spot timestamp is too old or in the future'
             self.seen = {k: t for k, t in self.seen.items() if now - t < s.repeat_seconds}
-            if spot.key in self.seen or any(kind == "spot" and value.key == spot.key for kind, value in self.items):
-                return False
-            if len(self.items) >= self.items.maxlen:
-                return False
+            if spot.key in self.seen:
+                return 'Duplicate within the repeat interval'
+            if any(kind == "spot" and value.key == spot.key for kind, value in self.items) or getattr(self, 'current_spot', None) is not None and self.current_spot.key == spot.key:
+                return 'Duplicate already queued or being announced'
+            if len(self.items) + int(getattr(self, 'current_spot', None) is not None) >= self.items.maxlen:
+                return 'Announcement queue is full'
             self.items.append(("spot", spot))
+            if token is not None:
+                self.spot_tokens[id(spot)] = token
         self.wake.set()
-        return True
+        return ''
 
     def preview(self, kind, text=None, settings=None):
         if kind not in ("voice", "cw", "spot"):
@@ -121,6 +148,7 @@ class Engine:
             if not preview_settings.preview_device:
                 raise ValueError("Choose a local preview audio device")
             self.cancel.clear()
+            self.stop_reason = ''
             self.items.append(("preview_" + kind, PreviewRequest(text, preview_settings)))
         self.wake.set()
 
@@ -135,7 +163,12 @@ class Engine:
     def _select(self):
         with self.lock:
             now = self.clock()
-            fresh=deque((kind,value) for kind,value in self.items if kind!='spot' or (datetime.now(UTC)-value.timestamp).total_seconds()<=self.settings.max_age_seconds)
+            fresh=deque()
+            for kind, value in self.items:
+                if kind == 'spot' and (datetime.now(UTC)-value.timestamp).total_seconds()>self.settings.max_age_seconds:
+                    self._finish_spot(value, 'rejected', 'Expired while waiting for announcement')
+                else:
+                    fresh.append((kind,value))
             self.expired_spots += len(self.items)-len(fresh)
             self.items.clear(); self.items.extend(fresh)
             if self.enabled and self.settings.receive_guard:
@@ -156,9 +189,11 @@ class Engine:
                 if kind == "spot" and (not (self.enabled or self.local_enabled) or now < self.next_spot):
                     if not (self.enabled or self.local_enabled):
                         self.items.popleft()
+                        self._finish_spot(value, 'rejected', 'Output stopped before announcement')
                     return None
                 self.items.popleft()
                 self.busy = True
+                self.current_spot = value if kind == 'spot' else None
                 if (kind.startswith("preview_") or kind=="ptt_test") and isinstance(value, PreviewRequest):
                     return kind, value.value, value.settings
                 return kind, value, self.settings
@@ -172,7 +207,8 @@ class Engine:
                 raise ValueError("Choose a local preview audio device")
             self.monitor.close()
             self.cancel.clear()
-            self.items.clear()
+            self.stop_reason = ''
+            self._clear_pending('Local listening restarted before announcement')
             self.seen.clear()
             self.next_spot = 0
             self.local_enabled = True
@@ -293,12 +329,15 @@ class Engine:
             self.wake.wait(0.1)
             self.wake.clear()
             kind, value = None, None
+            final_reason = 'Spot expired or no longer matches the listening filters'
             s = self.settings
             try:
                 task = self._select()
                 if task is None:
                     continue
                 kind, value, s = task
+                if kind == 'spot' and id(value) in self.spot_tokens:
+                    self.emit('spot_status', dict(token=self.spot_tokens[id(value)], state='announcing', reason='Preparing or playing the announcement'))
                 power.set_active(True, s.keep_awake)
                 if kind=="ptt_test":
                     self.emit('activity','PTT test. Waiting for channel clear' if s.receive_guard else 'PTT test')
@@ -341,6 +380,7 @@ class Engine:
                         continue
                     self._play(clip, s.preview_device, s.local_volume_percent, self.cancel, self.clock() + 120, kind, 'local')
                     self.emit("announcement", {"dx_call": value.dx_call, "frequency_khz": str(value.frequency_khz), "route": "local"})
+                    self._finish_spot(value, 'announced', 'Playback completed on the selected local output')
                     with self.lock:
                         self.seen[value.key] = self.clock()
                         self.next_spot = self.clock() + s.spacing_seconds
@@ -372,6 +412,7 @@ class Engine:
                     self._transmit(clip, s, volume=100 if kind.startswith("id") else s.volume_percent, operation=kind)
                     if kind == "spot":
                         self.emit("announcement", {"dx_call": value.dx_call, "frequency_khz": str(value.frequency_khz), "route": "radio"})
+                        self._finish_spot(value, 'announced', 'Playback completed and PTT cleanup finished')
                     with self.lock:
                         if kind == "id_voice":
                             self.pending_voice_clip=None
@@ -391,6 +432,7 @@ class Engine:
                         self.items.appendleft((kind, value))
                 self.emit('activity', 'RF waiting for receive audio to clear')
             except Cancelled:
+                final_reason = self.stop_reason or 'Announcement cancelled because output stopped'
                 self.stop("Output cancelled. RF disabled.")
             except Exception as exc:
                 evidence = dict(error_type=type(exc).__name__, frames=Diagnostics.frames(exc.__traceback__))
@@ -403,10 +445,19 @@ class Engine:
                 # Transport errors can contain identifiers; only expected local
                 # validation messages are shown verbatim.
                 detail = str(exc) if isinstance(exc, (ValueError, TimeoutError, AudioPlaybackError)) else type(exc).__name__
+                final_reason = 'Announcement failed: ' + detail
                 self.stop("Output fault. RF disabled.")
                 self.emit("error", detail)
             finally:
                 with self.lock:
+                    if kind == 'spot':
+                        if any(k == 'spot' and v is value for k,v in self.items):
+                            token = self.spot_tokens.get(id(value))
+                            if token is not None:
+                                self.emit('spot_status', dict(token=token, state='queued', reason='Waiting for a clear channel or required identification'))
+                        else:
+                            self._finish_spot(value, 'rejected', final_reason)
+                    self.current_spot = None
                     self.busy = False
                     if kind is not None and not self.enabled:
                         self.monitor.close()
@@ -425,6 +476,7 @@ class Engine:
             self.monitor.close()
             if s.receive_guard:self.monitor.start(s)
             self.cancel.clear()
+            self.stop_reason = ''
             self.items.append(('ptt_test',PreviewRequest(None,s)))
         self.wake.set()
 
@@ -437,7 +489,7 @@ class Engine:
     def catch_up(self):
         with self.lock:
             retained=[(k,v) for k,v in self.items if k!='spot']
-            self.items.clear();self.items.extend(retained)
+            self._clear_pending('Discarded by Catch up to live');self.items.extend(retained)
         self.emit('journal','Pending spots cleared. Listening for new spots; current audio and IDs are preserved.')
 
     def update_listening(self, settings):
@@ -446,5 +498,5 @@ class Engine:
         with self.lock:
             self.settings=replace(self.settings,**{k:getattr(settings,k) for k in (*FIELDS,'listening_presets')})
             retained=[(k,v) for k,v in self.items if k!='spot']
-            self.items.clear();self.items.extend(retained);self.seen.clear()
+            self._clear_pending('Listening filters changed before announcement');self.items.extend(retained);self.seen.clear()
         self.wake.set()

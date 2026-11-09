@@ -12,7 +12,7 @@ Choose Light or Dark from Appearance in the header. The DXt logo and interface c
 
 ## Try it without a cluster or radio
 
-In Audio and PTT, choose your speakers or headphones as Local preview output. Save and apply settings. In Live spots, choose Load sample spots, select a row and choose Preview selected. Sample spots never enter the radio queue.
+In Audio and PTT, choose your speakers or headphones as Local preview output. Save and apply settings. In Live spots, choose Sample preview. Select a synthetic row in that separate window and choose Preview selected sample. These samples do not enter the live list or radio queue.
 
 In Identification, enter the CW and voice text you want to use. Try Preview CW locally and Preview voice locally. These controls do not assert serial PTT. Use headphones or speakers separate from the radio audio path, especially if your radio uses VOX.
 
