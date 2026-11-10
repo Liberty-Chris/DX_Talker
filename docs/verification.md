@@ -154,3 +154,11 @@ The graphical Linux suite ran `python -m unittest discover -s tests -v`: 276 tes
 Gradle 8.9 with Android 35 ran `testDebugUnitTest assembleDebug assembleDebugAndroidTest`: all 23 unit tests pass and both APKs compile/package. Instrumentation compilation is not emulator execution. No emulator or physical phone interaction acceptance ran locally. Android versionCode is 20 and versionName is 1.0.0b1.
 
 `check_docs.py`, `check_versions.py`, `sync_privileges.py --check` and whitespace checks pass. Release version ordering from 0.2.0a25 through beta, release candidate and final was checked. The original archive has no diff. Native desktop inspection covered Live spots, green Unmute, Filters, grouped maintenance and a 900 by 600 compact preview with large text selection and page navigation. Windows/XP native package, installer and hardware checks remain required through the hosted workflow and operator beta acceptance.
+
+## Beta idle CPU correction
+
+The merged 1.0.0b1 source failed modern Windows x86 idle CPU twice, most recently 0.12455 against a 0.10 limit. Its second startup measurement passed at 1808 ms. XP x86 passed the rerun after the earlier public GitHub rate limit failure.
+
+Idle polling was repeatedly writing Tk variables and widget options, repositioning the empty list label and changing hidden meter coordinates. The correction caches rendered values, spot visibility and navigation geometry. It retains 75 ms control polling, unchanged receive detection and every existing performance limit. Deterministic regressions check that repeated idle polls issue no writes to those surfaces and that selection, spots, queue, routing and receive changes still render immediately.
+
+A same environment graphical Linux comparison with synthetic devices and four second idle samples measured process CPU ratio 0.04291 before and 0.01087 after. This is a local source comparison, not Windows x86 acceptance. The Windows smoke test now closes its application before temporary folder cleanup after failed assertions, preserving the original performance failure instead of masking it with a locked diagnostic file error. Hosted Windows package checks must confirm the correction on both architectures.
