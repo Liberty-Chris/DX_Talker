@@ -29,6 +29,7 @@ from . import updates
 from .diagnostics import Diagnostics
 from . import transfer
 from .usability import Usability
+from .rendering import RenderCache
 from .preferences import RADIO_FIELDS, PREFERENCE_FIELDS, FORMAT_FIELDS, read_group, load_radio_draft, save_radio_draft
 
 
@@ -39,6 +40,8 @@ def resource_root():
 class Application(Usability):
     def __init__(self, root):
         self.root = root
+        self.render_cache = RenderCache()
+        self._spot_view_revision = 0
         root.title(f"DX Talker {__version__}")
         width = max(900, min(1160, root.winfo_screenwidth() - 60))
         height = max(600, min(830, root.winfo_screenheight() - 100))
@@ -395,6 +398,7 @@ class Application(Usability):
         self._journal('Listening filters applied. Source connection preserved.')
 
     def _refresh_filtered_view(self):
+        self._spot_view_revision += 1
         from .filtering import rejection
         for item,spot in reversed(list(self.spots.items())):
             reason=rejection(spot,self.settings);self.spot_reasons[item]=reason
@@ -708,11 +712,11 @@ class Application(Usability):
                       'starting':'Waiting for the first input samples','busy':'Audio above threshold. RF waiting.',
                       'waiting':f'Quiet delay. {remaining:.1f} seconds remaining.','clear':'Channel clear.'}
         measured=f' Measured {level:.0f} dBFS.' if state not in ('off','starting','fault') and level is not None else ' No current measurement.' if state!='off' else ''
-        self.receive_status.set(descriptions[state]+measured)
+        self.render_cache.set(self.receive_status,descriptions[state]+measured)
         if state=='fault' and getattr(self,'last_receive_fault',None)!=monitor.fault_code:
             self.diagnostics.record('receive_input_fault',code=monitor.fault_code)
         self.last_receive_fault=monitor.fault_code if state=='fault' else None
-        self.receive_test_button.configure(state='disabled' if self.engine.enabled or self.engine.local_enabled or self.engine.busy else 'normal',text='Stop receive test' if state!='off' else 'Test receive input')
+        self.render_cache.configure(self.receive_test_button,state='disabled' if self.engine.enabled or self.engine.local_enabled or self.engine.busy else 'normal',text='Stop receive test' if state!='off' else 'Test receive input')
 
     def _ptt_method_changed(self):
         vox = self.variables["ptt_method"].get() == "VOX"
@@ -1016,6 +1020,8 @@ class Application(Usability):
             return
         compact = self.root.winfo_height() < 720 or self.settings.text_size>=14
         self.compact_mode=compact
+        if not self.render_cache.changed('responsive', (compact,self.theme.get())):
+            return
         self.brand_label.configure(image=(self.compact_logos if compact else self.logos)[self.theme.get()])
         for widget in (self.log, self.activity_label, self.live_command_bar):
             widget.grid_remove() if compact else widget.grid()
@@ -1079,6 +1085,7 @@ class Application(Usability):
         self.raw_console.configure(state="disabled")
 
     def _clear_spots(self):
+        self._spot_view_revision += 1
         for row in list(self.spots):
             self.tree.delete(row)
         self.spots.clear()
@@ -1089,6 +1096,7 @@ class Application(Usability):
 
     def _trim_spots(self):
         rows = list(self.spots)
+        if len(rows)>self.settings.display_limit:self._spot_view_revision += 1
         for row in rows[:-self.settings.display_limit]:
             self.tree.delete(row)
             self.spots.pop(row, None)
@@ -1657,6 +1665,7 @@ class Application(Usability):
         self.tree.item(row,image=image)
 
     def _add_spot(self, spot, token=None):
+        self._spot_view_revision += 1
         from .filtering import mode_of
         mode=mode_of(spot.comment,spot.mode,spot.frequency_khz)
         options=dict(image=self.status_images['queued'])
@@ -1846,10 +1855,10 @@ class Application(Usability):
         self._render_connections()
         self._receive_meter()
         count,age,expired=self.engine.queue_status()
-        self.queue_summary.set(f'{count} waiting announcements. Oldest {age}s.')
-        from .filtering import summary
-        visible=sum(not reason for reason in self.spot_reasons.values())
-        self.filter_summary.set(summary(self.settings)+f" · {visible} live spots")
+        self.render_cache.set(self.queue_summary,f'{count} waiting announcements. Oldest {age}s.')
+        if self.render_cache.changed('filter_summary', (self.settings,self._spot_view_revision)):
+            from .filtering import summary
+            self.render_cache.set(self.filter_summary,summary(self.settings)+f" · {self._visible_spots()} live spots")
         self._refresh_operating_ui(count, age)
         self.root.after(75, self._poll)
 

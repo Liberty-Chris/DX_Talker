@@ -9,8 +9,24 @@ import subprocess
 import time
 
 
+def close_smoke_app(app):
+    """Release worker and diagnostic handles before deleting temporary settings."""
+    if not app.closing:
+        app.close()
+    if not app.diagnostics.closed.is_set():
+        app.root.after(5000, app.root.quit)
+        app.root.mainloop()
+    if not app.diagnostics.closed.is_set():
+        app.engine.shutdown()
+        app.engine.worker.join(3)
+        app.diagnostics.close()
+        app.root.destroy()
+        raise RuntimeError('Smoke test output cleanup did not finish in time')
+
+
 def run(report_path):
     report = {"ok": False}
+    app = None
     try:
         from . import updates
         import ssl
@@ -157,11 +173,16 @@ try {
                 root.after(500, app.close)
                 root.mainloop()
             finally:
+                if app is not None:
+                    try:
+                        close_smoke_app(app)
+                    except Exception:
+                        report['cleanup_error'] = traceback.format_exc()
                 if old_local is None:
                     os.environ.pop("LOCALAPPDATA", None)
                 else:
                     os.environ["LOCALAPPDATA"] = old_local
-        report["ok"] = True
+        report["ok"] = 'cleanup_error' not in report
     except Exception:
         report["error"] = traceback.format_exc()
     Path(report_path).write_text(json.dumps(report, indent=2), encoding="utf-8")

@@ -81,6 +81,9 @@ class Usability:
             return
         if not hasattr(self,'nav_frame'):
             return
+        geometry=(self.root.winfo_width(),self.settings.text_size,self.theme.get())
+        if not self.render_cache.changed('navigation_geometry',geometry):
+            return
         import tkinter.font as font
         f = font.Font(root=self.root, font=('Segoe UI',self.settings.text_size))
         needed = sum(f.measure(self.notebook.tab(tab,'text'))+30 for tab in self.notebook.tabs())
@@ -271,40 +274,53 @@ class Usability:
         except Exception as exc:
             self.wav_status.set('WAV not ready. '+str(exc))
 
+    def _visible_spots(self):
+        if self.render_cache.changed('spot_visibility', self._spot_view_revision):
+            self._visible_count=sum(not reason for reason in self.spot_reasons.values())
+        return self._visible_count
+
     def _refresh_operating_ui(self,count,age):
         if not hasattr(self,'empty_label'):
             return
-        visible=len(self.tree.get_children())
-        if not visible:
-            if self.source is None:
-                message='Choose a cluster profile and Connect. Matching spots appear even with audio off.'
-            elif self.rejected_spots:
-                message='Reports are arriving but do not match your current filters. Open Spot details or Filters.'
-            elif self.source_ready:
-                message='Connected. Waiting for new matching spots.'
+        cache=self.render_cache
+        visible=self._visible_spots()
+        empty_state=(bool(visible),self.source is None,bool(self.rejected_spots),self.source_ready)
+        if cache.changed('empty_spots',empty_state):
+            if not visible:
+                if self.source is None:
+                    message='Choose a cluster profile and Connect. Matching spots appear even with audio off.'
+                elif self.rejected_spots:
+                    message='Reports are arriving but do not match your current filters. Open Spot details or Filters.'
+                elif self.source_ready:
+                    message='Connected. Waiting for new matching spots.'
+                else:
+                    message='Connecting or signing in. Check Connection status for progress.'
+                cache.set(self.empty_spots,message)
+                self.empty_label.place(relx=.5,rely=.5,anchor='center')
             else:
-                message='Connecting or signing in. Check Connection status for progress.'
-            self.empty_spots.set(message)
-            self.empty_label.place(relx=.5,rely=.5,anchor='center')
-        else:
-            self.empty_label.place_forget()
+                self.empty_label.place_forget()
         shared=self.settings.preview_device and self.settings.preview_device==self.settings.radio_device
-        self.routing_hint.set('Local audio uses the radio output and may key VOX.' if shared else 'Local listening and radio audio use separate destinations.' if self.settings.preview_device else 'Choose Local listening speakers to enable local audio.')
+        cache.set(self.routing_hint,'Local audio uses the radio output and may key VOX.' if shared else 'Local listening and radio audio use separate destinations.' if self.settings.preview_device else 'Choose Local listening speakers to enable local audio.')
         state,level,remaining=self.engine.monitor.snapshot()
-        self.receive_level.coords(self.receive_fill,0,0,5*max(0,min(60,(level if level is not None else -60)+60)),24)
+        # One pixel of display precision; the receive detector retains full precision.
+        meter=round(5*max(0,min(60,(level if level is not None else -60)+60)))
+        cache.coords(self.receive_level,self.receive_fill,0,0,meter,24)
         threshold=self.settings.receive_threshold_db
         marker=5*(threshold+60)
-        self.receive_level.coords(self.receive_mark,marker,0,marker,24)
-        self.receive_threshold.set(f'Receive level: {level:.0f} dBFS. Threshold: {threshold} dBFS.' if level is not None and state!='off' else f'Receive threshold: {threshold} dBFS. Test receive input to see its level.')
-        self.catch_up_button.configure(state='normal' if count else 'disabled')
+        cache.coords(self.receive_level,self.receive_mark,marker,0,marker,24)
+        cache.set(self.receive_threshold,f'Receive level: {level:.0f} dBFS. Threshold: {threshold} dBFS.' if level is not None and state!='off' else f'Receive threshold: {threshold} dBFS. Test receive input to see its level.')
+        cache.configure(self.catch_up_button,state='normal' if count else 'disabled')
+        selection=None
         for button,action in getattr(self,'capability_buttons',[]):
             available=True
-            if action=='preview':available=bool(self.tree.selection())
+            if action=='preview':
+                if selection is None:selection=bool(self.tree.selection())
+                available=selection
             elif action=='identify':available=self.engine.enabled
             elif action=='install':available=bool(self.update_download) and not self.update_busy
             elif action=='download':available=bool(self.update_release) and not self.update_busy
             elif action=='check':available=not self.update_busy
-            button.configure(state='normal' if available else 'disabled')
+            cache.configure(button,state='normal' if available else 'disabled')
 
     def _search_help(self):
         term=self.help_search.get().strip()
