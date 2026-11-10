@@ -192,9 +192,22 @@ class EngineTests(unittest.TestCase):
         self.engine.enable()
         wait_for(lambda: len(self.audio.played) >= 1 and not self.engine.busy)
 
+    def test_audio_off_display_still_obeys_filters_and_zero_rf_volume_does_not_hide_rows(self):
+        self.engine.settings=replace(self.settings,filter_bands='20m')
+        self.assertEqual(self.engine.admit(self.spot(),'excluded'),'Band')
+        self.engine.settings=replace(self.settings,volume_percent=0)
+        # Reserve RF state without opening a device or scheduling a real ID.
+        with self.engine.lock:
+            self.engine.enabled=True;self.engine.next_id=time.monotonic()+3600
+            self.assertEqual(self.engine.admit(self.spot(),'rf-zero'),'')
+            self.assertFalse(self.engine.items)
+        self.assertEqual([v['state'] for k,v in self.events if k=='spot_status'],['display_only'])
+        self.assertFalse(self.audio.played);self.assertFalse(self.speech.texts);self.assertFalse(self.ptts)
+
     def test_startup_is_disabled_and_does_not_queue_spots(self):
         self.assertFalse(self.engine.enabled)
-        self.assertFalse(self.engine.offer(self.spot()))
+        self.assertTrue(self.engine.offer(self.spot(),'audio-off'))
+        self.assertEqual([v['state'] for k,v in self.events if k=='spot_status'],['display_only'])
         self.assertEqual(len(self.engine.items), 0)
         self.assertEqual(self.ptts, [])
 
@@ -331,7 +344,8 @@ class EngineTests(unittest.TestCase):
         self.assertFalse(self.engine.offer(self.spot()))
         self.engine.stop()
         self.assertFalse(self.engine.local_enabled)
-        self.assertFalse(self.engine.offer(self.spot("WB4IUY")))
+        self.assertTrue(self.engine.offer(self.spot("WB4IUY")))
+        self.assertFalse(self.engine.items)
 
     def test_local_listening_can_arm_before_source_and_still_requires_device(self):
         self.engine.source_available = lambda: False

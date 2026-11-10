@@ -469,6 +469,21 @@ class AppTests(unittest.TestCase):
         self.assertEqual(self.app.piper_speech_fields.winfo_manager(), 'grid')
 
 
+    def test_connection_spots_display_with_both_audio_routes_off(self):
+        from unittest.mock import Mock
+        source=Mock();source.connected=threading.Event();source.connected.set()
+        self.app.source=source;generation=self.app.source_generation
+        spot=replace(self.spot(),comment='FT8')
+        self.app.emit('source_event',(generation,'spot',spot));self.app._poll();self.app._poll()
+        self.assertFalse(self.app.engine.local_enabled);self.assertFalse(self.app.engine.enabled)
+        self.assertEqual(len(self.app.tree.get_children()),1)
+        row=next(iter(self.app.spots));self.assertEqual(self.app.spot_states[row][0],'display_only')
+        self.assertFalse(self.app.engine.items);self.assertFalse(self.app.rejected_spots)
+        self.app.engine.configure(replace(self.app.settings,preview_device='local'))
+        self.app._listen();self.assertFalse(self.app.engine.items)
+        source.stop.assert_not_called();self.assertEqual(self.app.source_generation,generation)
+        self.app.source=None
+
     def test_listening_toggle_never_applies_settings_or_reconnects_source(self):
         from unittest.mock import Mock
         self.app.engine.configure(replace(self.app.settings, preview_device='local'))
@@ -489,11 +504,11 @@ class AppTests(unittest.TestCase):
             self.assertEqual(self.app.listening_controls[0]['button'].cget('text'), 'Listening')
             self.app.listening_controls[0]['hover'] = True
             self.app._render_connections()
-            self.assertEqual(self.app.listening_controls[0]['button'].cget('text'), 'Mute locally')
+            self.assertEqual(self.app.listening_controls[0]['button'].cget('text'), 'Mute')
             self.app._listen()
             self.assertTrue(self.app.engine.local_enabled)
             self.assertTrue(self.app.engine.local_muted)
-            self.assertEqual(self.app.listening_controls[0]['button'].cget('text'),'Unmute locally')
+            self.assertEqual(self.app.listening_controls[0]['button'].cget('text'),'Unmute')
             self.assertIs(self.app.source, source)
             self.assertTrue(source.ready.is_set())
             self.assertEqual(self.app.source_generation, generation)

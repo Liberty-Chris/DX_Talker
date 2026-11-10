@@ -948,7 +948,7 @@ class Application:
                     edge, background, ink = (p["accent"] if attention else p["edge"]), p["field"], p["ink"]
             elif item["kind"] == "listening":
                 if self.engine.local_enabled:
-                    text = "Muting..." if stopping else "Unmute locally" if self.engine.local_muted else "Mute locally" if attention else "Listening"
+                    text = "Muting..." if stopping else "Unmute" if self.engine.local_muted else "Mute" if attention else "Listening"
                     if self.engine.local_muted:
                         edge,background,ink=(p["accent"] if attention else p["edge"]),p["field"],p["ink"]
                     else:
@@ -1831,7 +1831,7 @@ class Application:
         self.queue_summary.set(f'{count} pending. Oldest {age}s. Expired {expired}. Last preparation {self.engine.preparation_seconds:.2f}s.')
         from .filtering import summary
         visible=sum(not reason for reason in self.spot_reasons.values())
-        self.filter_summary.set(summary(self.settings)+f' · {visible} live rows · Green check: announced. Gray M: muted. Red check: open for reason.')
+        self.filter_summary.set(summary(self.settings)+f' · {visible} live rows · Green check: announced. Gray D: audio off. Gray M: muted. Red check: open for reason.')
         self.root.after(75, self._poll)
 
     def _journal(self, text):

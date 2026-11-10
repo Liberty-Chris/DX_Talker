@@ -262,3 +262,5 @@ Use a switch for activity wording during mixed listening, default off. Explicit 
 ## November 10, 2026. Local mute and continuous display
 
 Keep local_enabled as session admission state and add a separate session only local_muted flag. The local toggle mutes rather than stopping the session. Muted reports still pass filters, timestamp and repeat checks but bypass audio synthesis and queue storage and receive a distinct muted receipt. Mute cancels current and queued local work without using Engine.stop. Preserve single coordinator ownership and explicit RF enable. Do not replay muted work on unmute. Full output stop, source loss and device faults retain their existing stop behavior.
+
+The a25 correction also admits matching cluster rows while both audio routes are off. Gray D identifies display only rows and gray M identifies local mute. Turning on an output speaks only new reports. The local hover label is Mute and the muted action is Unmute. Listening and RF enablement never gate filtered display admission.

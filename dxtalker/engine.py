@@ -113,19 +113,16 @@ class Engine:
         return not self.admit(spot, token)
 
     def admit(self, spot, token=None):
-        """Shared admission; a muted local session accepts display only receipts."""
+        """Shared filtering; output off or muted accepts display only receipts."""
         now = self.clock()
         with self.lock:
             s = self.settings
-            if not (self.enabled or self.local_enabled):
-                return 'Listening and RF are stopped'
             from .filtering import rejection
             reason = rejection(spot, s)
             if reason:
                 return reason
             muted = self.local_enabled and (self.local_muted or s.local_volume_percent == 0)
-            if not muted and (s.local_volume_percent if self.local_enabled else s.volume_percent) == 0:
-                return 'Spot output volume is zero'
+            audio_off = not (self.enabled or self.local_enabled) or self.enabled and s.volume_percent == 0
             age = (datetime.now(UTC) - spot.timestamp).total_seconds()
             if age > s.max_age_seconds or age < -120:
                 return 'Spot timestamp is too old or in the future'
@@ -134,11 +131,13 @@ class Engine:
                 return 'Duplicate within the repeat interval'
             if any(kind == "spot" and value.key == spot.key for kind, value in self.items) or getattr(self, 'current_spot', None) is not None and self.current_spot.key == spot.key:
                 return 'Duplicate already queued or being announced'
-            if muted:
+            if muted or audio_off:
                 self.seen[spot.key]=now
                 if token is not None:
                     self.spot_tokens[id(spot)]=token
-                    self._finish_spot(spot,'muted','Local audio muted. Displayed only; will not replay on unmute.' if self.local_muted else 'Local volume is zero. Displayed only; will not replay on unmute.')
+                    state='muted' if muted else 'display_only'
+                    reason=('Local audio muted.' if self.local_muted else 'Local volume is zero.') if muted else 'Audio output is off or its volume is zero.'
+                    self._finish_spot(spot,state,reason+' Displayed only; will not replay when audio starts.')
                 return ''
             if len(self.items) + int(getattr(self, 'current_spot', None) is not None) >= self.items.maxlen:
                 return 'Announcement queue is full'
