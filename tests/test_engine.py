@@ -107,6 +107,77 @@ class EngineTests(unittest.TestCase):
         self.assertFalse(self.ptts)
         self.assertFalse(self.speech.texts)
 
+    def test_muted_local_session_admits_display_receipts_without_audio_or_backlog(self):
+        self.engine.settings=replace(self.settings,filter_bands='20m',filter_modes='CW',spacing_seconds=0)
+        self.engine.listen_locally();self.engine.set_local_muted(True)
+        now=datetime.now(UTC)
+        first=parse_line(f'DX de N0CALL: 14025 K1AAA CW {now:%H%M}Z','fixture',now)
+        self.assertTrue(self.engine.offer(first,'muted-row'))
+        receipts=[event[1] for event in self.events if event[0]=='spot_status']
+        self.assertEqual(receipts[-1]['state'],'muted')
+        self.assertFalse(self.engine.items);self.assertFalse(self.speech.texts);self.assertFalse(self.audio.played)
+        self.assertTrue(self.engine.local_enabled);self.assertFalse(self.engine.enabled)
+        self.assertIn('Mode',self.engine.admit(replace(first,dx_call='K2BBB',comment='SSB')))
+        self.engine.set_local_muted(False)
+        self.assertFalse(self.engine.offer(first))
+        self.assertTrue(self.engine.offer(replace(first,dx_call='K3CCC'),'heard-row'))
+        wait_for(lambda:len(self.audio.played)==1 and not self.engine.busy)
+        self.assertFalse(self.ptts)
+        self.assertEqual([r[1]['state'] for r in self.events if r[0]=='spot_status' and r[1]['token']=='heard-row'],['announcing','announced'])
+
+    def test_mute_cancels_current_and_pending_local_audio_without_stopping_session(self):
+        release=threading.Event()
+        original=self.audio.play
+        def play(clip,device,volume,cancel,deadline):
+            self.audio.block=True
+            self.audio.entered.set();release.wait(2)
+            return original(clip,device,volume,cancel,deadline)
+        self.audio.play=play
+        self.engine.listen_locally();now=datetime.now(UTC)
+        first=parse_line(f'DX de N0CALL: 14025 K1AAA CW {now:%H%M}Z','fixture',now)
+        try:
+            self.assertTrue(self.engine.offer(first,'current'));self.assertTrue(self.audio.entered.wait(1))
+            self.assertTrue(self.engine.offer(replace(first,dx_call='K2BBB'),'pending'))
+            self.engine.set_local_muted(True)
+            with self.assertRaises(ValueError):self.engine.set_local_muted(False)
+        finally:release.set()
+        wait_for(lambda:not self.engine.busy)
+        self.assertTrue(self.engine.local_enabled);self.assertTrue(self.engine.local_muted)
+        self.assertFalse(self.engine.items);self.assertFalse(self.ptts)
+        states={r[1]['token']:r[1]['state'] for r in self.events if r[0]=='spot_status'}
+        self.assertEqual(states,{'current':'muted','pending':'muted'})
+        self.assertFalse(any(r[0]=='error' for r in self.events))
+        self.audio.block=False;self.engine.set_local_muted(False)
+        self.assertTrue(self.engine.offer(replace(first,dx_call='K3CCC')))
+        wait_for(lambda:len(self.audio.played)==2 and not self.engine.busy)
+
+    def test_mute_during_speech_preparation_preserves_session_and_skips_future_generation(self):
+        entered=threading.Event()
+        class Speech(FakeSpeech):
+            def render(self,text,voice,rate,cancel):
+                self.texts.append(text);entered.set()
+                if cancel.wait(2):raise Cancelled()
+                return Clip(b'\0\0'*2205)
+        self.engine.speech=Speech();self.engine.listen_locally();now=datetime.now(UTC)
+        spot=parse_line(f'DX de N0CALL: 14025 K1AAA CW {now:%H%M}Z','fixture',now)
+        self.assertTrue(self.engine.offer(spot,'preparing'));self.assertTrue(entered.wait(1))
+        self.engine.set_local_muted(True);wait_for(lambda:not self.engine.busy)
+        self.assertTrue(self.engine.local_enabled)
+        self.assertTrue(self.engine.offer(replace(spot,dx_call='K2BBB'),'muted-arrival'))
+        self.assertEqual(len(self.engine.speech.texts),1);self.assertFalse(self.audio.played)
+        self.assertEqual({r[1]['state'] for r in self.events if r[0]=='spot_status' and r[1]['state']!='announcing'},{'muted'})
+
+    def test_local_mute_does_not_touch_rf_and_zero_local_volume_keeps_display_receipts(self):
+        self.engine.settings=replace(self.settings,local_volume_percent=0)
+        self.engine.listen_locally();now=datetime.now(UTC)
+        spot=parse_line(f'DX de N0CALL: 14025 K1AAA CW {now:%H%M}Z','fixture',now)
+        self.assertTrue(self.engine.offer(spot,'zero-volume'))
+        self.assertFalse(self.engine.items);self.assertFalse(self.speech.texts)
+        self.assertEqual([r[1]['state'] for r in self.events if r[0]=='spot_status'],['muted'])
+        self.engine.stop();self.engine.enabled=True
+        with self.assertRaises(ValueError):self.engine.set_local_muted(True)
+        self.assertTrue(self.engine.enabled);self.assertFalse(self.engine.local_muted)
+
     def tearDown(self):
         self.engine.shutdown()
         self.engine.worker.join(3)
@@ -121,9 +192,22 @@ class EngineTests(unittest.TestCase):
         self.engine.enable()
         wait_for(lambda: len(self.audio.played) >= 1 and not self.engine.busy)
 
+    def test_audio_off_display_still_obeys_filters_and_zero_rf_volume_does_not_hide_rows(self):
+        self.engine.settings=replace(self.settings,filter_bands='20m')
+        self.assertEqual(self.engine.admit(self.spot(),'excluded'),'Band')
+        self.engine.settings=replace(self.settings,volume_percent=0)
+        # Reserve RF state without opening a device or scheduling a real ID.
+        with self.engine.lock:
+            self.engine.enabled=True;self.engine.next_id=time.monotonic()+3600
+            self.assertEqual(self.engine.admit(self.spot(),'rf-zero'),'')
+            self.assertFalse(self.engine.items)
+        self.assertEqual([v['state'] for k,v in self.events if k=='spot_status'],['display_only'])
+        self.assertFalse(self.audio.played);self.assertFalse(self.speech.texts);self.assertFalse(self.ptts)
+
     def test_startup_is_disabled_and_does_not_queue_spots(self):
         self.assertFalse(self.engine.enabled)
-        self.assertFalse(self.engine.offer(self.spot()))
+        self.assertTrue(self.engine.offer(self.spot(),'audio-off'))
+        self.assertEqual([v['state'] for k,v in self.events if k=='spot_status'],['display_only'])
         self.assertEqual(len(self.engine.items), 0)
         self.assertEqual(self.ptts, [])
 
@@ -260,7 +344,8 @@ class EngineTests(unittest.TestCase):
         self.assertFalse(self.engine.offer(self.spot()))
         self.engine.stop()
         self.assertFalse(self.engine.local_enabled)
-        self.assertFalse(self.engine.offer(self.spot("WB4IUY")))
+        self.assertTrue(self.engine.offer(self.spot("WB4IUY")))
+        self.assertFalse(self.engine.items)
 
     def test_local_listening_can_arm_before_source_and_still_requires_device(self):
         self.engine.source_available = lambda: False

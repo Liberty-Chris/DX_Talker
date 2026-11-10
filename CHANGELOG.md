@@ -164,3 +164,9 @@ Replace the common regional intersection with documented US CW inference on desk
 ## 0.2.0a24. Activity announcement wording
 
 Add optional POTA/FOTA/SOTA wording for mixed listening and automatic activity wording for activity only selections on desktop and Android. Speak activity, identified mode, frequency and callsign while preserving every listening filter. Save the preference immediately and transfer it with listening presets. Omit unknown modes and untrusted comments and retain ordinary announcement customization for other spots.
+
+## 0.2.0a25. Local mute preserves live spots
+
+Replace Stop listening with local mute/unmute. Keep filtered display admission active while muting and cancel current and queued local audio without stopping the source. Mark intentional mute with a gray M and do not synthesize or replay a muted backlog. Preserve mute across explicit Connect, retain full Stop/RF behavior and release idle keep awake requests while locally muted.
+
+The a25 correction also admits matching cluster rows while both audio routes are off. Gray D identifies display only rows and gray M identifies local mute. Turning on an output speaks only new reports. The local hover label is Mute and the muted action is Unmute. Listening and RF enablement never gate filtered display admission.

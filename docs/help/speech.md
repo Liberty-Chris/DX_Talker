@@ -18,13 +18,13 @@ Piper output must be mono PCM16 WAV. DX Talker normalizes its sample rate to 220
 
 ## Live local listening
 
-Choose your speakers or headphones as Local preview output in Audio / PTT. Connect a source and choose Listen locally or press F8, including before the first spot arrives. The control changes to Listening with the appearance accent. Hovering or keyboard focusing it offers Stop listening in red. Click it again or press F8 again to stop local audio while the cluster remains connected and the live view continues receiving spots. Future eligible spots are announced locally using the same age, frequency, duplicate and spacing policies as radio announcements. Existing rows are not replayed. Local listening never constructs a serial PTT adapter or schedules station identification.
+Choose your speakers or headphones as Local preview output in Audio / PTT. Connect a source and choose Listen locally or press F8, including before the first spot arrives. The active control reads Listening and offers Mute when hovered or focused. Clicking it or pressing F8 mutes local audio immediately while the source remains connected and filtered live spots keep populating. It then reads Unmute. Current and queued local announcements are cancelled and muted arrivals are displayed without generating speech. A gray M beside the callsign identifies these intentional muted rows; open their announcement details for the reason. Unmute announces only new matching spots and never replays a muted backlog. Existing age, repeat and listening filters still apply. Local listening never constructs a serial PTT adapter or schedules station identification. Escape or Stop all output remains a full output stop.
 
 Local listening and RF transmission are mutually exclusive. Disconnect, source failure, settings edits and Escape stop output. Neither mode resumes automatically after restart or reconnect. An output device shared with a VOX radio can still reach and key that radio; the app asks before using a shared device.
 
 ## Navigation and visibility
 
-F6 previews the selected spot while output is stopped. F8 toggles local listening. Escape stops all output. Alt+C focuses a visible command input. At compact window heights, Cluster commands or Alt+C opens Source and scrolls to its command field. Ctrl+Tab and Ctrl+Shift+Tab move between pages. Tab and Shift+Tab move through controls. Enter sends a command from its input field.
+F6 previews the selected spot while output is stopped. F8 starts local listening or toggles its mute state. Escape stops all output. Alt+C focuses a visible command input. At compact window heights, Cluster commands or Alt+C opens Source and scrolls to its command field. Ctrl+Tab and Ctrl+Shift+Tab move between pages. Tab and Shift+Tab move through controls. Enter sends a command from its input field.
 
 Choose High contrast in Appearance for white text on a dark background. Speech also contains Interface text size, from 10 to 18 points. Save to apply. Settings pages scroll vertically. At small window heights the header shrinks and the Live spots activity panel, filter summary and duplicate command bar are hidden to preserve table space. Cluster commands remains available above the table controls. Enlarge the window to see it. Larger text can require a wider window.
 
@@ -144,7 +144,7 @@ On Ubuntu, eSpeak NG replaces the Windows provider. It renders offline WAV audio
 
 ## Desktop live row checks
 
-Live rows are admitted only while local listening or RF output is enabled. The admission includes the listening filters and speech queue conditions. Green checks confirm completed playback. Red checks open a reason for an admitted row that did not complete; queued rows have a neutral marker. Select a row and press Enter for text details. Rejected spots is a separate review of incoming rejections. Manual samples use Sample preview instead of filling the live list. See [Listening filters and receipts](listening_filters.md).
+Connecting to a cluster admits matching live rows regardless of local listening or RF state. The admission still applies listening filters, timestamp and repeat rules. Gray D marks display only rows received with audio off or zero RF spot volume. Audio must be enabled before new arrivals are queued for speech. Green checks confirm completed playback. Red checks open a reason for an admitted row that did not complete; queued rows have a neutral marker. Gray M means intentional local mute with no queued speech. Select a row and press Enter for text details. Rejected spots is a separate review of incoming rejections. Manual samples use Sample preview instead of filling the live list. See [Listening filters and receipts](listening_filters.md).
 
 ## POTA, FOTA and SOTA announcement wording
 
@@ -155,3 +155,5 @@ This changes wording only. Band, mode, activity, frequency limits, license and l
 Only recognized activity tags are spoken, not arbitrary comments. If several tags are present, announce POTA, FOTA and SOTA in that order, omitting absent tags. Use the identified mode and omit it when Unknown. The existing US inference and explicit mode evidence rules determine that mode. Recorded packs can spell the activity and mode acronyms with their existing letter assets.
 
 The switch saves immediately with listening choices and is included in presets and profile/QR transfers. Update both receiving and sending apps to a24 or later before transferring this new preference. Older files without the field remain supported and default it to off.
+
+Local mute is session state and is not saved across app restarts. Explicit Connect preserves an already armed local session's mute state before the source starts. Source loss and Stop all output still stop the session; restarting output remains explicit. Muting does not alter radio volume or RF controls. The local volume slider at zero also keeps matching display rows as muted. A selected local spot preview is still available while muted after current audio has finished stopping. Muted idle listening does not request Windows keep awake on its own.

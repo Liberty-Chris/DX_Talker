@@ -1,7 +1,9 @@
-DX Talker 0.2.0a24 adds selectable POTA, FOTA and SOTA announcement wording on desktop and Android.
+DX Talker 0.2.0a25 displays matching cluster spots independently of local audio and RF.
 
-Turn on Use POTA / FOTA / SOTA wording during mixed listening in Source on desktop or Filters on Android. Accepted tagged spots then announce activity, identified mode, frequency and callsign. Activity selections limited to POTA, FOTA or SOTA use the same wording automatically. Unknown modes are omitted and several activity tags are announced in a consistent order. Ordinary spots keep the configured DX format.
+Connecting to a cluster populates the filtered Live spots list even if neither audio route is enabled. A gray D means display only with audio off. Starting audio announces new arrivals only.
 
-This is a wording option only. All listening filters, license selections, stop/mute controls, repeat suppression, age limits and output coordination remain in effect. Selected frequency units and spoken unit preferences are preserved. Existing recorded packs can spell the activity and mode acronyms using letter assets.
+The desktop local control shows Mute on hover while listening and Unmute while muted. Mute cancels current and queued local audio without stopping the local session or reconnecting the cluster. New matching spots keep populating with a gray M beside the callsign. Their details explain that they were deliberately muted. They are not marked as played or rejected by a filter.
 
-The switch saves immediately and is included in presets and QR/profile transfers. Update both apps to a24 or later before sharing this new preference. Earlier files remain importable with the switch defaulting to off.
+Unmute announces new spots only and does not replay the muted backlog. Existing filters, timestamp and repeat rules still apply. Zero local volume preserves muted rows and zero RF spot volume preserves display only rows. Explicit Connect preserves an already armed local session's mute state before starting the source. Full Stop all output, source loss, RF and audio fault behavior remain intact. Muted idle listening does not request Windows keep awake by itself.
+
+Windows, XP and Ubuntu share this desktop change. Android retains its existing dedicated mute behavior. Saved settings and profiles remain compatible.

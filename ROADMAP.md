@@ -108,3 +108,9 @@ The a23 correction replaces the regional intersection with the US default on des
 ## Activity wording acceptance
 
 For a24, test optional activity wording during mixed listening and automatic wording with activity only selections on desktop and Android. Verify selected units, omitted unknown modes, multiple tags and normal DX formatting for ordinary spots. Confirm rejected spots remain rejected and transferred presets preserve the switch.
+
+## Local mute acceptance
+
+For a25, verify live spots continue during local mute, audio stops promptly, filters remain active and unmute speaks new reports only. Test muted connection changes, local zero volume, active synthesis/playback cancellation and Stop all output on Windows, XP and Ubuntu. Android retains its existing dedicated mute.
+
+The a25 correction also admits matching cluster rows while both audio routes are off. Gray D identifies display only rows and gray M identifies local mute. Turning on an output speaks only new reports. The local hover label is Mute and the muted action is Unmute. Listening and RF enablement never gate filtered display admission.

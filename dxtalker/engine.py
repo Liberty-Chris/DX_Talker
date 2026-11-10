@@ -38,6 +38,7 @@ class Engine:
         self.seen = {}
         self.enabled = self.busy = False
         self.local_enabled = False
+        self.local_muted = False
         self.next_id, self.next_spot, self.alternate = 0, 0, 0
         self.next_voice_id = 0
         self.pending_voice_clip = None
@@ -66,6 +67,7 @@ class Engine:
                 self.monitor.start(self.settings)
             self.gate_state = None
             self.local_enabled = False
+            self.local_muted = False
             self.cancel.clear()
             self.stop_reason = ''
             self._clear_pending('Output restarted before announcement')
@@ -80,6 +82,7 @@ class Engine:
         self.stop_reason = message
         with self.lock:
             self.enabled = self.local_enabled = False
+            self.local_muted = False
             self.pending_voice_clip = None
             self.cancel.set()
             self._clear_pending(message)
@@ -99,28 +102,27 @@ class Engine:
         if token is not None:
             self.emit('spot_status', dict(token=token, state=state, reason=reason))
 
-    def _clear_pending(self, reason):
+    def _clear_pending(self, reason, state='rejected'):
         for kind, value in self.items:
             if kind == 'spot':
-                self._finish_spot(value, 'rejected', reason)
+                if state=='muted':self.seen[value.key]=self.clock()
+                self._finish_spot(value, state, reason)
         self.items.clear()
 
     def offer(self, spot, token=None):
         return not self.admit(spot, token)
 
     def admit(self, spot, token=None):
-        """One final admission for live display and speech. Empty reason accepts."""
+        """Shared filtering; output off or muted accepts display only receipts."""
         now = self.clock()
         with self.lock:
             s = self.settings
-            if not (self.enabled or self.local_enabled):
-                return 'Listening and RF are stopped'
             from .filtering import rejection
             reason = rejection(spot, s)
             if reason:
                 return reason
-            if (s.local_volume_percent if self.local_enabled else s.volume_percent) == 0:
-                return 'Spot output volume is zero'
+            muted = self.local_enabled and (self.local_muted or s.local_volume_percent == 0)
+            audio_off = not (self.enabled or self.local_enabled) or self.enabled and s.volume_percent == 0
             age = (datetime.now(UTC) - spot.timestamp).total_seconds()
             if age > s.max_age_seconds or age < -120:
                 return 'Spot timestamp is too old or in the future'
@@ -129,6 +131,14 @@ class Engine:
                 return 'Duplicate within the repeat interval'
             if any(kind == "spot" and value.key == spot.key for kind, value in self.items) or getattr(self, 'current_spot', None) is not None and self.current_spot.key == spot.key:
                 return 'Duplicate already queued or being announced'
+            if muted or audio_off:
+                self.seen[spot.key]=now
+                if token is not None:
+                    self.spot_tokens[id(spot)]=token
+                    state='muted' if muted else 'display_only'
+                    reason=('Local audio muted.' if self.local_muted else 'Local volume is zero.') if muted else 'Audio output is off or its volume is zero.'
+                    self._finish_spot(spot,state,reason+' Displayed only; will not replay when audio starts.')
+                return ''
             if len(self.items) + int(getattr(self, 'current_spot', None) is not None) >= self.items.maxlen:
                 return 'Announcement queue is full'
             self.items.append(("spot", spot))
@@ -141,8 +151,8 @@ class Engine:
         if kind not in ("voice", "cw", "spot"):
             raise ValueError("Unknown preview")
         with self.lock:
-            if self.enabled or self.local_enabled or self.busy or self.items:
-                raise ValueError("Stop RF output and wait for Idle before previewing")
+            if self.enabled or (self.local_enabled and not self.local_muted) or self.busy or self.items:
+                raise ValueError("Mute local listening or stop RF output and wait for Idle before previewing")
             preview_settings = settings or self.settings
             preview_settings.validate()
             if not preview_settings.preview_device:
@@ -199,7 +209,7 @@ class Engine:
                 return kind, value, self.settings
         return None
 
-    def listen_locally(self):
+    def listen_locally(self, muted=False):
         with self.lock:
             if self.enabled or self.busy:
                 raise ValueError("Stop output and wait for Idle before starting local listening")
@@ -212,7 +222,26 @@ class Engine:
             self.seen.clear()
             self.next_spot = 0
             self.local_enabled = True
-        self.emit("output", "Listening locally. Serial PTT disabled.")
+            self.local_muted = muted
+        self.emit("output", "Local audio muted. Spots continue updating." if muted else "Listening locally. Serial PTT disabled.")
+        self.wake.set()
+
+    def set_local_muted(self, muted):
+        with self.lock:
+            if not self.local_enabled or self.enabled:
+                raise ValueError('Start local listening before using local mute')
+            if not muted and self.busy:
+                raise ValueError('Wait for local audio to finish stopping before unmuting')
+            self.local_muted = muted
+            if muted:
+                self.stop_reason = 'Local audio muted. Spots continue updating.'
+                self.cancel.set()
+                self._clear_pending(self.stop_reason,'muted')
+            else:
+                self.cancel.clear()
+                self.stop_reason = ''
+                self.next_spot = 0
+        self.emit('output','Local audio muted. Spots continue updating.' if muted else 'Listening locally. Only new spots will be announced.')
         self.wake.set()
 
     def _speak(self, text, s):
@@ -325,7 +354,7 @@ class Engine:
 
     def _run_output(self, power):
         while not self.quit.is_set():
-            power.set_active(self.enabled or self.local_enabled or self.busy, self.settings.keep_awake)
+            power.set_active(self.enabled or (self.local_enabled and not self.local_muted) or self.busy, self.settings.keep_awake)
             self.wake.wait(0.1)
             self.wake.clear()
             kind, value = None, None
@@ -433,7 +462,12 @@ class Engine:
                 self.emit('activity', 'RF waiting for receive audio to clear')
             except Cancelled:
                 final_reason = self.stop_reason or 'Announcement cancelled because output stopped'
-                self.stop("Output cancelled. RF disabled.")
+                with self.lock:
+                    locally_muted = kind=='spot' and self.local_enabled and self.local_muted and not self.enabled
+                    if locally_muted:
+                        self.seen[value.key]=self.clock()
+                        self._finish_spot(value,'muted','Local audio muted during announcement. Will not replay on unmute.')
+                if not locally_muted:self.stop("Output cancelled. RF disabled.")
             except Exception as exc:
                 evidence = dict(error_type=type(exc).__name__, frames=Diagnostics.frames(exc.__traceback__))
                 if isinstance(exc, ValueError) and s.receive_guard:
