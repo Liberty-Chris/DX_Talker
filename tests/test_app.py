@@ -489,18 +489,29 @@ class AppTests(unittest.TestCase):
             self.assertEqual(self.app.listening_controls[0]['button'].cget('text'), 'Listening')
             self.app.listening_controls[0]['hover'] = True
             self.app._render_connections()
-            self.assertEqual(self.app.listening_controls[0]['button'].cget('text'), 'Stop listening')
+            self.assertEqual(self.app.listening_controls[0]['button'].cget('text'), 'Mute locally')
             self.app._listen()
-            self.assertFalse(self.app.engine.local_enabled)
+            self.assertTrue(self.app.engine.local_enabled)
+            self.assertTrue(self.app.engine.local_muted)
+            self.assertEqual(self.app.listening_controls[0]['button'].cget('text'),'Unmute locally')
             self.assertIs(self.app.source, source)
             self.assertTrue(source.ready.is_set())
             self.assertEqual(self.app.source_generation, generation)
             source.stop.assert_not_called()
-            # Incoming source data is rejected before display when output is stopped.
-            self.app.emit('source_event', (generation, 'spot', self.spot()))
+            # Muting preserves incoming rows with an explicit display-only receipt.
+            self.app.emit('source_event', (generation, 'spot', replace(self.spot(),comment='FT8')))
             self.app._poll()
-            self.assertEqual(len(self.app.spots), 0)
-            self.assertEqual(self.app.rejected_spots[-1][1], 'Listening and RF are stopped')
+            self.app._poll()
+            self.assertEqual(len(self.app.spots), 1)
+            row=next(iter(self.app.spots))
+            self.assertEqual(self.app.spot_states[row][0],'muted')
+            self.assertFalse(self.app.rejected_spots)
+            detail=self.app._show_spot_status(row)
+            self.assertIn('Locally muted',' '.join(str(w.cget('text')) for w in detail.winfo_children()))
+            detail.destroy()
+            self.app._listen()
+            self.assertFalse(self.app.engine.local_muted)
+            self.assertFalse(self.app.engine.items)
         self.assertEqual(self.app.variables['host'].get(), 'pending.example')
         self.app.source = None
 
@@ -784,6 +795,24 @@ class AppTests(unittest.TestCase):
         self.assertTrue(app.engine.local_enabled)
         self.assertFalse(app.engine.enabled)
 
+
+    def test_muted_listening_is_restored_before_connect_starts_the_source(self):
+        app=self.app
+        class Source:
+            def __init__(self,settings,emit,secret):
+                self.emit=emit;self.ready=threading.Event();self.connected=threading.Event()
+            def start(self):
+                assert app.engine.local_enabled and app.engine.local_muted
+                self.emit('spot',app_test_spot)
+            def stop(self):pass
+        app_test_spot=replace(self.spot(),comment='FT8')
+        app.variables['preview_device'].set('local');app._apply();app._listen();app._listen()
+        with patch('dxtalker.app.SourceClient',Source):
+            app._connect();app._poll();app._poll()
+        self.assertTrue(app.engine.local_muted);self.assertFalse(app.engine.enabled)
+        self.assertEqual(len(app.spots),1)
+        self.assertEqual(app.spot_states[next(iter(app.spots))][0],'muted')
+        self.assertFalse(app.engine.items)
 
     def test_collection_qr_starts_with_all_profiles_and_paginates(self):
         from tkinter import ttk

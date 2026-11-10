@@ -948,9 +948,12 @@ class Application:
                     edge, background, ink = (p["accent"] if attention else p["edge"]), p["field"], p["ink"]
             elif item["kind"] == "listening":
                 if self.engine.local_enabled:
-                    text = "Stop listening" if attention else "Listening"
-                    edge, background = ("#d63852", "#542334") if attention else (p["accent"], p["selected"])
-                    ink = "#ffffff" if attention else p["ink"]
+                    text = "Muting..." if stopping else "Unmute locally" if self.engine.local_muted else "Mute locally" if attention else "Listening"
+                    if self.engine.local_muted:
+                        edge,background,ink=(p["accent"] if attention else p["edge"]),p["field"],p["ink"]
+                    else:
+                        edge, background = ("#d63852", "#542334") if attention else (p["accent"], p["selected"])
+                        ink = "#ffffff" if attention else p["ink"]
                 else:
                     text = "Stopping..." if stopping else "Listen locally"
                     edge, background, ink = (p["accent"] if attention else p["edge"]), p["field"], p["ink"]
@@ -1300,7 +1303,8 @@ class Application:
         # Listening is an output toggle. It must never apply pending source
         # edits, change the source generation or reconnect the cluster.
         if self.engine.local_enabled:
-            self.engine.stop("Local listening stopped. Source remains connected.")
+            if self.engine.local_muted and not self._confirm_preview():return
+            self.engine.set_local_muted(not self.engine.local_muted)
         else:
             if not self._confirm_preview():
                 return
@@ -1527,6 +1531,7 @@ class Application:
 
     def _connect(self):
         keep_listening = self.engine.local_enabled
+        keep_muted = self.engine.local_muted
         self._apply()
         self.settings.validate_connection()
         secret = self.secret.get()
@@ -1552,7 +1557,7 @@ class Application:
         self.source = SourceClient(self.settings, source_event, secret)
         self.connection_phase = "connecting"
         if keep_listening:
-            self.engine.listen_locally()
+            self.engine.listen_locally(muted=keep_muted)
         self._render_connections()
         self.source.start()
 
@@ -1826,7 +1831,7 @@ class Application:
         self.queue_summary.set(f'{count} pending. Oldest {age}s. Expired {expired}. Last preparation {self.engine.preparation_seconds:.2f}s.')
         from .filtering import summary
         visible=sum(not reason for reason in self.spot_reasons.values())
-        self.filter_summary.set(summary(self.settings)+f' · {visible} live rows · Green check: announced. Red check: open for reason.')
+        self.filter_summary.set(summary(self.settings)+f' · {visible} live rows · Green check: announced. Gray M: muted. Red check: open for reason.')
         self.root.after(75, self._poll)
 
     def _journal(self, text):

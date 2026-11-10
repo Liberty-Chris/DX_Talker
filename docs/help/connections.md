@@ -89,3 +89,5 @@ Ubuntu profiles use the desktop Secret Service keyring. Unlock it before saving 
 ## Raw console versus announcements
 
 The Source page has a collapsed Unfiltered diagnostic console. Show raw cluster traffic explicitly opens it for sign in and troubleshooting. It bypasses listening filters and is not a list of accepted announcements. Its latest 15 lines remain redacted, session only and excluded from speech and logs. Use Live spots for admitted announcements and Rejected spots for individual exclusion reasons.
+
+Local mute preserves the connected source and live spot display. It does not apply pending source edits or reconnect. If listening was already armed when Connect is pressed, its mute state is restored before the new source starts. Source loss, Disconnect and Stop all output retain their full stop behavior.

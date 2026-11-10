@@ -258,3 +258,7 @@ Supersede the November 8 common regional subset. DX Talker's intended users are 
 ## November 9, 2026. Selectable activity announcement wording
 
 Use a switch for activity wording during mixed listening, default off. Explicit selections limited to POTA, FOTA and SOTA use that wording automatically. The final owner choice is wording only and supersedes the earlier proposal to bypass listening filters. Preserve all filter and output admission decisions. Keep the fixed activity/mode/frequency/callsign order, omit unknown modes and preserve unit and speech pause preferences. Carry the switch in presets and transfers with explicit boolean validation.
+
+## November 10, 2026. Local mute and continuous display
+
+Keep local_enabled as session admission state and add a separate session only local_muted flag. The local toggle mutes rather than stopping the session. Muted reports still pass filters, timestamp and repeat checks but bypass audio synthesis and queue storage and receive a distinct muted receipt. Mute cancels current and queued local work without using Engine.stop. Preserve single coordinator ownership and explicit RF enable. Do not replay muted work on unmute. Full output stop, source loss and device faults retain their existing stop behavior.

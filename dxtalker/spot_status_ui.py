@@ -5,12 +5,13 @@ from tkinter import ttk
 
 def images(root):
     result={}
-    for state,color in [('announced','#239e59'),('rejected','#e04f5f'),('queued','#8899aa')]:
+    for state,color in [('announced','#239e59'),('rejected','#e04f5f'),('queued','#8899aa'),('muted','#8899aa')]:
         icon=tk.PhotoImage(master=root,width=18,height=18)
         if state=='queued':
             icon.put(color,to=(6,6,12,12))
         else:
-            for x1,y1,x2,y2 in [(3,9,7,13),(7,13,15,4)]:
+            strokes=[(3,14,3,4),(3,4,8,10),(8,10,13,4),(13,4,13,14)] if state=='muted' else [(3,9,7,13),(7,13,15,4)]
+            for x1,y1,x2,y2 in strokes:
                 steps=max(abs(x2-x1),abs(y2-y1))
                 for i in range(steps+1):
                     x=round(x1+(x2-x1)*i/steps);y=round(y1+(y2-y1)*i/steps)
@@ -26,7 +27,7 @@ def details(app, spot, state, reason):
         'Outside selected license segments':'The spot is outside the operating segments selected by your license filter.',
     }.get(reason,reason)
     window=tk.Toplevel(app.root);window.title('Announcement details');window.transient(app.root)
-    title={'announced':'Announced','rejected':'Not announced','queued':'Queued','announcing':'Preparing or playing','sample':'Sample for local preview'}[state]
+    title={'announced':'Announced','muted':'Locally muted. Not announced','rejected':'Not announced','queued':'Queued','announcing':'Preparing or playing','sample':'Sample for local preview'}[state]
     ttk.Label(window,text=spot.dx_call+' · '+spot.frequency_text(app.settings.frequency_unit)+' '+app.settings.frequency_unit,font=('Segoe UI',12,'bold')).pack(anchor='w',padx=16,pady=(14,6))
     ttk.Label(window,text=title+' · '+spot.timestamp.strftime('%H:%M:%SZ')+' · '+spot.source).pack(anchor='w',padx=16)
     ttk.Label(window,text=reason,wraplength=480).pack(anchor='w',padx=16,pady=12)
