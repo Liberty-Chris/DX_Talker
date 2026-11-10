@@ -118,3 +118,7 @@ The a25 correction also admits matching cluster rows while both audio routes are
 ## First beta usability acceptance
 
 1.0.0b1 moves daily operation to scoped connection/audio actions, automatic ordinary preferences and explicitly applied radio drafts. Test desktop and Android first use, ordinary listening, filter/preset changes, profile editing, previews, output route switching, Stop during transitions, draft recovery and the simplified update flow. Retain existing features and continue named Windows, XP, Ubuntu, Android and physical radio acceptance. Beta status does not close the outstanding hardware and operating system evidence requirements.
+
+## Local RF monitor acceptance
+
+For 1.0.0b2, verify simultaneous speakers and RF on named devices, both enable orders, independent local mute and volume, local continuation after disabling RF, receive hold interruption, Stop and separate output latency. Confirm Spot a station and Spot myself remain visible at compact sizes. These changes retain the outstanding physical interface acceptance work.

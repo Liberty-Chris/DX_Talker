@@ -16,6 +16,8 @@ def vocabulary(extra=''):
     words.update({v: v for v in 'new on at frequency callsign this is stroke dash point kilohertz megahertz'.split()})
     words['dx'] = 'D X'
     words.update({'letter:'+key: value for key, value in LETTERS.items()})
+    for phrase in ('poughta','phota','sota'):
+        words['phrase:'+phrase] = phrase
     for phrase in ['New DX', 'New DX on', extra]:
         if phrase.strip(): words['phrase:'+phrase.strip().lower()] = phrase.strip()
     return words
@@ -41,6 +43,12 @@ def keys_for(text):
     words = re.findall(r"[A-Za-z0-9/\-]+", text)
     result=[]
     for word in words:
+        # Older packs retain their letter clips; regenerated packs prefer the
+        # natural phrase clip above this compatibility spelling.
+        activity={'poughta':'POTA','phota':'FOTA','sota':'SOTA'}.get(word.lower())
+        if activity:
+            result.extend('letter:'+char for char in activity.lower())
+            continue
         if any(c.isdigit() for c in word) or word.isupper() and len(word)>1 and word!='DX':
             for char in word.lower():
                 result.append('letter:'+char if char.isalpha() else {'/':'stroke','-':'dash'}.get(char, {'0':'zero','1':'one','2':'two','3':'three','4':'four','5':'five','6':'six','7':'seven','8':'eight','9':'nine'}.get(char,char)))

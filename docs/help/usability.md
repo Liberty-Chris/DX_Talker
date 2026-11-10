@@ -4,9 +4,9 @@
 
 Choose a cluster profile, then Connect. Selecting or editing a desktop profile leaves the current session alone. Connect switches to the entered connection details. Matching spots appear with audio off. Listen locally enables audio for new spots. Mute silences local announcements while the list continues updating. Unmute receives a green hover and keyboard focus treatment in every desktop theme. It announces new arrivals without replaying muted history.
 
-Local volume is beside the live queue and is remembered automatically. Volume zero is shown explicitly. Local audio and RF remain separate output routes. Selecting another route waits for the previous output to finish stopping. Stop all output cancels current work and pending switches. It never asks for confirmation.
+Local volume is beside the live queue and is remembered automatically. Volume zero is shown explicitly. Local audio and RF can run together using separate speakers and radio audio devices. Enable either one first, then the other. While RF is enabled, the local button reads Monitoring RF and mirrors each transmitted spot and ID. Local mute and volume affect speakers only. Unmute joins the next transmission without replaying a backlog. Disable RF preserves local listening. Enabling RF waits for any current local clip to stop before starting the required identification. Stop all output cancels current work and pending switches. It never asks for confirmation.
 
-The main toolbar contains connection, local audio, RF and Filters. Preview selected operates on the selected row. Spot details explains that row's result and recent exclusions. More actions retains sample previews, clear view, station and self spotting, immediate ID, cluster commands and announcement diagnostics. Catch up to live drops queued spot announcements while preserving current audio and required identification.
+The main toolbar contains connection, local audio, RF and Filters. Preview selected operates on the selected row. Spot details explains that row's result and recent exclusions. Spot a station and Spot myself remain directly visible on the main page. More actions retains sample previews, clear view, immediate ID, cluster commands and announcement diagnostics. Catch up to live drops queued spot announcements while preserving current audio and required identification.
 
 ## Saving and unfinished edits
 

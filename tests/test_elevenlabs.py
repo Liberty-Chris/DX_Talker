@@ -64,8 +64,14 @@ class ElevenLabsTests(unittest.TestCase):
                 build_pack(Client(),path,'Fixture','otherVoice','model')
             cancel.clear();build_pack(Client(),path,'Fixture','voice','model',cancel=cancel)
             self.assertEqual(len(calls),len(vocabulary()))
-            pack=VoicePack(path);self.assertEqual(len(pack.data['clips']),77)
+            pack=VoicePack(path);self.assertEqual(len(pack.data['clips']),len(vocabulary()))
             self.assertGreater(pack.render([('New DX on',0)],None,cancel).duration,0)
+            for pronunciation in ('poughta','phota','sota'):
+                self.assertIn(pronunciation,calls)
+                natural=pack.render([(pronunciation,0)],None,cancel)
+                del pack.data['clips']['phrase:'+pronunciation]
+                compatible=pack.render([(pronunciation,0)],None,cancel)
+                self.assertGreater(compatible.duration,natural.duration)
             self.assertNotIn('api_key',(path/'voice.json').read_text())
             with self.assertRaisesRegex(ValueError,'never overwritten'):build_pack(Client(),path,'Fixture','voice','model')
 
@@ -90,6 +96,6 @@ class ElevenLabsTests(unittest.TestCase):
                 build_pack(Client(),path,'Fixture','voice','model',cancel=cancel,progress=lambda done,total:cancel.set() if done==1 else None)
             partial=path.with_name('voice.partial');next(partial.glob('*.wav')).write_bytes(b'broken')
             cancel.clear();build_pack(Client(),path,'Fixture','voice','model',cancel=cancel)
-            self.assertEqual(len(calls),78)
+            self.assertEqual(len(calls),len(vocabulary())+1)
         with self.assertRaisesRegex(ValueError,'exceeded'):
             ElevenLabs('key',opener=lambda *a,**k:BytesIO(b'x'*441002)).render('Alpha','voice','model',cancel)

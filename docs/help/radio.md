@@ -8,6 +8,12 @@ A preview can still reach the radio if both roles use the same device. This is p
 
 The app resolves the selected device before playback. Missing or ambiguous names stop output instead of falling back to another device. Refresh audio and serial devices after connecting an interface. Refreshing disables RF.
 
+## Monitoring RF locally
+
+Select separate local speakers and radio audio outputs, then enable both RF and Listen locally from Live spots. The local control reads Monitoring RF. Spots and IDs are synthesized once and played through both destinations during the same transmission. Local mute and volume affect speakers only. Receive hold delays both streams until the channel is clear and interrupts both when receive activity returns. PTT is released independently of local speaker cleanup. A local speaker fault mutes monitoring and reports the problem while RF continues. Radio or receive input faults stop both outputs.
+
+Disable RF retains local listening. Stop all output and Escape stop both. Local monitoring does not play received radio audio. It plays DX Talker announcements. Separate devices can have different output latency.
+
 ## PTT methods
 
 VOX sends audio without controlling a PTT line. Your radio or interface must already be configured to key from that audio.

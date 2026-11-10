@@ -15,6 +15,35 @@ class UsabilityTests(unittest.TestCase):
     setUp=_Fixtures.setUp
     tearDown=_Fixtures.tearDown
 
+    def test_rf_and_local_controls_work_independently_and_spot_actions_are_visible(self):
+        app=self.app
+        with app.engine.lock:
+            app.engine.configure(replace(app.settings,radio_device='radio',preview_device='local',cw_text='E'))
+            app.variables['preview_device'].set('local')
+            app._enable()
+            app._listen()
+            self.assertTrue(app.engine.enabled);self.assertTrue(app.engine.local_enabled)
+            self.assertEqual(app.listening_controls[0]['button'].cget('text'),'Monitoring RF')
+            app._listen()
+            self.assertTrue(app.engine.enabled);self.assertTrue(app.engine.local_muted)
+            app._listen()
+            self.assertTrue(app.engine.enabled);self.assertFalse(app.engine.local_muted)
+            app._enable()
+            self.assertFalse(app.engine.enabled);self.assertTrue(app.engine.local_enabled)
+            app._enable()
+            self.assertTrue(app.engine.enabled);self.assertTrue(app.engine.local_enabled)
+            app._stop()
+            self.assertFalse(app.engine.enabled);self.assertFalse(app.engine.local_enabled)
+        self.assertEqual(app.spot_station_button.winfo_manager(),'pack')
+        self.assertEqual(app.spot_myself_button.winfo_manager(),'pack')
+        with patch.object(app,'_spot_dialog') as open_dialog:
+            app.spot_station_button.invoke();open_dialog.assert_called_with(False)
+            app.spot_myself_button.invoke();open_dialog.assert_called_with(True)
+        self.root.deiconify();self.root.geometry('900x600');self.root.update()
+        for button in (app.spot_station_button,app.spot_myself_button):
+            self.assertTrue(button.winfo_viewable())
+            self.assertLessEqual(button.winfo_rootx()+button.winfo_width(),self.root.winfo_rootx()+self.root.winfo_width())
+
     def test_connect_ignores_incomplete_radio_and_speech_edits(self):
         app=self.app
         app.variables['host'].set('test.invalid')

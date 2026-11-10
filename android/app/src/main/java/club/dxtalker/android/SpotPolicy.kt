@@ -29,7 +29,8 @@ object SpotPolicy {
         val frequency=spot.frequency(unit).map{if(it=='.')"point" else digits[it-'0']}.joinToString(" ")
         val tags=SpotFilters.activityTags(spot.comment)
         if(tags.isNotEmpty() && activityStyle) {
-            val parts=tags.toMutableList()
+            val pronunciation=mapOf("POTA" to "poughta","FOTA" to "phota","SOTA" to "sota")
+            val parts=tags.map { pronunciation.getValue(it) }.toMutableList()
             val mode=SpotFilters.mode(spot.comment,spot.mode,spot.frequency)
             if(mode!="Unknown")parts.add(mode)
             // Preserve the selected spoken-unit preference in the saved format.

@@ -330,3 +330,15 @@ Local verification completed: the graphical Linux run completed 276 Python tests
 ## Beta idle CPU correction
 
 The main merge passed modern Windows x64, both XP variants after retry, Ubuntu and core checks but repeated the modern x86 idle CPU limit failure. The fix removes unchanged Tk writes and geometry operations from idle polls and caches spot visibility and navigation input. The poll interval, receive policy and performance budgets are unchanged. Smoke assertion failures now release worker and diagnostic handles before temporary settings removal. Local graphical Linux process CPU ratio fell from 4.29% to 1.09% in a controlled source comparison with synthetic devices. Hosted Windows x86 verification is pending on the followup branch; this is not yet a completed release check.
+
+## Activity voice pronunciation
+
+Recognized activity announcements now send poughta for POTA, phota for FOTA and sota for SOTA to desktop and Android speech. Display labels and nonphonetic announcement details retain the acronyms. New recorded packs include natural phrase clips; older packs retain letter playback without missing clip errors. Existing filter admission, units, mode and callsign handling remain unchanged.
+
+Local headless verification completed 281 tests with no failures and 64 expected GUI or native platform skips. Speech plans, SSML text, recorded generation and older pack compatibility are covered. Documentation links, Help targets and version alignment passed. Local Android Gradle verification could not resolve the Android plugin from the configured repositories; hosted Android tests remain pending. No new live provider or listening acceptance is claimed.
+
+## 1.0.0b2. Simultaneous local listening and RF
+
+Desktop now keeps local listening and RF independently enabled. A separate local audio stream mirrors the single generated spot or ID during RF playback. Local mute and live volume do not cancel radio output or discard its queue. Receive hold gates both streams and receive interruption cancels both before retry. Stop and RF faults disarm both. PTT release precedes local speaker cleanup; a local device failure mutes only monitoring and reports it. Disabling RF returns to the existing local session. Station and self spotting are visible main page buttons, including compact layouts.
+
+Local headless verification passed 292 tests with 65 expected graphical or native platform skips. Ten focused dual output tests passed, covering both destinations, shared synthesis, independent volume and mute, queue preservation, receive hold and interruption, Stop, radio and local faults and prompt PTT release with slow speakers. Android pronunciation unit tests, APK build and emulator navigation passed on the first PR revision. Hosted verification of this expanded revision remains pending. Real audio devices and physical RF were not exercised. Version 1.0.0b2 follows the already published first beta, with Android versionCode 21 and aligned installer, EXE and Help metadata.

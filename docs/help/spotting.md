@@ -1,6 +1,6 @@
 # Share a DX spot
 
-Spot myself fills the callsign from the current cluster session. Spot a station accepts a station you worked or simply heard. Android opens the same form through Spot and offers Use my callsign. Enter the station callsign, frequency, kHz or MHz and an optional comment. Time and submitting identity are supplied through the cluster session rather than separate form fields.
+On desktop, Spot a station and Spot myself are direct buttons on the Live spots main page. Spot myself fills the callsign from the current cluster session. Spot a station accepts a station you worked or simply heard. Android opens the same form through Spot and offers Use my callsign. Enter the station callsign, frequency, kHz or MHz and an optional comment. Time and submitting identity are supplied through the cluster session rather than separate form fields.
 
 Choose Send spot to validate the entered fields and submit directly. Desktop updates the normalized command beneath the fields as you type; there is no separate review button. DX Talker submits only to the TCP/Telnet cluster currently being monitored. It never sends the same spot to several nodes. Interconnected clusters may propagate it according to their routing and policies; delivery everywhere is not guaranteed. Respect the node, event and contest rules, including any restrictions on self spotting.
 
