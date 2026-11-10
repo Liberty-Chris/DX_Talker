@@ -398,9 +398,13 @@ class Engine:
                 self._play(clip, s.radio_device, s.volume_percent if volume is None else volume, playback_cancel, deadline, operation, 'radio')
             if playback_cancel.wait(s.tail_ms / 1000): raise Cancelled()
         except Cancelled:
+            local_done.set()
             if receive_cancel and not self.cancel.is_set():
                 if receive_cancel.fault: raise receive_cancel.fault
                 if receive_cancel.interrupted: raise ChannelBusy()
+            raise
+        except Exception:
+            local_done.set()
             raise
         finally:
             try:

@@ -15,6 +15,7 @@ class ControlledAudio(FakeAudio):
         self.finished = threading.Event()
 
     def play(self, clip, device, volume, cancel, deadline):
+        self.cancel=cancel
         super().play(clip, device, volume, cancel, deadline)
         try:
             while not self.release.wait(.005):
@@ -135,8 +136,23 @@ class DualOutputTests(unittest.TestCase):
 
     def test_radio_fault_disarms_both_routes(self):
         self.arm()
-        self.audio.fail=True
+        self.engine.local_audio=local=ControlledAudio()
+        owner=self
+        class CheckingPTT(fixtures.FakePTT):
+            def close(this):
+                owner.assertTrue(local.cancel.is_set(),'Radio failure must cancel the monitor before PTT cleanup')
+                super().close()
+        def create(settings):
+            ptt=CheckingPTT();self.ptts.append(ptt);return ptt
+        self.engine.ptt_factory=create
+        class FailingRadio(FakeAudio):
+            def play(this,clip,device,volume,cancel,deadline):
+                self.assertTrue(local.entered.wait(2))
+                raise RuntimeError('Radio disconnected')
+        self.engine.audio=FailingRadio()
         self.assertTrue(self.engine.offer(self.spot()))
+        self.assertTrue(local.entered.wait(2))
+        self.assertTrue(local.finished.wait(2))
         wait_for(lambda:not self.engine.enabled and not self.engine.busy)
         self.assertFalse(self.engine.local_enabled)
         self.assertEqual(self.ptts[0].calls[-2:],[False,'close'])

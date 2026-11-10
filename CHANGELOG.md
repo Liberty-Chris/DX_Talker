@@ -179,8 +179,8 @@ Android autosaves appearance and announcement edits, keeps matching display rows
 
 The beta followup stops unchanged status labels, capability buttons, empty list placement and receive meter coordinates from being rewritten on every UI poll. Spot visibility and navigation measurements are cached until their inputs change. Stop and control event polling retain the existing interval and performance limits are unchanged. Failed Windows smoke checks close their application and diagnostic handles before temporary folder removal.
 
-Use poughta, phota and sota for recognized POTA, FOTA and SOTA voice announcements on desktop and Android while retaining normal display labels. Include pronunciation phrases in newly generated recorded packs and preserve letter playback for existing packs.
-
 ## 1.0.0b2. Local RF monitoring and main page spotting
+
+Use poughta, phota and sota for recognized POTA, FOTA and SOTA voice announcements on desktop and Android while retaining normal display labels. Include pronunciation phrases in newly generated recorded packs and preserve letter playback for existing packs.
 
 Allow RF and local listening together with independent speaker mute and volume. Mirror generated spots and IDs through separate output streams under the same transmission coordinator. Keep receive hold, interruption, Stop, RF fault cleanup and PTT release in force. Keep local listening when disabling RF. Report local speaker failures without disabling healthy RF. Restore Spot a station and Spot myself as direct main page buttons. Align desktop, Windows metadata, Android versionCode 21 and Help to 1.0.0b2.
