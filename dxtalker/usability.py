@@ -300,7 +300,7 @@ class Usability:
             else:
                 self.empty_label.place_forget()
         shared=self.settings.preview_device and self.settings.preview_device==self.settings.radio_device
-        cache.set(self.routing_hint,'Local audio uses the radio output and may key VOX.' if shared else 'Local listening and radio audio use separate destinations.' if self.settings.preview_device else 'Choose Local listening speakers to enable local audio.')
+        cache.set(self.routing_hint,'Local audio uses the radio output and may key VOX. Select separate speakers to monitor RF.' if shared else 'RF and local listening can run together. Local mute and volume affect speakers only.' if self.settings.preview_device else 'Choose Local listening speakers to enable local audio.')
         state,level,remaining=self.engine.monitor.snapshot()
         # One pixel of display precision; the receive detector retains full precision.
         meter=round(5*max(0,min(60,(level if level is not None else -60)+60)))

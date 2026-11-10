@@ -22,12 +22,33 @@ class PreviewRequest:
     settings: object
 
 
+class MonitorCancel:
+    """A local mute cancels only the monitor; RF cancellation cancels both."""
+    def __init__(self, engine, parent, generation, done):
+        self.engine, self.parent, self.generation, self.done = engine, parent, generation, done
+
+    def is_set(self):
+        return (self.done.is_set() or self.parent.is_set() or
+                self.engine.local_generation != self.generation or
+                not self.engine.local_enabled or self.engine.local_muted)
+
+    def wait(self, seconds):
+        end = time.monotonic() + seconds
+        while not self.is_set():
+            remaining = end - time.monotonic()
+            if remaining <= 0: return False
+            self.done.wait(min(.02, remaining))
+        return True
+
+
 class Engine:
     def __init__(self, settings, emit, audio=None, speech=None, ptt_factory=create_ptt,
-                 clock=time.monotonic, monitor=None):
+                 clock=time.monotonic, monitor=None, local_audio=None):
         self.settings, self.emit = settings, emit
         self.source_available = lambda: True
         self.audio, self.speech = audio or AudioOutput(), speech or SpeechService()
+        self.local_audio = local_audio or AudioOutput()
+        self.local_generation = 0
         self.ptt_factory, self.clock = ptt_factory, clock
         self.monitor = monitor or ReceiveMonitor(clock)
         self.gate_state = None
@@ -57,17 +78,20 @@ class Engine:
             self._clear_pending('Settings changed before announcement')
             self.seen.clear()
 
-    def enable(self):
+    def enable(self, local=None, muted=None):
         with self.lock:
             if self.busy:
                 raise ValueError("Wait for the current preview to finish")
             self.settings.validate_rf()
+            local = self.local_enabled if local is None else local
+            muted = self.local_muted if muted is None else muted
+            if local and not muted: self._validate_monitor()
             self.monitor.close()
             if self.settings.receive_guard:
                 self.monitor.start(self.settings)
             self.gate_state = None
-            self.local_enabled = False
-            self.local_muted = False
+            self.local_enabled = local
+            self.local_muted = muted if local else False
             self.cancel.clear()
             self.stop_reason = ''
             self._clear_pending('Output restarted before announcement')
@@ -82,6 +106,7 @@ class Engine:
         self.stop_reason = message
         with self.lock:
             self.enabled = self.local_enabled = False
+            self.local_generation += 1
             self.local_muted = False
             self.pending_voice_clip = None
             self.cancel.set()
@@ -121,8 +146,10 @@ class Engine:
             reason = rejection(spot, s)
             if reason:
                 return reason
-            muted = self.local_enabled and (self.local_muted or s.local_volume_percent == 0)
-            audio_off = not (self.enabled or self.local_enabled) or self.enabled and s.volume_percent == 0
+            local_audible = self.local_enabled and not self.local_muted and s.local_volume_percent > 0
+            radio_audible = self.enabled and s.volume_percent > 0
+            muted = self.local_enabled and not radio_audible and not local_audible
+            audio_off = not (radio_audible or local_audible)
             age = (datetime.now(UTC) - spot.timestamp).total_seconds()
             if age > s.max_age_seconds or age < -120:
                 return 'Spot timestamp is too old or in the future'
@@ -209,9 +236,22 @@ class Engine:
                 return kind, value, self.settings
         return None
 
+    def _validate_monitor(self):
+        if not self.settings.preview_device:
+            raise ValueError("Choose local listening speakers first")
+        if self.settings.preview_device == self.settings.radio_device:
+            raise ValueError("Choose different local listening speakers and radio audio outputs to monitor RF without duplicate audio")
+
     def listen_locally(self, muted=False):
         with self.lock:
-            if self.enabled or self.busy:
+            if self.enabled:
+                self._validate_monitor()
+                self.local_enabled = True
+                self.local_muted = muted
+                self.local_generation += 1
+                self.emit('output','RF enabled. Local monitor muted.' if muted else 'RF enabled with local monitoring. New transmissions play through both outputs.')
+                return
+            if self.busy:
                 raise ValueError("Stop output and wait for Idle before starting local listening")
             if not self.settings.preview_device:
                 raise ValueError("Choose a local preview audio device")
@@ -228,11 +268,17 @@ class Engine:
 
     def set_local_muted(self, muted):
         with self.lock:
-            if not self.local_enabled or self.enabled:
+            if not self.local_enabled:
                 raise ValueError('Start local listening before using local mute')
-            if not muted and self.busy:
+            if self.enabled and not muted:
+                self._validate_monitor()
+            if not muted and self.busy and not self.enabled:
                 raise ValueError('Wait for local audio to finish stopping before unmuting')
             self.local_muted = muted
+            self.local_generation += 1
+            if self.enabled:
+                self.emit('output','Local monitor muted. RF remains enabled.' if muted else 'Local monitor on. RF remains enabled. Monitoring resumes with the next transmission.')
+                return
             if muted:
                 self.stop_reason = 'Local audio muted. Spots continue updating.'
                 self.cancel.set()
@@ -272,9 +318,10 @@ class Engine:
         if self.cancel.wait(seconds):
             raise Cancelled()
 
-    def _play(self, clip, device, volume, cancel, deadline, operation, route):
-        self.audio.volume_reader=(lambda:self.settings.local_volume_percent) if route=='local' else None
-        report = self.audio.play(clip, device, volume, cancel, deadline)
+    def _play(self, clip, device, volume, cancel, deadline, operation, route, audio=None):
+        audio = audio or self.audio
+        audio.volume_reader=(lambda:self.settings.local_volume_percent) if route=='local' else None
+        report = audio.play(clip, device, volume, cancel, deadline)
         if isinstance(report, dict) and report.get('output_underflows'):
             if route == 'radio' and operation.startswith('id'):
                 raise AudioPlaybackError('audio_id_interrupted', frames_queued=len(clip.pcm)//(2*clip.channels),
@@ -303,6 +350,8 @@ class Engine:
         ptt = self.ptt_factory(s)
         timeout = threading.Event()
         watchdog = None
+        local_thread = None
+        local_done = threading.Event()
         try:
             ptt.open()
             if s.receive_guard and not self.monitor.ready():
@@ -329,6 +378,23 @@ class Engine:
             if clip is None:
                 if playback_cancel.wait(2): raise Cancelled()
             else:
+                if self.local_enabled and not self.local_muted and self.settings.local_volume_percent > 0:
+                    local_cancel = MonitorCancel(self, playback_cancel, self.local_generation, local_done)
+                    def monitor_audio():
+                        try:
+                            if s.preview_device == s.radio_device:
+                                raise ValueError('Local monitor must use separate speakers')
+                            self._play(clip, s.preview_device, s.local_volume_percent, local_cancel, deadline, operation, 'local', audio=self.local_audio)
+                        except Cancelled:
+                            pass
+                        except Exception as exc:
+                            with self.lock:
+                                self.local_muted = True
+                                self.local_generation += 1
+                            self.emit('audio_monitor_fault',dict(error_type=type(exc).__name__))
+                            self.emit('output','Local monitor failed and was muted. RF remains enabled. Check local speakers before unmuting.')
+                    local_thread = threading.Thread(target=monitor_audio, daemon=True, name='DX local monitor')
+                    local_thread.start()
                 self._play(clip, s.radio_device, s.volume_percent if volume is None else volume, playback_cancel, deadline, operation, 'radio')
             if playback_cancel.wait(s.tail_ms / 1000): raise Cancelled()
         except Cancelled:
@@ -342,6 +408,13 @@ class Engine:
             finally:
                 if watchdog:
                     watchdog.cancel()
+                # Release PTT before waiting for the independent speakers.
+                if local_thread:
+                    local_thread.join(.5)
+                    local_done.set()
+                    local_thread.join(1)
+                    if local_thread.is_alive():
+                        raise TimeoutError('Local monitor did not stop after RF playback')
         if timeout.is_set():
             raise TimeoutError("Transmit watchdog stopped output")
 
@@ -405,7 +478,7 @@ class Engine:
                     if not matches(value,self.settings):continue
                 if kind=='id_voice' and clip.duration+(s.lead_ms+s.tail_ms)/1000>=s.id_minutes*60:
                     raise ValueError('Voice ID is longer than the CW interval. Shorten the message or increase the interval.')
-                if kind == "spot" and self.local_enabled:
+                if kind == "spot" and self.local_enabled and (not self.enabled or s.volume_percent == 0):
                     if (datetime.now(UTC) - value.timestamp).total_seconds() > s.max_age_seconds:
                         continue
                     self._play(clip, s.preview_device, s.local_volume_percent, self.cancel, self.clock() + 120, kind, 'local')
@@ -475,7 +548,7 @@ class Engine:
                     evidence['receive_code']=getattr(self.monitor,'fault_code',None)
                 if isinstance(exc, AudioPlaybackError):
                     evidence.update(code=exc.code, playback=exc.context, operation=kind,
-                                    route='local' if kind.startswith('preview_') or self.local_enabled else 'radio')
+                                    route='local' if kind.startswith('preview_') or not self.enabled else 'radio')
                 self.emit('diagnostic', evidence)
                 # Transport errors can contain identifiers; only expected local
                 # validation messages are shown verbatim.

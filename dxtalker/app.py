@@ -455,10 +455,15 @@ class Application(Usability):
         selected.pack(side='left',padx=(0,6));self.capability_buttons.append((selected,'preview'))
         self.rejected_button=ttk.Button(filters,text='Spot details',command=self._show_spot_details)
         self.rejected_button.pack(side='left',padx=(0,6))
+        spot_actions=ttk.Frame(toolbar)
+        spot_actions.grid(row=2,column=0,columnspan=4,sticky='ew',pady=(6,0))
+        self.spot_station_button=ttk.Button(spot_actions,text='Spot a station',command=self.guard(lambda:self._spot_dialog(False)))
+        self.spot_station_button.pack(side='left',padx=(0,6))
+        self.spot_myself_button=ttk.Button(spot_actions,text='Spot myself',command=self.guard(lambda:self._spot_dialog(True)))
+        self.spot_myself_button.pack(side='left',padx=(0,6))
         tools=ttk.Menubutton(filters,text='More actions')
         menu=tk.Menu(tools,tearoff=False)
         for label,action in [('Sample preview',self._sample_preview),('Clear view',self._clear_spots),
-                             ('Spot a station',lambda:self._spot_dialog(False)),('Spot myself',lambda:self._spot_dialog(True)),
                              ('Send ID now',self.engine.identify),('Cluster commands',lambda:self._focus_command(source=True)),
                              ('Announcement diagnostics',self._show_session_diagnostics)]:
             menu.add_command(label=label,command=self.guard(action))
@@ -958,13 +963,15 @@ class Application(Usability):
             elif item["kind"] == "listening":
                 if self.engine.local_enabled:
                     text = "Muting..." if stopping else "Unmute" if self.engine.local_muted else "Volume zero" if self.settings.local_volume_percent == 0 else "Mute" if attention else "Listening"
+                    if self.engine.enabled and not self.engine.local_muted and self.settings.local_volume_percent > 0:
+                        text = 'Mute local' if attention else 'Monitoring RF'
                     if self.engine.local_muted:
                         edge,background,ink=(p["positive"],p["positive_bg"],p["positive_ink"]) if attention else (p["edge"],p["field"],p["ink"])
                     else:
                         edge, background = ("#d63852", "#542334") if attention else (p["accent"], p["selected"])
                         ink = "#ffffff" if attention else p["ink"]
                 else:
-                    text = "Stopping..." if stopping else "Listen locally"
+                    text = "Stopping..." if stopping else "Monitor RF locally" if self.engine.enabled else "Listen locally"
                     edge, background, ink = (p["accent"] if attention else p["edge"]), p["field"], p["ink"]
             elif connected:
                 if self._has_source_edits():
@@ -1332,7 +1339,10 @@ class Application(Usability):
         if self.engine.local_enabled:
             muted = not self.engine.local_muted
             if not muted:
-                self._when_idle(lambda: self.engine.set_local_muted(False))
+                if self.engine.enabled:
+                    self.engine.set_local_muted(False)
+                else:
+                    self._when_idle(lambda: self.engine.set_local_muted(False))
             else:
                 self.engine.set_local_muted(True)
         else:
@@ -1341,7 +1351,10 @@ class Application(Usability):
                 self.field_widgets['preview_device'].focus_set()
                 raise ValueError('Choose Local listening speakers in Audio / PTT. The choice saves automatically.')
             self._confirm_preview()
-            self._when_idle(self.engine.listen_locally, stop=True)
+            if self.engine.enabled:
+                self.engine.listen_locally()
+            else:
+                self._when_idle(self.engine.listen_locally, stop=True)
         self._render_connections()
 
     def _history_tab(self):
@@ -1695,11 +1708,16 @@ class Application(Usability):
         return True
 
     def _enable(self):
+        local,muted=self.engine.local_enabled,self.engine.local_muted
         if self.engine.enabled:
-            self._stop()
+            if local:
+                self._when_idle(lambda:self.engine.listen_locally(muted=muted),stop=True)
+            else:
+                self._stop()
         else:
             self.engine.settings.validate_rf()
-            self._when_idle(self.engine.enable, stop=True)
+            if local and not muted:self.engine._validate_monitor()
+            self._when_idle(lambda:self.engine.enable(local=local,muted=muted), stop=True)
         self._render_connections()
 
     def _stop(self):
