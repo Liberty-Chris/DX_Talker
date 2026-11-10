@@ -106,6 +106,27 @@ class AudioTests(unittest.TestCase):
                     decoded.frombytes(captured[0])
                     self.assertEqual(list(decoded), [500, -500, 0, 0])
 
+    def test_local_volume_reader_changes_between_buffers_without_restart(self):
+        class Stop(Exception):pass
+        class Abort(Exception):pass
+        captured=[];level=[50]
+        class Stream:
+            active=True
+            def __init__(self,**kwargs):self.kwargs=kwargs
+            def __enter__(self):
+                for percent in (50,0,100):
+                    level[0]=percent;out=bytearray(4)
+                    try:self.kwargs['callback'](out,2,None,False)
+                    except Stop:pass
+                    samples=array('h');samples.frombytes(out);captured.append(list(samples))
+                self.kwargs['finished_callback']();return self
+            def __exit__(self,*args):pass
+        audio=AudioOutput();audio.volume_reader=lambda:level[0]
+        fake=SimpleNamespace(RawOutputStream=Stream,CallbackStop=Stop,CallbackAbort=Abort)
+        with patch.dict('sys.modules',{'sounddevice':fake}),patch.object(audio,'resolve',return_value=0):
+            audio.play(Clip(array('h',[1000,-1000]*3).tobytes()),'local',70,threading.Event(),time.monotonic()+2)
+        self.assertEqual(captured,[[500,-500],[0,0],[1000,-1000]])
+
     def test_normal_finish_between_wait_and_stream_state_check_is_not_a_fault(self):
         class Stop(Exception):pass
         class Abort(Exception):pass

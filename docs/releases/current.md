@@ -1,9 +1,13 @@
-DX Talker 0.2.0a25 displays matching cluster spots independently of local audio and RF.
+DX Talker 1.0.0b1 introduces the first beta with a complete usability pass across desktop and Android.
 
-Connecting to a cluster populates the filtered Live spots list even if neither audio route is enabled. A gray D means display only with audio off. Starting audio announces new arrivals only.
+Ordinary preferences and announcement choices save automatically. Radio and identification edits are preserved as drafts and applied together with Apply radio changes. RF still requires explicit enablement. Connect and local previews use only their relevant fields, so unfinished edits elsewhere do not block them or unexpectedly change the connection. Output transitions wait for cleanup once, and Stop cancels pending transitions.
 
-The desktop local control shows Mute on hover while listening and Unmute while muted. Mute cancels current and queued local audio without stopping the local session or reconnecting the cluster. New matching spots keep populating with a gray M beside the callsign. Their details explain that they were deliberately muted. They are not marked as played or rejected by a filter.
+Live spots emphasizes connection, local audio, RF and Filters. More actions retains the existing sample, station submission, immediate ID and diagnostic tools. Unmute highlights green in every theme. Local volume is available beside the queue, spot details explains exclusions and announcement results and compact layouts retain filter context. Filters has a direct page with immediate preset loading, Undo and location editing helpers.
 
-Unmute announces new spots only and does not replay the muted backlog. Existing filters, timestamp and repeat rules still apply. Zero local volume preserves muted rows and zero RF spot volume preserves display only rows. Explicit Connect preserves an already armed local session's mute state before starting the source. Full Stop all output, source loss, RF and audio fault behavior remain intact. Muted idle listening does not request Windows keep awake by itself.
+Profile editing and creation preserve the active desktop session. Switch cluster connects the selected details in one action. Deletion offers Undo. Noncredential profile drafts and unfinished radio settings survive restart without activating output. Speech setup has linked format and voice controls, an explicit system default voice, simpler recorded voice labels and a direct resume action for interrupted generation. Use this voice saves its selection automatically.
 
-Windows, XP and Ubuntu share this desktop change. Android retains its existing dedicated mute behavior. Saved settings and profiles remain compatible.
+Maintenance separates updates, history and diagnostics. Actions indicate availability, diagnostic export reports success inline and Install and restart launches the verified installer without another application approval dialog. Help has readable headings, local links and search.
+
+Android autosaves appearance and announcements, preserves matching rows during filter changes and keeps per profile drafts and page scroll positions. Mute discards audio arrivals; Pause holds announcements for Resume within queue and age limits. Collection QR scanning stays open between pages and offers one complete import review. Profile removal and directory replacement offer Undo.
+
+Saved settings, profiles and transfer formats remain compatible. Windows, XP and Ubuntu use the shared desktop interface. Android remains a system speech listener without RF. Real audio, PTT and device specific operating system acceptance remain part of beta testing.

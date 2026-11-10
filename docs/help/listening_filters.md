@@ -1,6 +1,6 @@
 # What do you want to hear?
 
-On desktop, What do you want to hear? is embedded directly on Source beside connection settings. Narrow windows place it below those settings with the normal page scrollbar. The Live spots shortcut opens Source and scrolls to the editor. On Android, open Filters from Listen. Choose bands, modes and activities without learning cluster commands. Selecting or unselecting a filter saves it immediately on desktop and Android. There is no Apply step and the cluster stays connected. Pending announcements are cleared so the new choices take effect. The main live list and announcement queue share one final admission decision, including age, duplicate and capacity checks. The All received display bypass has been removed. Why hidden? shows rejection counts without putting rejected spots back into the list.
+On desktop, What do you want to hear? is embedded directly in Filters beside connection settings. Narrow windows place it below those settings with the normal page scrollbar. The Live spots shortcut opens Source and scrolls to the editor. On Android, open Filters from Listen. Choose bands, modes and activities without learning cluster commands. Selecting or unselecting a filter saves it immediately on desktop and Android. There is no Apply step and the cluster stays connected. Pending announcements are cleared so the new choices take effect. The main live list and announcement queue share one final admission decision, including age, duplicate and capacity checks. The All received display bypass has been removed. Why hidden? shows rejection counts without putting rejected spots back into the list.
 
 ## Combine interests
 
@@ -86,3 +86,5 @@ This changes wording only. Band, mode, activity, frequency limits, license and l
 Only recognized activity tags are spoken, not arbitrary comments. If several tags are present, announce POTA, FOTA and SOTA in that order, omitting absent tags. Use the identified mode and omit it when Unknown. The existing US inference and explicit mode evidence rules determine that mode. Recorded packs can spell the activity and mode acronyms with their existing letter assets.
 
 The switch saves immediately with listening choices and is included in presets and profile/QR transfers. Update both receiving and sending apps to a24 or later before transferring this new preference. Older files without the field remain supported and default it to off.
+
+In the beta, preset selection loads immediately and desktop replacement or removal offers Undo. Location selectors and the known station editor supplement the advanced text fields. Android retains matching displayed rows when filters change. See [Operation and saving](usability.md).

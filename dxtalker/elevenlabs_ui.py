@@ -1,6 +1,7 @@
 """Keyless pilot generation into offline voice packs through the shared service."""
 from pathlib import Path
 import queue
+import json
 import threading
 import tkinter as tk
 from tkinter import filedialog, ttk
@@ -50,6 +51,11 @@ class ElevenLabsDialog:
         self.status=tk.StringVar(value='Choose a voice and Generate. DX Talker saves the pack automatically.')
         ttk.Label(frame,textvariable=self.status,wraplength=600).grid(row=7,column=0,columnspan=3,sticky='w',pady=10)
         self.progress=ttk.Progressbar(frame,length=420,mode='determinate');self.progress.grid(row=8,column=0,columnspan=3,sticky='ew')
+        self.resume_voice=''
+        self.job_path=settings_path().with_name('voice-generation.json')
+        self.resume=ttk.Button(frame,text='Resume previous generation',command=self.resume_job)
+        self.resume.grid(row=12,column=0,columnspan=3,sticky='w',pady=8)
+        self.resume.configure(state='normal' if self.previous_job() else 'disabled')
         self.generate=ttk.Button(frame,text='Generate voice pack',command=lambda:self.begin('generate'));self.generate.grid(row=9,column=1,sticky='w',pady=10)
         self.cancel_button=ttk.Button(frame,text='Close',command=self.close);self.cancel_button.grid(row=9,column=2,pady=10)
         self.use=ttk.Button(frame,text='Use this voice',command=self.use_pack);self.destination=None
@@ -60,7 +66,7 @@ class ElevenLabsDialog:
         try:
             values={key:variable.get().strip() for key,variable in self.values.items()}
             client=SharedSpeech()
-            voice_id=self.voice_names.get(self.voice_choice.get(),'')
+            voice_id=self.voice_names.get(self.voice_choice.get(),'') or self.resume_voice
             if action=='generate':
                 import re
                 if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,79}',values['Pack name']):raise ValueError('Use a pack name containing letters, numbers or underscores')
@@ -81,6 +87,8 @@ class ElevenLabsDialog:
                     else:
                         selected=voice_id or catalog['voices'][0]['id']
                         if selected not in {v['id'] for v in catalog['voices']}:raise ValueError('This voice is no longer enabled. Refresh the voice list.')
+                        self.job_path.parent.mkdir(parents=True,exist_ok=True)
+                        self.job_path.write_text(json.dumps(dict(values=values,voice_id=selected)))
                         path=build_pack(client,destination,values['Voice label'],selected,catalog['model_id'],values['Custom intro'],request_cancel,
                                         progress=lambda done,total:self.events.put(('progress',(done,total))))
                         self.events.put(('done',path))
@@ -98,14 +106,35 @@ class ElevenLabsDialog:
             self.busy=False;self.generate.configure(state='normal');self.load.configure(state='normal');self.cancel_button.configure(text='Close')
             if kind=='voices':self.voice_names=value;self.voices.configure(values=['']+list(value));self.status.set('Choose a voice or leave blank for the service default.')
             elif kind=='done':
-                self.destination=Path(value);self.status.set('Voice pack ready. Choose Use this voice, then Save and apply and Preview sample speech.')
+                self.destination=Path(value);self.status.set('Voice pack ready. Use this voice saves the selection automatically. Preview when ready.')
                 self.use.grid(row=10,column=1,sticky='w',pady=8)
             else:self.status.set(value)
+            self.resume.configure(state='normal' if self.previous_job() else 'disabled')
         self.window.after(100,self.poll)
 
     def use_pack(self):
         self.app.variables['voice_pack_root'].set(str(self.destination.parent));self.app.variables['voice_pack'].set(self.destination.name)
-        self.app.variables['speech_provider'].set('Recorded');self.app._refresh_voice_packs();self.app._speech_provider_changed();self.close()
+        self.app.variables['speech_provider'].set('Recorded')
+        self.app._flush_preferences(('voice_pack_root','voice_pack','speech_provider'))
+        self.app._refresh_voice_packs();self.app._speech_provider_changed();self.close()
+
+    def previous_job(self):
+        try:
+            if self.job_path.stat().st_size>16384:return None
+            job=json.loads(self.job_path.read_text())
+            values=job['values']
+            if set(values)!=set(self.values):return None
+            partial=Path(values['Voice pack folder'])/(values['Pack name']+'.partial')
+            return job if partial.is_dir() else None
+        except (OSError,ValueError,KeyError,TypeError):return None
+
+    def resume_job(self):
+        job=self.previous_job()
+        if not job:return
+        for key,value in job['values'].items():self.values[key].set(value)
+        self.resume_voice=job['voice_id']
+        self.voice_choice.set(next((name for name,identity in self.voice_names.items() if identity==self.resume_voice),''))
+        self.begin('generate')
 
     def close(self):
         if self.busy:self.cancel.set();self.status.set('Cancelling. Completed clips will be kept.');return

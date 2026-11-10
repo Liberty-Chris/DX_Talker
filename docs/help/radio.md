@@ -119,3 +119,7 @@ Ubuntu uses the same audio/PTT coordinator with Linux device names. Audio still 
 ## Screensaver transitions and keep awake
 
 Windows Audio / PTT includes optional Keep awake controls under Power management. Off is the default. Computer prevents automatic system idle sleep during active output; Computer and display also requests that the display stay awake. Save and apply before starting output. Requests end when output stops. They do not alter Num Lock, screensaver or lock settings. Modern buffering tolerates isolated spot underruns, while interrupted IDs and persistent audio faults still stop RF. See [Screensaver transitions and keep awake](troubleshooting.md#screensaver-transitions-and-keep-awake) for recovery limits, diagnostics and the physical retest.
+
+## Beta radio configuration
+
+Radio edits are preserved as drafts. Apply radio changes applies radio, PTT, receive and ID settings together after output cleanup. RF remains disabled until Enable RF. Ordinary listening preferences save independently. The receive meter marks the configured threshold. Local preview routing is indicated inline rather than requiring repeated approval. [Operation and saving](usability.md) describes the full workflow.

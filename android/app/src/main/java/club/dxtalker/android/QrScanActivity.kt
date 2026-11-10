@@ -21,9 +21,16 @@ class QrScanActivity : Activity() {
     private var scanner: DecoratedBarcodeView? = null
     private lateinit var message: TextView
     private var failed = false
+    private val collection = QrCollection()
+    private var completed = false
+    private fun progressResult() = Intent().putStringArrayListExtra("qr_pages",collection.saved())
+    private fun closeScanner() { if(!completed)setResult(RESULT_CANCELED,progressResult());finish() }
+    override fun onSaveInstanceState(out:Bundle) { out.putStringArrayList("qr_pages",collection.saved());super.onSaveInstanceState(out) }
+    @Deprecated("Compatibility") override fun onBackPressed() { closeScanner() }
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(android.R.style.Theme_Material_NoActionBar)
         super.onCreate(savedInstanceState)
+        (savedInstanceState?.getStringArrayList("qr_pages") ?: intent.getStringArrayListExtra("qr_pages"))?.forEach { runCatching { collection.accept(it) } }
         val panel=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(16,16,16,16);setBackgroundColor(Color.rgb(15,23,31)) }
         panel.setOnApplyWindowInsetsListener { view,insets ->
             if(android.os.Build.VERSION.SDK_INT>=30) {
@@ -34,7 +41,7 @@ class QrScanActivity : Activity() {
         }
         message=TextView(this).apply { text="Scan a DX Talker collection QR";setTextColor(Color.WHITE);textSize=18f;setPadding(8,16,8,16);accessibilityLiveRegion=View.ACCESSIBILITY_LIVE_REGION_POLITE }
         panel.addView(message)
-        panel.addView(Button(this).apply { text="Close scanner";isAllCaps=false;setOnClickListener { finish() } })
+        panel.addView(Button(this).apply { text="Close scanner";isAllCaps=false;setOnClickListener { closeScanner() } })
         setContentView(panel)
         if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             cameraFailure(null,"Camera permission is unavailable. Close and allow camera access before scanning."); return
@@ -49,9 +56,14 @@ class QrScanActivity : Activity() {
                     override fun cameraClosed() {}
                     override fun cameraError(error:Exception) { cameraFailure(error,"The camera could not open. Close other camera apps and try again, or import a transfer file.") }
                 })
-                preview.decodeSingle(object:BarcodeCallback {
+                preview.decodeContinuous(object:BarcodeCallback {
                     override fun barcodeResult(result:BarcodeResult) {
-                        if (!failed) { setResult(RESULT_OK,Intent().putExtra("qr_text",result.text));finish() }
+                        if(failed || completed)return
+                        try {
+                            val data=collection.accept(result.text)
+                            if(data!=null) { completed=true;setResult(RESULT_OK,progressResult().putExtra("collection_json",data.toString()));finish() }
+                            else message.text="Scanned ${collection.scanned} of ${collection.total} pages. Show the next QR page."
+                        }catch(error:Exception) { message.text=(error.message ?: "Invalid QR page")+". Your collected pages are kept." }
                     }
                 })
                 panel.addView(preview,LinearLayout.LayoutParams(-1,0,1f))

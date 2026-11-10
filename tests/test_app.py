@@ -62,24 +62,17 @@ class AppTests(unittest.TestCase):
         self.assertEqual(len({w.winfo_width() for w in panels}),1)
         self.assertEqual(len({w.winfo_rootx() for w in panels}),1)
         self.assertNotIn('Frequency range',[w.cget('text') for w in panels])
-        self.assertEqual(self.app.filter_editor.frame.master,self.app.tabs['Source'])
+        self.assertEqual(self.app.filter_editor.frame.master,self.app.tabs['Listening filters'])
         self.assertLess(body.winfo_width(),1000)
 
-    def test_source_filters_are_inline_and_reflow_without_a_new_window(self):
-        self.root.maxsize(3000,2000);self.root.deiconify();self.root.geometry('1800x1000');self.app.notebook.select(1);self.root.update()
-        panel=self.app.filter_editor.frame;left=self.app.source_connection_panel
-        self.assertEqual(self.app.source_column_layout,'wide')
-        next(w for w in panel.winfo_children() if w.winfo_class()=='TButton' and w.cget('text')=='Location and advanced filters').invoke();self.root.update()
-        self.assertEqual(panel.pack_slaves()[-1].winfo_class(),'TFrame')
-        self.assertGreaterEqual(panel.winfo_rootx(),left.winfo_rootx()+left.winfo_width())
-        self.assertEqual(panel.winfo_rooty(),left.winfo_rooty())
-        self.root.geometry('900x650');self.root.update()
-        self.assertEqual(self.app.source_column_layout,'stacked')
-        self.assertGreaterEqual(panel.winfo_y(),left.winfo_y()+left.winfo_height())
+    def test_filters_have_a_direct_destination_without_a_new_window(self):
+        self.root.deiconify();self.root.geometry('900x650');self.root.update()
         before=set(self.root.winfo_children())
         self.app._open_filters();self.root.update()
-        self.assertEqual(self.app.notebook.index('current'),1)
+        self.assertEqual(self.app.notebook.select(),str(self.app._page_id('Listening filters')))
         self.assertEqual(set(self.root.winfo_children()),before)
+        self.assertTrue(self.app.filter_editor.frame.winfo_ismapped())
+
 
     def test_inline_filters_autosave_and_presets_without_reconnecting(self):
         from types import SimpleNamespace
@@ -288,15 +281,15 @@ class AppTests(unittest.TestCase):
         self.assertEqual(set(self.app.variables), {f.name for f in fields(Settings)})
         self.app.variables["supervised_ack"].set(True)
         self.app._apply()
-        self.assertTrue(load_settings().supervised_ack)
+        self.assertFalse(load_settings().supervised_ack)
         self.assertFalse(self.app.engine.enabled)
         self.app.profile_name.set("Home")
         self.app._save_profile()
         self.app._add_spot(self.spot())
         self.app.command.set("old command")
         self.app._select_profile()
-        self.assertEqual(len(self.app.spots), 0)
-        self.assertEqual(self.app.command.get(), "")
+        self.assertEqual(len(self.app.spots), 1)
+        self.assertEqual(self.app.command.get(), "old command")
         self.assertFalse(self.app.engine.enabled)
         self.assertEqual(self.app.variables["supervised_ack"].get(), True)
 
@@ -423,8 +416,8 @@ class AppTests(unittest.TestCase):
         positions=[canvas.yview()[0] for _,canvas in self.app.scroll_tabs]
         generation=self.app.source_generation
         metrics=measure(self.app,10,rounds=1,idle_seconds=0.1)
-        self.assertEqual(metrics['navigation_samples'],8)
-        self.assertEqual(metrics['scroll_samples'],18)
+        self.assertEqual(metrics['navigation_samples'],len(self.app.notebook.tabs()))
+        self.assertEqual(metrics['scroll_samples'],len(self.app.scroll_tabs)*3)
         self.assertGreater(metrics['idle_wall_seconds'],0)
         self.assertEqual(self.app.notebook.select(),selected)
         self.assertEqual([canvas.yview()[0] for _,canvas in self.app.scroll_tabs],positions)
@@ -660,6 +653,7 @@ class AppTests(unittest.TestCase):
 
     def test_format_preview_does_not_save_pending_source_edits(self):
         self.app.settings = replace(self.app.settings, preview_device='local')
+        self.app.variables['preview_device'].set('local')
         self.app.variables['host'].set('pending.example')
         self.app.variables['announcement_intro'].set('My station DX')
         with patch.object(self.app, '_apply', side_effect=AssertionError('Applied pending settings')), \
@@ -669,21 +663,23 @@ class AppTests(unittest.TestCase):
         self.assertEqual(settings.announcement_intro, 'My station DX')
         self.assertNotEqual(settings.host, 'pending.example')
         self.assertEqual(self.app.variables['host'].get(), 'pending.example')
-        self.assertEqual(self.app.settings.announcement_intro, 'New DX on')
+        self.assertEqual(self.app.settings.announcement_intro, 'My station DX')
         for part in ('intro', 'callsign', 'frequency'):
             self.app.variables['include_' + part].set(False)
         self.assertIn('at least one', self.app.format_example.get())
         with self.assertRaises(ValueError):
             self.app._preview_format()
 
-    def test_format_edits_stop_active_output_without_reconnecting(self):
+    def test_format_edits_autosave_without_stopping_active_output(self):
         from unittest.mock import Mock
         source = Mock()
         self.app.source = source
         self.app.engine.local_enabled = True
         self.app.variables['announcement_intro'].set('My DX')
-        self.assertFalse(self.app.engine.local_enabled)
-        self.assertTrue(self.app.engine.cancel.is_set())
+        self.app._flush_preferences()
+        self.assertTrue(self.app.engine.local_enabled)
+        self.assertFalse(self.app.engine.cancel.is_set())
+        self.assertEqual(load_settings().announcement_intro,'My DX')
         source.stop.assert_not_called()
         self.app.source = None
 
@@ -711,10 +707,12 @@ class AppTests(unittest.TestCase):
         self.assertEqual(len(self.app.profile_store.profiles), 2)
         self.assertEqual(set(self.app.live_profile_picker.cget('values')), {'First renamed', 'Second'})
         self.assertEqual(self.app.variables['lead_ms'].get(), 'unfinished')
-        with patch('dxtalker.app.messagebox.askyesno', return_value=False):
+        with patch('dxtalker.app.messagebox.askyesno',side_effect=AssertionError('Duplicate approval')):
             self.app._delete_profile()
-        self.assertEqual(len(self.app.profile_store.profiles), 2)
-        with patch('dxtalker.app.messagebox.askyesno', return_value=True):
+            self.assertEqual(len(self.app.profile_store.profiles),1)
+            self.app._undo()
+            self.assertEqual(len(self.app.profile_store.profiles),2)
+            self.app.profile_choice.set('First renamed');self.app._select_profile()
             self.app._delete_profile()
         self.assertEqual([p['name'] for p in self.app.profile_store.profiles], ['Second'])
         self.assertEqual(tuple(self.app.live_profile_picker.cget('values')), ('Second',))
@@ -742,7 +740,7 @@ class AppTests(unittest.TestCase):
         self.assertLess(int(self.app.field_widgets['lead_ms'].cget('width')), 15)
         self.assertLess(int(self.app.field_widgets['host'].cget('width')), 45)
 
-    def test_new_profile_stops_feed_and_clears_previous_display_and_credentials(self):
+    def test_new_profile_preserves_active_feed_and_display_but_clears_editor_secret(self):
         from unittest.mock import Mock
         source = Mock()
         self.app.source = source
@@ -751,13 +749,14 @@ class AppTests(unittest.TestCase):
         self.app.secret.set('synthetic secret')
         self.app.command.set('show/dx')
         self.app._new_profile()
-        source.stop.assert_called_once()
-        self.assertIsNone(self.app.source)
-        self.assertFalse(self.app.spots)
-        self.assertFalse(self.app.raw_lines)
-        self.assertEqual(self.app.command.get(), '')
+        source.stop.assert_not_called()
+        self.assertIs(self.app.source,source)
+        self.assertTrue(self.app.spots)
+        self.assertTrue(self.app.raw_lines)
+        self.assertEqual(self.app.command.get(), 'show/dx')
         self.assertEqual(self.app.secret.get(), '')
         self.assertFalse(self.app.remember_secret.get())
+        self.app.source=None
 
 
     def test_failed_secret_unlock_still_allows_profile_editing_and_deletion(self):
@@ -771,9 +770,9 @@ class AppTests(unittest.TestCase):
         locked = self.app.profile_store.save('Locked', replace(self.app.settings, host='locked.example'), secret='synthetic', remember=True)
         self.app._refresh_profiles()
         self.app.profile_choice.set('Locked')
-        with patch('dxtalker.app.messagebox.showwarning') as warning:
+        with patch('dxtalker.app.messagebox.showwarning',side_effect=AssertionError('Modal warning')):
             self.app._select_profile()
-        warning.assert_called_once()
+        self.assertIn('could not unlock',self.app.error_notice.get())
         self.assertEqual(self.app.profile_choice.get(), 'Locked')
         self.assertEqual(self.app.profile_name.get(), 'Locked')
         self.assertEqual(self.app.selected_profile_id, locked['id'])
@@ -784,7 +783,7 @@ class AppTests(unittest.TestCase):
         self.assertEqual(next(p for p in self.app.profile_store.profiles if p['id'] == locked['id'])['secret'], 'encrypted-fixture')
         with patch('dxtalker.app.messagebox.askyesno', return_value=True) as ask:
             self.app._delete_profile()
-        self.assertIn("'Locked'", ask.call_args.args[1])
+        ask.assert_not_called()
         self.assertEqual([p['name'] for p in self.app.profile_store.profiles], ['Working'])
 
 
@@ -933,7 +932,7 @@ class AppTests(unittest.TestCase):
         self.assertEqual(self.app._receive_spot(unknown),'Mode unknown')
         self.assertFalse(self.app.tree.get_children())
         window=self.app._show_rejected_spots()
-        self.assertIn('Rejected spots',self.app.rejected_button.cget('text'))
+        self.assertIn('excluded',self.app.rejected_button.cget('text'))
         window.destroy()
         from dxtalker.filtering import MODES,mode_summary
         settings=replace(self.app.settings,filter_modes=','.join(MODES))

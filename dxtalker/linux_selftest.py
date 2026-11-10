@@ -58,7 +58,7 @@ def run(destination):
         startup = (time.perf_counter() - start) * 1000
         assert not app.engine.enabled and not app.engine.local_enabled
         app._samples(); assert len(app.spots) == 3
-        for index in range(8): app.notebook.select(index); root.update()
+        for index in range(len(app.notebook.tabs())): app.notebook.select(index); root.update()
         import qrcode
         from qrcode.image.pure import PyPNGImage
         output = io.BytesIO(); qrcode.make('synthetic profile collection', image_factory=PyPNGImage).save(output)

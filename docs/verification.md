@@ -145,3 +145,12 @@ The reusable Ubuntu workflow builds on 22.04 and installs that package on 22.04 
 ## Idle transition audio checks
 
 Fake PortAudio callbacks inject isolated and repeated output underruns, priming status, other flags, cancellation and deadlines. Coordinator tests verify that recovered spot audio preserves RF, PTT is released and interrupted required IDs disarm without advancing their schedule. Power tests verify thread scoped request/release, failed mode changes, worker exit and screensaver observation gaps. Windows runs additionally bind and briefly exercise the native idle request and release API. No simulated screen event establishes physical driver acceptance. Retest the original Windows 10 screensaver and audio endpoint combination.
+
+
+## 1.0.0b1 usability verification
+
+The graphical Linux suite ran `python -m unittest discover -s tests -v`: 276 tests, no failures and one native Windows API test skipped. New workflows cover independent preference saving during RF, unfinished field isolation, scoped previews/connect, durable credential free drafts, profile Undo, one action cluster switching, themed Unmute and cancellation of deferred output on Stop/source loss. Existing filtering, transmission coordination, receive hold and compatibility checks remain enabled. Audio callback tests verify volume changes between buffers without restarting playback.
+
+Gradle 8.9 with Android 35 ran `testDebugUnitTest assembleDebug assembleDebugAndroidTest`: all 23 unit tests pass and both APKs compile/package. Instrumentation compilation is not emulator execution. No emulator or physical phone interaction acceptance ran locally. Android versionCode is 20 and versionName is 1.0.0b1.
+
+`check_docs.py`, `check_versions.py`, `sync_privileges.py --check` and whitespace checks pass. Release version ordering from 0.2.0a25 through beta, release candidate and final was checked. The original archive has no diff. Native desktop inspection covered Live spots, green Unmute, Filters, grouped maintenance and a 900 by 600 compact preview with large text selection and page navigation. Windows/XP native package, installer and hardware checks remain required through the hosted workflow and operator beta acceptance.

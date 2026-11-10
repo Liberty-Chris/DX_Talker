@@ -57,7 +57,7 @@ def run(destination):
         assert not app.engine.enabled and not app.engine.local_enabled
         assert set(app.variables) == {field.name for field in fields(Settings)}
         app._samples(); assert len(app.spots) == 3
-        for index in range(8):
+        for index in range(len(app.notebook.tabs())):
             app.notebook.select(index); root.update()
         secret = protect_secret('synthetic-test-secret')
         assert protect_secret(secret, decrypt=True) == 'synthetic-test-secret'

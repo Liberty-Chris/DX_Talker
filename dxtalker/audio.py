@@ -292,8 +292,10 @@ class AudioOutput:
         data.frombytes(clip.pcm)
         if sys.byteorder != "little":
             data.byteswap()
+        volume_reader=getattr(self,'volume_reader',None)
         gain = volume / 100
-        data = array("h", (round(n * gain) for n in data))
+        if volume_reader is None:
+            data = array("h", (round(n * gain) for n in data))
         if sys.byteorder != "little":
             data.byteswap()
         pcm, offset, total = data.tobytes(), 0, len(data) * 2
@@ -350,7 +352,15 @@ class AudioOutput:
                         raise sd.CallbackAbort
             size = frames * clip.channels * 2
             count = min(size, total - offset)
-            out[:count] = pcm[offset:offset + count]
+            block=pcm[offset:offset+count]
+            if volume_reader is not None:
+                samples=array('h');samples.frombytes(block)
+                if sys.byteorder!='little':samples.byteswap()
+                gain=max(0,min(100,volume_reader()))/100
+                samples=array('h',(round(sample*gain) for sample in samples))
+                if sys.byteorder!='little':samples.byteswap()
+                block=samples.tobytes()
+            out[:count] = block
             if count < size:
                 out[count:] = b"\0" * (size - count)
             offset += count

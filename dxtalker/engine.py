@@ -273,6 +273,7 @@ class Engine:
             raise Cancelled()
 
     def _play(self, clip, device, volume, cancel, deadline, operation, route):
+        self.audio.volume_reader=(lambda:self.settings.local_volume_percent) if route=='local' else None
         report = self.audio.play(clip, device, volume, cancel, deadline)
         if isinstance(report, dict) and report.get('output_underflows'):
             if route == 'radio' and operation.startswith('id'):
@@ -533,4 +534,14 @@ class Engine:
             self.settings=replace(self.settings,**{k:getattr(settings,k) for k in (*FIELDS,'listening_presets')})
             retained=[(k,v) for k,v in self.items if k!='spot']
             self._clear_pending('Listening filters changed before announcement');self.items.extend(retained);self.seen.clear()
+        self.wake.set()
+
+    def update_preferences(self, settings, names):
+        """Future work takes a new snapshot; current audio/PTT owns its old one."""
+        from .preferences import PREFERENCE_FIELDS
+        from dataclasses import replace
+        if not set(names) <= set(PREFERENCE_FIELDS):
+            raise ValueError('Radio configuration requires an explicit apply')
+        with self.lock:
+            self.settings = replace(self.settings, **{k: getattr(settings, k) for k in names})
         self.wake.set()

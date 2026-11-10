@@ -6,19 +6,19 @@ Live view maximum spots controls the in memory display, from 50 to 5000 rows. Ol
 
 Keep spot and connection history enables structured JSONL files. Each validated received spot records source type, profile name, callsigns, frequency and timestamps. Connection and disconnect events are also recorded. The application activity panel is separate, remains in memory and holds 200 lines. The console holds the latest 15 lines and is never written to history. Manual commands and authentication data are excluded from disk history.
 
-Choose a history folder or leave it blank to use the logs folder under the DXTalker settings directory. Save to apply. Open history folder opens the currently applied location. Changing folders starts writing there; previous files remain in their old folder.
+Choose a history folder or leave it blank to use the logs folder under the DXTalker settings directory. Valid history preferences save automatically. Open history folder opens the currently applied location. Changing folders starts writing there; previous files remain in their old folder.
 
 History file size is configurable from 1 to 100 MiB and backup count from 1 to 30. The active file is history.jsonl. Rotated files use numeric suffixes. The default is one 5 MiB active file and four backups, approximately 25 MiB total. Rotation occurs before the next record would exceed the file size. Reducing the backup count removes surplus numbered backups in the selected folder. Decreasing the file size takes effect on the next record; existing larger backups age out through rotation.
 
-A full disk or unwritable folder stops history writing and produces an activity message. Receiving and output continue. Choose a writable folder and save again to retry. Turning logging off closes the file and leaves existing history intact. These are local operational records, not an amateur radio contact log or ADIF export.
+A full disk or unwritable folder stops history writing and produces an activity message. Receiving and output continue. Choose a writable folder to retry. Turning logging off closes the file and leaves existing history intact. These are local operational records, not an amateur radio contact log or ADIF export.
 
 ## Updates
 
 The installed version is shown here and in Help. Check for updates automatically checks public GitHub Releases at startup and once per day while running. Check now performs a manual check. Pilot includes prereleases and final releases. Stable includes final releases only. Releases must have a recognized newer version, a Windows x64 installer and SHA256SUMS.txt to be offered.
 
-A new release appears in the status and footer banner. Read the release notes or open Release page. Download update runs in the background and verifies the installer against the release SHA256 checksum before enabling installation. A failed or interrupted download never replaces the current installation. Close the app to cancel a pending download.
+A new release appears in the status and footer banner. Read the release notes or open Release page. Download update runs in the background and verifies the installer against the release SHA256 checksum before installation is available. A failed or interrupted download never replaces the current installation. Close the app to cancel a pending download.
 
-Install update asks before stopping output. It waits for Idle, disconnects the source, opens the verified setup program and closes DX Talker. If output does not stop within 30 seconds, installation is paused. Settings, appearance and named profiles remain in their account data folder. Restarted output stays disabled. Setup remains interactive; updates never install silently or restart RF.
+Install and restart stops output without a second approval. It waits for Idle, disconnects the source, opens the verified setup program and closes DX Talker. If output does not stop within 30 seconds, installation is paused. Settings, appearance and named profiles remain in their account data folder. Restarted output stays disabled. Setup remains interactive; updates never install silently or restart RF.
 
 The updater installs only from the packaged Windows app. Source checkouts use Git. Portable users may install the account based setup version through this flow. Release assets are public and no GitHub sign in is needed. Checks contact GitHub and can be turned off. No cluster login or profile details are submitted.
 
@@ -52,3 +52,5 @@ XP builds look for the matching XP installer when checking releases. They never 
 ## Ubuntu updates
 
 Ubuntu selects its own Debian installer, retains HTTPS and checksum verification and requests administrator authentication for installation. Settings survive package replacement and removal. See [Ubuntu desktop](ubuntu.md) for the complete flow and installation log location.
+
+Maintenance now has separate Updates, History and Diagnostics sections. See [Operation and saving](usability.md).

@@ -36,7 +36,7 @@ def show_profile_qr(app):
         chosen = [profiles[i] for i in selection.curselection()]
         if not chosen:
             raise ValueError('Choose at least one profile')
-        pages = transfer.qr_sequence(transfer.document(chosen, app._read_settings()))
+        pages = transfer.qr_sequence(transfer.document(chosen, app.settings))
         panel.pack_forget()
         viewer = ttk.Frame(window, padding=16)
         viewer.pack()
