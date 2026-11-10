@@ -74,7 +74,8 @@ class Spot:
         tags=activity_tags(self.comment)
         if tags and activity_style(settings):
             mode=mode_of(self.comment,self.mode,self.frequency_khz)
-            groups=[("intro",tag) for tag in tags]
+            pronunciation={'POTA':'poughta','FOTA':'phota','SOTA':'sota'}
+            groups=[("intro",pronunciation[tag] if phonetic else tag) for tag in tags]
             if mode!='Unknown':groups.append(("mode",mode))
             return groups+[("frequency",frequency),("callsign",call)]
         content = {"intro": settings.announcement_intro.strip(), "frequency": frequency, "callsign": call}

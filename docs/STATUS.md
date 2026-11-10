@@ -330,3 +330,9 @@ Local verification completed: the graphical Linux run completed 276 Python tests
 ## Beta idle CPU correction
 
 The main merge passed modern Windows x64, both XP variants after retry, Ubuntu and core checks but repeated the modern x86 idle CPU limit failure. The fix removes unchanged Tk writes and geometry operations from idle polls and caches spot visibility and navigation input. The poll interval, receive policy and performance budgets are unchanged. Smoke assertion failures now release worker and diagnostic handles before temporary settings removal. Local graphical Linux process CPU ratio fell from 4.29% to 1.09% in a controlled source comparison with synthetic devices. Hosted Windows x86 verification is pending on the followup branch; this is not yet a completed release check.
+
+## Activity voice pronunciation
+
+Recognized activity announcements now send poughta for POTA, phota for FOTA and sota for SOTA to desktop and Android speech. Display labels and nonphonetic announcement details retain the acronyms. New recorded packs include natural phrase clips; older packs retain letter playback without missing clip errors. Existing filter admission, units, mode and callsign handling remain unchanged.
+
+Local headless verification completed 281 tests with no failures and 64 expected GUI or native platform skips. Speech plans, SSML text, recorded generation and older pack compatibility are covered. Documentation links, Help targets and version alignment passed. Local Android Gradle verification could not resolve the Android plugin from the configured repositories; hosted Android tests remain pending. No new live provider or listening acceptance is claimed.
