@@ -15,3 +15,5 @@ Additional topics cover Listening and accessibility, History and updates and Clu
 [Share a DX spot](spotting.md)
 
 [Ubuntu installation, speech, credentials and radio setup](ubuntu.md)
+
+[Operation and saving](usability.md) covers the beta controls, autosave, drafts and Undo.

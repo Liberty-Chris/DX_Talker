@@ -264,3 +264,11 @@ Use a switch for activity wording during mixed listening, default off. Explicit 
 Keep local_enabled as session admission state and add a separate session only local_muted flag. The local toggle mutes rather than stopping the session. Muted reports still pass filters, timestamp and repeat checks but bypass audio synthesis and queue storage and receive a distinct muted receipt. Mute cancels current and queued local work without using Engine.stop. Preserve single coordinator ownership and explicit RF enable. Do not replay muted work on unmute. Full output stop, source loss and device faults retain their existing stop behavior.
 
 The a25 correction also admits matching cluster rows while both audio routes are off. Gray D identifies display only rows and gray M identifies local mute. Turning on an output speaks only new reports. The local hover label is Mute and the muted action is Unmute. Listening and RF enablement never gate filtered display admission.
+
+## November 10, 2026. First beta and save boundaries
+
+Use 1.0.0b1 for the first beta following the owner's positive operating reports and requested usability audit. Keep prerelease ordering and beta labeling consistent across application, installers, Android and Help. This version marks the feature set entering beta testing and does not assert completed hardware acceptance.
+
+Save ordinary preferences automatically after valid edits. Keep named profile/preset creation explicit. Preserve incomplete radio/ID fields in a separate draft and apply that group only through its deliberate configuration action. A saved draft cannot enable output. Connect and preview validate their own fields. Current work holds its immutable settings snapshot; subsequent work takes new preferences. Stop and source failure invalidate pending output transitions.
+
+Use clear action labels and inline outcomes instead of repeated confirmations. Recoverable removal offers Undo. A complete external profile collection is reviewed once before import because its concrete contents and filter replacement become visible there. Collection scanning stays open between pages. Android Pause holds bounded, age limited speech while Mute discards audio arrivals; neither changes the source.

@@ -36,16 +36,26 @@ def build_filters(app,parent):
         if values:app._apply_listening(replace(app.settings,**values))
         describe()
     def save():
+        before=dict(presets)
         label=name.get().strip() or simpledialog.askstring('Save listening preset','Preset name',parent=window)
         if not label:return
         presets[label]=snapshot(current());validate_presets(json.dumps(presets));preset_dirty[0]=True
         app._apply_listening(current());picker.configure(values=list(presets));name.set(label);status.set('Preset saved.')
+        if label in before:
+            app._offer_undo('Preset updated.',lambda:restore_presets(before))
     def remove():
+        before=dict(presets)
         presets.pop(name.get(),None);preset_dirty[0]=True;app._apply_listening(current());picker.configure(values=list(presets));name.set('');status.set('Preset removed.')
-    for label,action in (('Load',load),('Save',save),('Remove',remove)):ttk.Button(saved,text=label,command=app.guard(action)).pack(side='left',padx=3)
+        app._offer_undo('Preset removed.',lambda:restore_presets(before))
+    def restore_presets(before):
+        presets.clear();presets.update(before);preset_dirty[0]=True
+        app._apply_listening(current());picker.configure(values=list(presets))
+    picker.bind('<<ComboboxSelected>>',lambda event:app.guard(load)())
+    for label,action in (('Save',save),('Remove',remove)):ttk.Button(saved,text=label,command=app.guard(action)).pack(side='left',padx=3)
     filters=ttk.LabelFrame(frame,text='Choose your interests',padding=12);filters.pack(fill='x',pady=6)
     def choose_modes():
         dialog=tk.Toplevel(window);dialog.title('Modes');dialog.transient(window)
+        dialog.bind('<Escape>',lambda e:dialog.destroy())
         dialog.configure(background=PALETTES[app.theme.get()]['bg'])
         stored=staged['filter_modes'].get()
         selected=set(stored.split(',')) if stored else set(MODES)-{'Unknown'}
@@ -66,7 +76,7 @@ def build_filters(app,parent):
     def choose(key,title,values):
         if key=='filter_modes':return choose_modes()
         dialog=tk.Toplevel(window);dialog.title(title);dialog.transient(window);dialog.configure(background=PALETTES[app.theme.get()]['bg'])
-        all_values=tk.BooleanVar(value=not staged[key].get());selected=set(staged[key].get().split(','))
+        all_values=tk.BooleanVar(value=not staged[key].get());selected=set(staged[key].get().split(',')) if staged[key].get() else set(values)
         ttk.Checkbutton(dialog,text='All known modes' if key=='filter_modes' else 'All '+title.lower(),variable=all_values,command=lambda:use()).grid(row=0,column=0,columnspan=3,sticky='w',padx=12,pady=10)
         flags={value:tk.BooleanVar(value=value in selected) for value in values}
         for i,(value,flag) in enumerate(flags.items()):
@@ -106,7 +116,11 @@ def build_filters(app,parent):
     for row,(key,title,hint) in enumerate(specs):
         ttk.Label(geo,text=title).grid(row=row,column=0,sticky='w',pady=4)
         ttk.Entry(geo,textvariable=staged[key],width=30).grid(row=row,column=1,sticky='w',padx=8)
-        if hint:ttk.Label(geo,text=hint,wraplength=200).grid(row=row,column=2,sticky='w')
+        if key=='location_overrides':
+            ttk.Button(geo,text='Edit stations',command=lambda:app._edit_locations(staged['location_overrides'])).grid(row=row,column=2,sticky='w')
+        elif key.endswith(('countries','continents')):
+            ttk.Button(geo,text='Choose',command=lambda k=key,t=title:app._choose_locations(staged[k],t,k.endswith('continents'))).grid(row=row,column=2,sticky='w')
+        elif hint:ttk.Label(geo,text=hint,wraplength=200).grid(row=row,column=2,sticky='w')
     ttk.Checkbutton(geo,text='Include spots with unknown location',variable=staged['geography_unknown']).grid(row=8,column=0,columnspan=3,sticky='w',pady=6)
     ttk.Label(geo,text='Location comes from feed metadata or your known station list. A callsign alone does not establish current location. Leave a location field empty to accept all.',wraplength=620).grid(row=9,column=0,columnspan=3,sticky='w')
     def commit(key):

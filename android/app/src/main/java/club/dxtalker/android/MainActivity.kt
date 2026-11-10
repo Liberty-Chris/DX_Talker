@@ -37,6 +37,14 @@ class MainActivity : Activity() {
     private val uiHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var refreshQueued = false
     private val refreshTask = Runnable { refreshQueued=false;refresh() }
+    private val scrollPositions = mutableMapOf<String,Int>()
+    private var undoAction: (() -> Unit)? = null
+    private var notice = ""
+    private var importData: JSONObject? = null
+    private var speechSave: Runnable? = null
+    private var speechStatus: TextView? = null
+    private fun draftPage() = if(page=="Edit cluster") "Edit cluster:${editIndex ?: "new"}" else page
+    private fun inform(message: String, undo: (() -> Unit)? = null) { notice=message;undoAction=undo;render() }
     private var page = "Listen"
     private val history = java.util.ArrayDeque<String>()
     private val drafts = mutableMapOf<String, String>()
@@ -77,12 +85,12 @@ class MainActivity : Activity() {
         container.addView(caption)
         return EditText(this).apply {
             id=View.generateViewId();caption.labelFor=id;contentDescription=name
-            setText(drafts["$page:$key"] ?: value); setTextColor(ink); setHintTextColor(secondary)
+            setText(drafts["${draftPage()}:$key"] ?: value); setTextColor(ink); setHintTextColor(secondary)
             setSingleLine(true); minHeight = dp(48)
             if (password) inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { drafts["$page:$key"] = s.toString();if(page=="Filters")scheduleFilterSave(key) }
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { drafts["${draftPage()}:$key"] = s.toString();if(page=="Filters")scheduleFilterSave(key) else if(page=="Speech")scheduleSpeechSave() }
                 override fun afterTextChanged(s: Editable?) {}
             })
             container.addView(this)
@@ -108,28 +116,36 @@ class MainActivity : Activity() {
             try { qrCollection.accept(it) } catch (_: Exception) { qrCollection.reset() }
         }
         cameraScanRequested = savedInstanceState?.getBoolean("camera_scan_requested") ?: false
+        importData=savedInstanceState?.getString("import_data")?.let { runCatching { JSONObject(it) }.getOrNull() }
         page = savedInstanceState?.getString("page") ?: "Listen"
         savedInstanceState?.getStringArrayList("history")?.let { history.addAll(it) }
         savedInstanceState?.getBundle("drafts")?.let { b -> b.keySet().forEach { drafts[it] = b.getString(it).orEmpty() } }
         savedInstanceState?.takeIf { it.containsKey("edit_index") }?.let { editIndex = it.getInt("edit_index").takeIf { i -> i >= 0 } }
+        savedInstanceState?.getBundle("scrolls")?.let { b->b.keySet().forEach { scrollPositions[it]=b.getInt(it) } }
         render()
         if(Build.VERSION.SDK_INT >= 33) onBackInvokedDispatcher.registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT) { onBackPressed() }
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 100)
     }
     override fun onSaveInstanceState(outState: Bundle) {
+        rememberScroll()
+        outState.putBundle("scrolls",Bundle().apply { scrollPositions.forEach { (key,value)->putInt(key,value) } })
         outState.putBoolean("camera_scan_requested", cameraScanRequested)
         outState.putStringArrayList("qr_pages", qrCollection.saved())
+        outState.putString("import_data",importData?.toString());
         outState.putString("page", page); outState.putStringArrayList("history", ArrayList(history))
         outState.putInt("edit_index", editIndex ?: -1)
         outState.putBundle("drafts", Bundle().apply { drafts.forEach { (k,v) -> putString(k,v) } })
         super.onSaveInstanceState(outState)
     }
     private fun go(destination: String, tab: Boolean = false) {
+        rememberScroll()
+        flushSpeech()
         if(tab) history.clear() else if(destination != page) history.addLast(page)
         page = destination; render()
     }
     @Deprecated("Activity back compatibility")
     override fun onBackPressed() {
+        rememberScroll();flushSpeech()
         if(history.isNotEmpty()) { page = history.removeLast(); render() }
         else if(page != "Listen") go("Listen", true) else super.onBackPressed()
     }
@@ -149,11 +165,18 @@ class MainActivity : Activity() {
         if(page == "Listen") heading.addView(ImageView(this).apply { setImageResource(R.drawable.dxt_icon); contentDescription="DX Talker logo" },LinearLayout.LayoutParams(dp(40),dp(40)).apply { rightMargin=dp(8) })
         heading.addView(label(if(page == "Listen") "DX Talker" else page, 24f).apply { setTypeface(null,Typeface.BOLD) })
         shell.addView(heading)
+        if(notice.isNotBlank()) {
+            val feedback=LinearLayout(this).apply { setPadding(dp(12),0,dp(12),0) }
+            feedback.addView(label(notice,13f,secondary),LinearLayout.LayoutParams(0,-2,1f))
+            if(undoAction!=null)feedback.addView(button("Undo") { val action=undoAction;undoAction=null;notice="Restored";action?.invoke();render() },LinearLayout.LayoutParams(dp(76),-2))
+            feedback.addView(button("Dismiss") { notice="";undoAction=null;render() },LinearLayout.LayoutParams(dp(90),-2))
+            shell.addView(feedback)
+        }
         root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16),dp(8),dp(16),dp(8)) }
         if(page=="Listen")shell.addView(root,LinearLayout.LayoutParams(-1,0,1f))
         else shell.addView(ScrollView(this).apply { isFillViewport = true; addView(root) }, LinearLayout.LayoutParams(-1,0,1f))
         filterApplyStatus=null
-        when(page) { "Listen" -> homeContent(); "Clusters" -> profilesContent(); "Edit cluster" -> profileContent(); "Speech" -> speechContent(); "Filters" -> filterContent(); "Spot" -> spotContent(); "Directory" -> directoryContent(); else -> settingsContent() }
+        when(page) { "Listen" -> homeContent(); "Clusters" -> profilesContent(); "Edit cluster" -> profileContent(); "Speech" -> speechContent(); "Filters" -> filterContent(); "Spot" -> spotContent(); "Directory" -> directoryContent(); "Import collection" -> importContent(); else -> settingsContent() }
         if(page=="Filters") {
             val actions=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(dp(16),dp(4),dp(16),dp(4));setBackgroundColor(surface) }
             filterApplyStatus=label("",12f,secondary);actions.addView(filterApplyStatus)
@@ -184,7 +207,9 @@ class MainActivity : Activity() {
             window.decorView.systemUiVisibility=if(ink==Color.WHITE)0 else View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
         }
         refresh()
+        (root.parent as? ScrollView)?.post { (root.parent as? ScrollView)?.scrollTo(0,scrollPositions[draftPage()] ?: 0) }
     }
+    private fun rememberScroll() { (root.parent as? ScrollView)?.let { scrollPositions[draftPage()]=it.scrollY } }
     private fun frequencyUnitsAnchor():View = root.findViewWithTag("frequency_units")
     private fun refreshFilterPending() {
         val pending=ListeningSettings.defaults.any { (key,default) ->
@@ -201,9 +226,9 @@ class MainActivity : Activity() {
             ListeningSettings.validate(values)
             val editor=prefs.edit();for(key in changes)editor.putString(key,values.get(key).toString());editor.apply()
             for(key in changes)drafts.remove("Filters:$key")
-            if(ListenerService.listeningActive)command("apply") else { ListenerService.clearDisplayedSpots();synchronized(ListenerService.hidden){ListenerService.hidden.clear()} }
+            if(ListenerService.listeningActive)command("apply") else { ListenerService.refilterDisplayed { key -> prefs.getString(key,ListeningSettings.defaults[key] ?: "").orEmpty() };synchronized(ListenerService.hidden){ListenerService.hidden.clear()} }
             refreshFilterPending()
-        } catch(_:Exception) { filterApplyStatus?.text="Not saved. Check the unfinished field or frequency range." }
+        } catch(error:Exception) { filterApplyStatus?.text="Not saved: "+keys.joinToString(", ") { it.replace('_',' ') }+". Check this field and its allowed range." }
     }
     private fun saveFilter(key:String) {
         val keys=if(key in listOf("min_khz","max_khz"))setOf("min_khz","max_khz").filter { drafts.containsKey("Filters:$it") }.toSet() else setOf(key)
@@ -217,7 +242,7 @@ class MainActivity : Activity() {
     }
     override fun onPause() {
         for((key,task) in filterSaves.toMap()) { uiHandler.removeCallbacks(task);saveFilter(key) }
-        filterSaves.clear();super.onPause()
+        filterSaves.clear();flushSpeech();rememberScroll();super.onPause()
     }
     private fun homeContent() {
         val toolbar=LinearLayout(this).apply { gravity=Gravity.CENTER_VERTICAL }
@@ -268,6 +293,7 @@ class MainActivity : Activity() {
         if(!::status.isInitialized)return
         listenButton.text = if(ListenerService.listeningActive) "Stop listening" else "Start listening"
         muteButton.text = if(ListenerService.muted) "Unmute" else "Mute"
+        muteButton.backgroundTintList=android.content.res.ColorStateList.valueOf(if(ListenerService.muted) { if(ink==Color.WHITE)Color.rgb(23,88,60)else Color.rgb(214,243,227) } else surface)
         pauseButton.text = if(ListenerService.paused) "Resume" else "Pause"
         muteButton.isEnabled = ListenerService.listeningActive; pauseButton.isEnabled = ListenerService.listeningActive
         status.text = ListenerService.status + if(ListenerService.listeningActive) " · " + (if(ListenerService.muted) "Muted" else if(ListenerService.paused) "Paused" else "Audio on") else ""
@@ -312,11 +338,11 @@ class MainActivity : Activity() {
             val actions = LinearLayout(this)
             actions.addView(button("Edit") { editProfile(i) },LinearLayout.LayoutParams(0,-2,1f))
             actions.addView(button("Remove") {
-                AlertDialog.Builder(this).setTitle("Remove ${p.optString("name")}?").setMessage("This removes the saved profile. An active session continues until you stop it or switch clusters.")
-                    .setNegativeButton("Cancel",null).setPositiveButton("Remove") { _,_ ->
-                        val updated = JSONArray(); for(j in 0 until entries.length())if(j != i)updated.put(entries.getJSONObject(j))
-                        prefs.edit().putString("profiles",updated.toString()).apply();editIndex=null;drafts.keys.filter { it.startsWith("Edit cluster:") }.toList().forEach { drafts.remove(it) }; render()
-                    }.show()
+                val previous=entries.toString()
+                val updated=JSONArray();for(j in 0 until entries.length())if(j!=i)updated.put(entries.getJSONObject(j))
+                prefs.edit().putString("profiles",updated.toString()).apply()
+                inform("Profile removed. The active session is unchanged.") { prefs.edit().putString("profiles",previous).apply() }
+
             },LinearLayout.LayoutParams(0,-2,1f)); row.addView(actions)
         }
     }
@@ -342,7 +368,6 @@ class MainActivity : Activity() {
         }catch(_:Exception) { panel.addView(label("The directory could not be read. Load a valid reviewed directory file.",14f,secondary)) }
     }
     private fun editProfile(index: Int?) {
-        if(editIndex != index) drafts.keys.filter { it.startsWith("Edit cluster:") }.toList().forEach { drafts.remove(it) }
         editIndex = index; go("Edit cluster")
     }
     private fun profileContent() {
@@ -362,14 +387,18 @@ class MainActivity : Activity() {
                 }
             }
         }
-        type.onItemSelectedListener = object : AdapterView.OnItemSelectedListener { override fun onNothingSelected(parent: AdapterView<*>?) {} ; override fun onItemSelected(parent: AdapterView<*>?,view: View?,position: Int,id: Long) { drafts["$page:Connection type"] = type.selectedItem.toString(); relevant() } }; relevant()
+        type.onItemSelectedListener = object : AdapterView.OnItemSelectedListener { override fun onNothingSelected(parent: AdapterView<*>?) {} ; override fun onItemSelected(parent: AdapterView<*>?,view: View?,position: Int,id: Long) { drafts["${draftPage()}:Connection type"] = type.selectedItem.toString(); relevant() } }; relevant()
         val call = edit(panel,"Login callsign",p.optString("call"))
         val password = edit(panel,"Password or bearer token",runCatching { SecretStore.reveal(p.optString("password")) }.getOrDefault(""),true)
         panel.addView(CheckBox(this).apply { text = "Show password or token"; setTextColor(ink); setOnCheckedChangeListener { _, checked -> password.transformationMethod = if(checked) null else android.text.method.PasswordTransformationMethod.getInstance() } })
-        panel.addView(button("Save profile") {
+        val profileError=label("",13f,secondary);panel.addView(profileError)
+        val activeProfile = editIndex != null && p.optString("name")==prefs.getString("profile_name","")
+        panel.addView(button(if(activeProfile && ListenerService.listeningActive) "Save and reconnect" else "Save profile") {
             try {
-                val source = type.selectedItem.toString(); val portValue = port.text.toString().toInt(); val pollValue = poll.text.toString().toInt()
-                require(name.text.isNotBlank() && name.length() <= 80 && portValue in 1..65535 && pollValue in 15..3600)
+                val source = type.selectedItem.toString(); val portValue = if(source=="TCP/Telnet")port.text.toString().toIntOrNull() ?: 0 else 7373; val pollValue = if(source=="HTTPS JSON")poll.text.toString().toIntOrNull() ?: 0 else 30
+                require(name.text.isNotBlank() && name.length()<=80) { "Enter a profile name up to 80 characters." }
+                require(portValue in 1..65535) { "Port must be between 1 and 65535." }
+                require(pollValue in 15..3600) { "Poll interval must be between 15 and 3600 seconds." }
                 val hostValue = host.text.toString().trim(); val login = call.text.toString().trim()
                 require(login.isEmpty() || Regex("[A-Za-z0-9][A-Za-z0-9/\\-]{1,19}").matches(login) && login.any { it.isDigit() } && login.any { it.isLetter() })
                 if(source == "TCP/Telnet") require(hostValue.isNotBlank() && hostValue.length <= 253 && hostValue.none { it.isWhitespace() || it in "/:@" })
@@ -377,8 +406,14 @@ class MainActivity : Activity() {
                 val value = JSONObject().put("name",name.text.toString().trim()).put("source_type",source).put("host",hostValue).put("port",portValue.toString()).put("call",login)
                     .put("password",SecretStore.protect(password.text.toString())).put("feed_url",url.text.toString()).put("poll_seconds",pollValue.toString())
                 val entries = profiles(); if(editIndex == null) entries.put(value) else entries.put(editIndex!!,value)
-                prefs.edit().putString("profiles",entries.toString()).apply(); drafts.keys.filter { it.startsWith("Edit cluster:") }.toList().forEach { drafts.remove(it) }; onBackPressed()
-            } catch(_:Exception) { Toast.makeText(this,"Check the name, connection address, callsign and numeric ranges.",Toast.LENGTH_LONG).show() }
+                prefs.edit().putString("profiles",entries.toString()).apply()
+                if(activeProfile) {
+                    val editor=prefs.edit().putString("profile_name",value.getString("name"))
+                    for(key in listOf("host","port","call","password","source_type","feed_url","poll_seconds"))editor.putString(key,value.optString(key))
+                    editor.apply();if(ListenerService.listeningActive)command("switch")
+                }
+                drafts.keys.filter { it.startsWith("${draftPage()}:") }.toList().forEach { drafts.remove(it) }; onBackPressed()
+            } catch(error:Exception) { profileError.text=error.message?.takeIf { it!="Failed requirement." } ?: "Check the connection address and login callsign." }
         })
     }
     private fun spinner(panel: LinearLayout, title: String, values: List<String>, selected: String, key:String=title): Spinner {
@@ -386,10 +421,10 @@ class MainActivity : Activity() {
         return Spinner(this).apply {
             contentDescription=title
             adapter = ArrayAdapter(this@MainActivity,android.R.layout.simple_spinner_dropdown_item,values)
-            setSelection(values.indexOf(drafts["$page:$key"] ?: selected).coerceAtLeast(0)); panel.addView(this)
+            setSelection(values.indexOf(drafts["${draftPage()}:$key"] ?: selected).coerceAtLeast(0)); panel.addView(this)
             onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onNothingSelected(parent: AdapterView<*>?) {}
-                override fun onItemSelected(parent: AdapterView<*>?,view: View?,position: Int,id: Long) { drafts["$page:$key"] = values[position];if(page=="Filters")saveFilter(key) }
+                override fun onItemSelected(parent: AdapterView<*>?,view: View?,position: Int,id: Long) { drafts["${draftPage()}:$key"] = values[position];if(page=="Filters")saveFilter(key) }
             }
         }
     }
@@ -398,9 +433,15 @@ class MainActivity : Activity() {
         sound.addView(button("Voice and announcement") { go("Speech") }); sound.addView(button("What do you want to hear?") { go("Filters") })
         val appearance = section("Appearance")
         val picker = spinner(appearance,"Theme",listOf("System","Light","Dark","High contrast"),prefs.getString("appearance","System").orEmpty())
-        appearance.addView(button("Apply appearance") { prefs.edit().putString("appearance",picker.selectedItem.toString()).apply(); recreate() })
+        picker.onItemSelectedListener=object:AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent:AdapterView<*>?) {}
+            override fun onItemSelected(parent:AdapterView<*>?,view:View?,position:Int,id:Long) {
+                val selected=picker.selectedItem.toString()
+                if(selected!=prefs.getString("appearance","System")) { prefs.edit().putString("appearance",selected).apply();recreate() }
+            }
+        }
         val diagnostics = section("Help and diagnostics")
-        diagnostics.addView(label("Listening continues when you change pages. Pause stops announcements while the feed stays connected. Mute silences announcements. Android Back returns to the previous page.",14f,secondary))
+        diagnostics.addView(label("Listening continues when you change pages. Pause holds announcements for Resume while the feed stays connected. Mute discards audio while spots continue updating. Android Back returns to the previous page.",14f,secondary))
         diagnostics.addView(CheckBox(this).apply { text="Keep diagnostic logs locally"; setTextColor(ink); isChecked=prefs.getBoolean("diagnostics",true); setOnCheckedChangeListener { _,checked -> prefs.edit().putBoolean("diagnostics",checked).apply() } })
         diagnostics.addView(button("Export diagnostic report") { startActivityForResult(Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/zip").putExtra(Intent.EXTRA_TITLE,"DXTalker-Android-diagnostics.zip"),202) })
         diagnostics.addView(label("No automatic log upload. DX Talker " + packageManager.getPackageInfo(packageName,0).versionName,13f,secondary))
@@ -420,26 +461,41 @@ class MainActivity : Activity() {
             order.forEachIndexed { index,key ->
                 val row = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
                 val enabled = drafts["Speech:include_$key"]?.toBoolean() ?: (key in layout.included)
-                val check = CheckBox(this).apply { text=key.replaceFirstChar { it.uppercase() }; setTextColor(ink); isChecked=enabled; setOnCheckedChangeListener { _,checked -> drafts["Speech:include_$key"] = checked.toString() } }
+                val check = CheckBox(this).apply { text=key.replaceFirstChar { it.uppercase() }; setTextColor(ink); isChecked=enabled; setOnCheckedChangeListener { _,checked -> drafts["Speech:include_$key"] = checked.toString();scheduleSpeechSave() } }
                 flags[key]=check; row.addView(check,LinearLayout.LayoutParams(0,-2,1f))
-                row.addView(button("Up") { java.util.Collections.swap(order,index,index-1); drafts["Speech:order"]=order.joinToString(","); draw() }.apply { isEnabled=index>0; contentDescription="Move $key up" },LinearLayout.LayoutParams(dp(72),-2).apply { marginEnd=dp(4) })
-                row.addView(button("Down") { java.util.Collections.swap(order,index,index+1); drafts["Speech:order"]=order.joinToString(","); draw() }.apply { isEnabled=index<order.lastIndex; contentDescription="Move $key down" },LinearLayout.LayoutParams(dp(72),-2)); rows.addView(row)
+                row.addView(button("Up") { java.util.Collections.swap(order,index,index-1); drafts["Speech:order"]=order.joinToString(","); draw();scheduleSpeechSave() }.apply { isEnabled=index>0; contentDescription="Move $key up" },LinearLayout.LayoutParams(dp(72),-2).apply { marginEnd=dp(4) })
+                row.addView(button("Down") { java.util.Collections.swap(order,index,index+1); drafts["Speech:order"]=order.joinToString(","); draw();scheduleSpeechSave() }.apply { isEnabled=index<order.lastIndex; contentDescription="Move $key down" },LinearLayout.LayoutParams(dp(72),-2)); rows.addView(row)
             }
         }; draw()
-        val units = CheckBox(this).apply { text="Speak kHz or MHz"; setTextColor(ink); isChecked=drafts["Speech:units"]?.toBoolean() ?: layout.units; setOnCheckedChangeListener { _,checked -> drafts["Speech:units"]=checked.toString() } }; panel.addView(units)
-        panel.addView(button("Save announcement") {
-            val parts = order.filter { flags[it]?.isChecked == true }.map { when(it) { "intro" -> intro.text.toString().trim().replace("{","").replace("}",""); "callsign" -> "{call}"; else -> "{frequency}" + if(units.isChecked) " {unit}" else "" } }.filter { it.isNotBlank() }
-            if(parts.isEmpty()) Toast.makeText(this,"Choose at least one announcement section",Toast.LENGTH_LONG).show()
-            else { prefs.edit().putString("format",parts.joinToString(". ")+".").apply(); if(ListenerService.listeningActive)command("apply"); Toast.makeText(this,"Announcement saved",Toast.LENGTH_SHORT).show() }
-        })
+        val units = CheckBox(this).apply { text="Speak kHz or MHz"; setTextColor(ink); isChecked=drafts["Speech:units"]?.toBoolean() ?: layout.units; setOnCheckedChangeListener { _,checked -> drafts["Speech:units"]=checked.toString();scheduleSpeechSave() } }; panel.addView(units)
+        speechStatus=label("Announcement changes save automatically.",13f,secondary);panel.addView(speechStatus)
         val voice = section("System voice")
         voice.addView(label("Uses your installed Android speech engine. Voice downloads and engine choices are managed in Android settings.",14f,secondary))
         voice.addView(button("Open speech settings") { try { startActivity(Intent("com.android.settings.TTS_SETTINGS")) } catch(_:Exception) { Toast.makeText(this,"Open Android Settings and search for text to speech",Toast.LENGTH_LONG).show() } })
-        voice.addView(button("Test saved announcement") { command("test") })
+        voice.addView(button("Test announcement") { flushSpeech();command("test") })
+    }
+    private fun scheduleSpeechSave() {
+        speechSave?.let { uiHandler.removeCallbacks(it) }
+        speechStatus?.text="Saving when you finish editing…"
+        speechSave=Runnable { speechSave=null;saveSpeech() }.also { uiHandler.postDelayed(it,450) }
+    }
+    private fun flushSpeech() { speechSave?.let { uiHandler.removeCallbacks(it);speechSave=null;saveSpeech() } }
+    private fun saveSpeech() {
+        val layout=AnnouncementLayout.read(prefs.getString("format","New DX on. {frequency} {unit}. {call}.").orEmpty())
+        val order=(drafts["Speech:order"] ?: layout.order.joinToString(",")).split(',')
+        val units=drafts["Speech:units"]?.toBoolean() ?: layout.units
+        val parts=order.filter { drafts["Speech:include_$it"]?.toBoolean() ?: (it in layout.included) }.map {
+            when(it) { "intro" -> (drafts["Speech:Intro phrase"] ?: layout.intro).trim().replace("{","").replace("}","")
+                "callsign" -> "{call}";else -> "{frequency}"+if(units)" {unit}"else "" }
+        }
+        if(parts.isEmpty() || parts.any { it.isBlank() }) { speechStatus?.text="Not saved. Enter an intro or disable it and keep at least one section.";return }
+        val format=parts.joinToString(". ")+"."
+        if(format!=prefs.getString("format","")) { prefs.edit().putString("format",format).apply();if(ListenerService.listeningActive)command("format") }
+        speechStatus?.text="Saved. Example: "+format.replace("{frequency}",if(prefs.getString("frequency_unit","kHz")=="MHz")"14.0255"else "14025.5").replace("{unit}",prefs.getString("frequency_unit","kHz").orEmpty()).replace("{call}","WB4IUY")
     }
     private fun chooseFilter(key: String,title: String,values: List<String>) {
         val selected=prefs.getString(key,"").orEmpty().split(',').toSet()
-        val checks=BooleanArray(values.size) { values[it] in selected }
+        val checks=BooleanArray(values.size) { values[it] in selected || prefs.getString(key,"").isNullOrEmpty() && (key!="filter_modes" || values[it]!="Unknown") }
         val dialog=AlertDialog.Builder(this).setTitle(title).setMultiChoiceItems(values.map { if(it=="General")"No activity tag"else if(it=="Unknown")"Include unknown"else it }.toTypedArray(),checks) { dialog,index,checked ->
             checks[index]=checked
             if(key=="filter_modes" && values[index]=="Unknown" && checked && prefs.getString(key,"").isNullOrEmpty()) {
@@ -448,7 +504,7 @@ class MainActivity : Activity() {
             drafts["Filters:$key"]=values.filterIndexed { i,_ -> checks[i] }.joinToString(",").ifEmpty { "None" }
             saveFilter(key)
         }.setNeutralButton(if(key=="filter_modes")"All known modes"else "All") { _,_ -> drafts["Filters:$key"]="";saveFilter(key) }
-            .setPositiveButton("Close",null).create()
+            .setNegativeButton("None") { _,_-> drafts["Filters:$key"]="None";saveFilter(key) }.setPositiveButton("Close",null).create()
         dialog.setOnDismissListener { render() };dialog.show()
     }
     private fun filterContent() {
@@ -460,12 +516,22 @@ class MainActivity : Activity() {
         panel.addView(button("Listening presets") { drafts["Filters:presets_open"]=(drafts["Filters:presets_open"]!="true").toString();render() })
         val presets=runCatching { JSONObject(prefs.getString("listening_presets","{}").orEmpty()) }.getOrDefault(JSONObject())
         val preset=spinner(saved,"Saved listening preset",listOf("Choose preset")+presets.keys().asSequence().toList(),"Choose preset")
-        saved.addView(button("Load preset") {
-            presets.optJSONObject(preset.selectedItem.toString())?.let { values ->
-                for((key,default) in ListeningSettings.defaults)drafts["Filters:$key"]=values.opt(key)?.toString() ?: default
-                saveFilters(ListeningSettings.defaults.keys);render()
+        var lastPresetChoice=preset.selectedItem.toString()
+        preset.onItemSelectedListener=object:AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent:AdapterView<*>?) {}
+            override fun onItemSelected(parent:AdapterView<*>?,view:View?,position:Int,id:Long) {
+                val chosen=preset.selectedItem.toString()
+                if(chosen==lastPresetChoice)return
+                lastPresetChoice=chosen
+                presets.optJSONObject(chosen)?.let { values ->
+                    for((key,default) in ListeningSettings.defaults)drafts["Filters:$key"]=values.opt(key)?.toString() ?: default
+                    val changed=ListeningSettings.defaults.any { (key,default)->(drafts["Filters:$key"] ?: default)!=prefs.getString(key,default) }
+                    saveFilters(ListeningSettings.defaults.keys)
+                    drafts["Filters:Saved listening preset"]=preset.selectedItem.toString()
+                    if(changed)render()
+                }
             }
-        })
+        }
         saved.addView(button("Save current choices as preset") {
             val name=EditText(this).apply { setSingleLine();hint="For example Portable POTA" }
             AlertDialog.Builder(this).setTitle("Name this listening preset").setView(name).setNegativeButton("Cancel",null).setPositiveButton("Save") { _,_ ->
@@ -477,7 +543,10 @@ class MainActivity : Activity() {
                 } catch(_:Exception) { Toast.makeText(this,"Check the name and current filter choices",Toast.LENGTH_LONG).show() }
             }.show()
         })
-        saved.addView(button("Remove selected preset") { presets.remove(preset.selectedItem.toString());prefs.edit().putString("listening_presets",presets.toString()).apply();render() })
+        saved.addView(button("Remove selected preset") {
+            val previous=presets.toString();presets.remove(preset.selectedItem.toString());prefs.edit().putString("listening_presets",presets.toString()).apply()
+            inform("Preset removed.") { prefs.edit().putString("listening_presets",previous).apply() }
+        })
         for((key,title,values) in listOf(Triple("filter_bands","Bands",SpotFilters.bands.keys.toList()+"Other"),Triple("filter_modes","Modes",SpotFilters.modes),Triple("filter_activities","Activities",SpotFilters.activities))) {
             panel.addView(button(title+": "+staged(key).replace("General","No activity tag").replace("Unknown","Include unknown").ifBlank { if(key=="filter_modes")"All known modes"else "All" }) { chooseFilter(key,title,values) })
         }
@@ -515,13 +584,20 @@ class MainActivity : Activity() {
                 val p = profiles.getJSONObject(it); val c = p.getJSONObject("connection")
                 p.getString("name") + ": " + (if (c.getString("source_type") == "TCP/Telnet") c.getString("host") + ":" + c.getInt("port") else c.getString("feed_url"))
             }
-            AlertDialog.Builder(this).setTitle("Import profiles and filters?")
-                .setMessage(description + "\n\nNo credentials are included. Existing profiles are preserved; duplicate names are renamed. Imported filters apply on the next start. No connection starts automatically.")
-                .setNegativeButton("Cancel",null).setPositiveButton("Import") { _, _ ->
-                    try { TransferCodec.importInto(data,prefs); drafts.keys.filter { it.startsWith("Filters:") }.toList().forEach { drafts.remove(it) }; showProfiles() }
-                    catch (_: Exception) { Toast.makeText(this,"Import could not be saved",Toast.LENGTH_LONG).show() }
-                }.show()
+            importData=data
+            go("Import collection")
         } catch (_: Exception) { Toast.makeText(this,"Invalid or unsupported DX Talker transfer",Toast.LENGTH_LONG).show() }
+    }
+    private fun importContent() {
+        val data=importData ?: return
+        val panel=section("Import collection")
+        val entries=data.getJSONArray("profiles")
+        for(i in 0 until entries.length())panel.addView(label(entries.getJSONObject(i).getString("name")))
+        panel.addView(label("Adds these profiles and imports their filters. Existing profiles are preserved and duplicate names are renamed. Credentials are excluded. No connection starts automatically.",14f,secondary))
+        panel.addView(button("Import ${entries.length()} profiles and filters") {
+            try { TransferCodec.importInto(data,prefs);drafts.keys.filter { it.startsWith("Filters:") }.toList().forEach { drafts.remove(it) };importData=null;showProfiles() }
+            catch(_:Exception) { inform("Import could not be saved. Try again.") }
+        })
     }
     private fun scanQr() {
         if (!packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
@@ -536,7 +612,7 @@ class MainActivity : Activity() {
     }
     private fun launchQrCamera() {
         cameraScanRequested = false
-        try { startActivityForResult(Intent(this,QrScanActivity::class.java),304) }
+        try { startActivityForResult(Intent(this,QrScanActivity::class.java).putStringArrayListExtra("qr_pages",qrCollection.saved()),304) }
         catch (error:RuntimeException) {
             MobileDiagnostics.record(this,"qr_camera_launch_failed",error)
             Toast.makeText(this,"The scanner could not open. Import a transfer file or export diagnostics.",Toast.LENGTH_LONG).show()
@@ -559,20 +635,11 @@ class MainActivity : Activity() {
     @Deprecated("Legacy activity results are used by the QR scanner")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode,resultCode,data)
-        if (requestCode == 304) {
-            data?.getStringExtra("qr_text")?.takeIf { resultCode == RESULT_OK }?.let { text ->
-                try {
-                    val collection = qrCollection.accept(text)
-                    if (collection != null) { qrCollection.reset(); reviewImportData(collection) }
-                    else AlertDialog.Builder(this).setTitle("Collection QR progress")
-                        .setMessage("Scanned ${qrCollection.scanned} of ${qrCollection.total} pages. No profiles saved yet. Scan the remaining pages in any order.")
-                        .setPositiveButton("Scan next") { _, _ -> scanQr() }
-                        .setNegativeButton("Continue later",null).show()
-                } catch (_: Exception) {
-                    AlertDialog.Builder(this).setTitle("QR could not be added")
-                        .setMessage("Invalid page or a different collection. Current collection: ${qrCollection.scanned} of ${qrCollection.total} pages. Keep scanning this collection or reset to start another.")
-                        .setPositiveButton("Keep collection",null).setNegativeButton("Reset") { _, _ -> qrCollection.reset() }.show()
-                }
+        if(requestCode==304) {
+            data?.getStringArrayListExtra("qr_pages")?.let { pages -> qrCollection.reset();pages.forEach { runCatching { qrCollection.accept(it) } } }
+            data?.getStringExtra("collection_json")?.takeIf { resultCode==RESULT_OK }?.let { raw ->
+                try { val collection=TransferCodec.decode(raw);qrCollection.reset();reviewImportData(collection) }
+                catch(_:Exception) { inform("The scanned collection could not be read. Scan it again or import a file.") }
             }
             return
         }
@@ -592,7 +659,9 @@ class MainActivity : Activity() {
                     val text=output.toString("UTF-8")
                     if(requestCode==203) {
                         val entries=ClusterDirectory.read(text)
-                        AlertDialog.Builder(this).setTitle("Load cluster directory?").setMessage("${entries.length()} reviewed entries. This replaces the directory only. Saved profiles and filters stay as they are.").setNegativeButton("Cancel",null).setPositiveButton("Load") { _,_->prefs.edit().putString("cluster_directory",text).apply();go("Directory") }.show()
+                        val previous=prefs.getString("cluster_directory",null)
+                        prefs.edit().putString("cluster_directory",text).apply();go("Directory")
+                        inform("Loaded ${entries.length()} directory entries.") { val edit=prefs.edit();if(previous==null)edit.remove("cluster_directory")else edit.putString("cluster_directory",previous);edit.apply() }
                     }else reviewImport(text)
                 }
             } catch (_: Exception) { Toast.makeText(this,"Cannot read transfer file (maximum 64 KiB)",Toast.LENGTH_LONG).show() }

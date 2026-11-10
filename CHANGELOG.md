@@ -170,3 +170,9 @@ Add optional POTA/FOTA/SOTA wording for mixed listening and automatic activity w
 Replace Stop listening with local mute/unmute. Keep filtered display admission active while muting and cancel current and queued local audio without stopping the source. Mark intentional mute with a gray M and do not synthesize or replay a muted backlog. Preserve mute across explicit Connect, retain full Stop/RF behavior and release idle keep awake requests while locally muted.
 
 The a25 correction also admits matching cluster rows while both audio routes are off. Gray D identifies display only rows and gray M identifies local mute. Turning on an output speaks only new reports. The local hover label is Mute and the muted action is Unmute. Listening and RF enablement never gate filtered display admission.
+
+## 1.0.0b1. First beta usability pass
+
+Separate scoped connection and preview actions from ordinary preference autosave and explicit radio configuration. Preserve radio and noncredential profile drafts. Add cancellable output transitions, theme aware green Unmute, live local volume, direct Filters, spot details, preset Undo, location helpers, readable searchable Help and grouped maintenance. Keep profile edits off the active connection and switch entered clusters in one action. Simplify voice pack activation and resume. Remove repeated application confirmations in favor of clear final actions and recoverable Undo.
+
+Android autosaves appearance and announcement edits, keeps matching display rows and indexed profile drafts, distinguishes queue holding Pause from discarding Mute and scans collection pages continuously before complete import review. Version metadata is aligned to 1.0.0b1 across desktop, Windows numeric metadata, Android versionCode 20 and bundled Help. Core filtering, transmission coordination and explicit RF recovery remain intact.

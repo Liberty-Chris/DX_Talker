@@ -60,7 +60,7 @@ def button_style(root,palette,fill,edge,ink,name=None):
     if cache is None:cache={};root._rounded_images=cache
     if element not in cache:
         images=[_image(root,f,e) for f,e in
-                ((fill,edge),(fill,edge if edge=='#d63852' else palette['accent']),(palette['selected'] if fill==palette['field'] else fill,edge),(palette['field'],palette['edge']))]
+                ((fill,edge),(fill,edge if edge not in (palette['edge'],) else palette['accent']),(palette['selected'] if fill==palette['field'] else fill,edge),(palette['field'],palette['edge']))]
         cache[element]=images
         style.element_create(element,'image',images[0],('disabled',images[3]),('focus',images[1]),('active',images[2]),border=10,padding=0,width=32,height=32,sticky='nsew')
     if name is None:

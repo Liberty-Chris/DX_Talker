@@ -12,27 +12,27 @@ Choose Light or Dark from Appearance in the header. The DXt logo and interface c
 
 ## Try it without a cluster or radio
 
-In Audio and PTT, choose your speakers or headphones as Local preview output. Save and apply settings. In Live spots, choose Sample preview. Select a synthetic row in that separate window and choose Preview selected sample. These samples do not enter the live list or radio queue.
+In Audio and PTT, choose your speakers or headphones as Local preview output. Ordinary preferences save automatically. Apply radio changes when changing radio configuration. In Live spots, choose Sample preview. Select a synthetic row in that separate window and choose Preview selected sample. These samples do not enter the live list or radio queue.
 
 In Identification, enter the CW and voice text you want to use. Try Preview CW locally and Preview voice locally. These controls do not assert serial PTT. Use headphones or speakers separate from the radio audio path, especially if your radio uses VOX.
 
 ## Receive spots
 
-In Source, enter the cluster hostname, port and login callsign. Enter a session password only if required and choose Connect using these settings. Common prompts are handled automatically. A visible manual field lets you send cluster commands. Use the dedicated password field for a secret. Its eye button shows or hides the value for checking. Named profiles retain each source configuration.
+In Source, enter the cluster hostname, port and login callsign. Enter a session password only if required and choose Connect. Common prompts are handled automatically. A visible manual field lets you send cluster commands. Use the dedicated password field for a secret. Its eye button shows or hides the value for checking. Named profiles retain each source configuration.
 
 The source becomes ready when valid spots arrive. The initial example is w4mr.ddns.net, port 7373. Its live behavior still needs operator verification. You can also use an HTTPS JSON feed matching the supported contract described in Source connections.
 
 ## Set up radio output
 
-Choose the radio audio device and PTT method in Audio and PTT. In Identification, configure the required ID text and schedule. Choose listening filters directly on Source. In Announcements, choose the announcement format and timing. Supervise operation on a clear or coordinated channel; no acknowledgement checkbox is required.
+Choose the radio audio device and PTT method in Audio and PTT. In Identification, configure the required ID text and schedule. Choose listening filters in Filters. In Announcements, choose the announcement format and timing. Supervise operation on a clear or coordinated channel; no acknowledgement checkbox is required.
 
-Save and apply settings. Enable RF uses those saved settings and starts with identification, even without a connected source. The button reads RF enabled while active, and Disable RF on hover or keyboard focus. Click again to stop RF without disconnecting the cluster. New live spots are then eligible for announcement. Previously displayed spots are not replayed. Send ID now requests the configured ID immediately.
+Ordinary preferences save automatically. Apply radio changes when changing radio configuration. Enable RF uses those saved settings and starts with identification, even without a connected source. The button reads RF enabled while active, and Disable RF on hover or keyboard focus. Click again to stop RF without disconnecting the cluster. New live spots are then eligible for announcement. Previously displayed spots are not replayed. Send ID now requests the configured ID immediately.
 
 ## Stop and recover
 
 STOP ALL OUTPUT cancels current and queued output and requests PTT release. Wait for Idle before applying changes or previewing. Source loss or an output fault disables RF. Reconnect does not automatically enable it again.
 
-Settings are saved locally. RF and local listening enable state are never saved. Passwords and tokens remain session only unless you explicitly remember one in a Windows protected cluster profile.
+Settings are saved locally. RF and local listening enable state are never saved. Radio drafts are retained separately and do not become active on restart. Passwords and tokens remain session only unless you explicitly remember one in a Windows protected cluster profile.
 
 For speech, keyboard and local listening tools, see Listening and accessibility. History and updates covers retention, log folders and the application update process.
 
@@ -54,3 +54,5 @@ From a18, Android phones and tablets appears beside the Windows and XP downloads
 ## Ubuntu installation
 
 Ubuntu desktop pilots use the Debian package and native offline speech. See [Ubuntu desktop](ubuntu.md) for installation, updates, system keyring and serial access. The Windows setup instructions above apply only to Windows.
+
+For the beta interface, scoped previews, autosave, profile editing and draft recovery, see [Operation and saving](usability.md).

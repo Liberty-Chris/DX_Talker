@@ -104,7 +104,7 @@ Choose Generate ElevenLabs recorded voice in Speech to create offline assets thr
 
 Generate voice pack uses the shared testing allowance. The screen shows the clip count and approximate text size first. The standard vocabulary contains 77 clips; a custom intro may add one. No request is sent merely by opening the window. Completed clips are kept in a partial folder on cancellation. Retry with the same folder, name, voice, label and intro to reuse verified clips. A request already in progress can still use allowance. Completed packs are never overwritten.
 
-When finished, choose Use this voice, Save and apply and Preview sample speech. The provider becomes Recorded. Playback uses local WAVs without an internet connection or further API requests. Windows speech and Piper remain available. Generated packs retain voice and model provenance; sharing rights depend on the account plan and voice permissions. Arbitrary ID text may require a separate WAV or additional assets.
+When finished, choose Use this voice, then Preview sample speech. The provider becomes Recorded. Playback uses local WAVs without an internet connection or further API requests. Windows speech and Piper remain available. Generated packs retain voice and model provenance; sharing rights depend on the account plan and voice permissions. Arbitrary ID text may require a separate WAV or additional assets.
 
 The owner enters the ElevenLabs account key on the hosting server once, outside the public website folder. It is not included in app settings, QR transfers, logs or installers. The repository’s shared speech service guide covers DreamHost setup and build configuration.
 
@@ -113,11 +113,11 @@ If Refresh voices or the service check reports website access blocked with HTTP 
 
 ## Android listening interface
 
-Android uses permanent Listen, Clusters and Settings navigation. The audio controls stay visible on every page. Listen arms speech before the first spot; Stop listening closes the mobile session. Pause and Mute cancel current and queued speech without closing the feed. Resume or Unmute allows new matching spots; neither replays a backlog. Changing pages or applying filters does not reconnect the cluster. Selecting another saved cluster switches an active session to that profile and clears old results.
+Android uses permanent Listen, Clusters and Settings navigation. The audio controls stay visible on every page. Listen arms speech before the first spot; Stop listening closes the mobile session. Mute cancels current and queued speech and discards muted arrivals. Pause holds current and new speech until Resume, within queue and age limits. Both keep the feed connected. Changing pages or applying filters does not reconnect the cluster. Selecting another saved cluster switches an active session to that profile and clears old results.
 
-Android Back returns through detail pages and then to Listen. Form drafts and the current page survive activity recreation and remain in memory until the activity is discarded. Save profile stores a profile without selecting or connecting it; Use this cluster selects it. Remove asks for confirmation. Existing QR collection and file imports are under Clusters, with reviewed complete collection import and credential exclusion preserved.
+Android Back returns through detail pages and then to Listen. Form drafts and the current page survive activity recreation and remain in memory until the activity is discarded. Save profile stores a profile without selecting or connecting it; Use this cluster selects it. Remove offers Undo. Existing QR collection and file imports are under Clusters, with reviewed complete collection import and credential exclusion preserved.
 
-Settings includes System, Light, Dark and High contrast appearance, local diagnostics and a visual announcement builder. Choose intro, callsign and frequency sections, move them up or down and optionally speak units. Save announcement applies to future speech and cancels pending speech without reconnecting. Test saved announcement uses Android system speech. Android engine and voice installation choices are available through Open speech settings. This mobile batch does not add paid online speech or radio transmission.
+Settings includes System, Light, Dark and High contrast appearance, local diagnostics and a visual announcement builder. Choose intro, callsign and frequency sections, move them up or down and optionally speak units. Announcement changes save automatically for future speech without reconnecting or interrupting current playback. Test announcement uses Android system speech. Android engine and voice installation choices are available through Open speech settings. This mobile batch does not add paid online speech or radio transmission.
 
 ## Preparation time and installed packs
 
@@ -125,13 +125,13 @@ Windows speech now reuses one System.Speech process for consecutive announcement
 
 Recorded playback retains a bounded cache of verified WAV assets. It avoids both system synthesis and online requests at playback time. DX Talker discovers installed packs in its own voices folder, a selected custom folder and the bundled assets/voices folder. Advanced storage options reveal paths when needed. No new voice packs are bundled in this update; selected packs can be included in a later verified build.
 
-Generate ElevenLabs recorded voice chooses an application managed destination automatically. Refresh/choose an allowed voice, review the label and intro, then Generate. The status reports progress and Use this voice selects the finished pack. Save and apply, then preview. Advanced storage options are optional. Interrupted generation can resume using the same settings; completed packs are not overwritten. Generating a pack uses the shared service allowance. No key is requested from testers.
+Generate ElevenLabs recorded voice chooses an application managed destination automatically. Refresh/choose an allowed voice, review the label and intro, then Generate. The status reports progress and Use this voice selects the finished pack. The selection saves automatically; preview when ready. Advanced storage options are optional. Interrupted generation can resume using the same settings; completed packs are not overwritten. Generating a pack uses the shared service allowance. No key is requested from testers.
 
 Local Windows generation and recorded playback are useful for busy feeds. Online ElevenLabs includes service/network/provider latency and cannot guarantee contest rate throughput. See [Keeping up](listening_filters.md) for queue age, preparation timing, zero additional gap and catch up controls. Filtering reduces the number of announcements; no speech engine can speak an unlimited incoming feed in real time.
 
 Voice ID pause controls and independent CW/voice schedules are described under [Station identification](identification.md).
 
-Desktop buttons and settings panels have rounded surfaces in every appearance mode. Keyboard focus, Enter and Space activation, disabled states and the connection/listening/RF state colors remain available. Outer window borders follow the operating system. Announcements aligns its format, timing and RF supervision panels. The listening filter editor is embedded on Source.
+Desktop buttons and settings panels have rounded surfaces in every appearance mode. Keyboard focus, Enter and Space activation, disabled states and the connection/listening/RF state colors remain available. Outer window borders follow the operating system. Announcements aligns its format, timing and RF supervision panels. The listening filter editor has its own Filters page.
 
 
 On Android Listen, use the kHz/MHz control beside Recent spots. It updates retained row frequencies and future speech without reconnecting the cluster. Pending/current speech is stopped when units change, and displayed history is not replayed. Frequencies and band/license rules stay in canonical kHz internally. Applying a listening preset can also change units; its value is retained when other filter controls are edited.
@@ -148,7 +148,7 @@ Connecting to a cluster admits matching live rows regardless of local listening 
 
 ## POTA, FOTA and SOTA announcement wording
 
-In Source on desktop or Filters on Android, turn on Use POTA / FOTA / SOTA wording during mixed listening to announce an accepted tagged spot as activity, mode, frequency and callsign. For example: POTA. SSB. One four point two five megahertz. Whiskey Bravo four India Uniform Yankee. The switch starts off. When the activity selection contains only POTA, FOTA or SOTA, the same wording is used automatically even with the mixed listening switch off. An empty activity selection or one including General is mixed listening. Selecting None admits no spots.
+In Filters on desktop or Android, turn on Use POTA / FOTA / SOTA wording during mixed listening to announce an accepted tagged spot as activity, mode, frequency and callsign. For example: POTA. SSB. One four point two five megahertz. Whiskey Bravo four India Uniform Yankee. The switch starts off. When the activity selection contains only POTA, FOTA or SOTA, the same wording is used automatically even with the mixed listening switch off. An empty activity selection or one including General is mixed listening. Selecting None admits no spots.
 
 This changes wording only. Band, mode, activity, frequency limits, license and location filters remain in force. Stop, mute, age, repeat, queue and radio controls also remain unchanged. Ordinary spots retain the configured DX format. Tagged spots use the fixed activity order instead of custom introduction, section visibility and section ordering. Existing kHz/MHz and spoken unit choices remain respected.
 
@@ -157,3 +157,5 @@ Only recognized activity tags are spoken, not arbitrary comments. If several tag
 The switch saves immediately with listening choices and is included in presets and profile/QR transfers. Update both receiving and sending apps to a24 or later before transferring this new preference. Older files without the field remain supported and default it to off.
 
 Local mute is session state and is not saved across app restarts. Explicit Connect preserves an already armed local session's mute state before the source starts. Source loss and Stop all output still stop the session; restarting output remains explicit. Muting does not alter radio volume or RF controls. The local volume slider at zero also keeps matching display rows as muted. A selected local spot preview is still available while muted after current audio has finished stopping. Muted idle listening does not request Windows keep awake on its own.
+
+The beta uses scoped previews, automatic speech preference saving and preserved radio drafts. See [Operation and saving](usability.md) for exact transitions and recovery.

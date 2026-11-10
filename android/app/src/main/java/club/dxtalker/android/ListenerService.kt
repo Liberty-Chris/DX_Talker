@@ -24,6 +24,12 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
         val spots=mutableListOf<String>()
         private val spotRecords=mutableListOf<DxSpot>()
         fun clearDisplayedSpots() { synchronized(spots){spots.clear();spotRecords.clear()} }
+        fun refilterDisplayed(get:(String)->String) {
+            synchronized(spots) {
+                spotRecords.removeAll { SpotPresentation.decide(it,get).reason.isNotEmpty() }
+                spots.clear();spots.addAll(spotRecords.map { SpotPresentation.row(it,get("frequency_unit").ifBlank { "kHz" }) })
+            }
+        }
         fun reformatSpots(unit:String) {
             require(unit in listOf("kHz","MHz"))
             synchronized(spots) { spots.clear();spots.addAll(spotRecords.map { SpotPresentation.row(it,unit) }) }
@@ -44,6 +50,7 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
     private val submissions=java.util.concurrent.ConcurrentLinkedQueue<Pair<Int,String>>()
     private var lastSubmission=0L
     private var speaking=false
+    private var currentSpeech: Pair<String,Instant>? = null
     private var nextAllowedAt=0L
     private val speechWake=Runnable { nextSpeech() }
     private var utterance=""
@@ -81,7 +88,7 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
         speechReady=result==TextToSpeech.SUCCESS && tts?.setLanguage(Locale.US) in listOf(TextToSpeech.LANG_AVAILABLE,TextToSpeech.LANG_COUNTRY_AVAILABLE,TextToSpeech.LANG_COUNTRY_VAR_AVAILABLE)
         tts?.setOnUtteranceProgressListener(object:UtteranceProgressListener(){
             override fun onStart(id:String?){}
-            override fun onDone(id:String?){main.post{if(id!=utterance)return@post;speaking=false;nextAllowedAt=android.os.SystemClock.elapsedRealtime()+setting("spacing_seconds","5").toLong()*1000;nextSpeech()}}
+            override fun onDone(id:String?){main.post{if(id!=utterance)return@post;speaking=false;currentSpeech=null;nextAllowedAt=android.os.SystemClock.elapsedRealtime()+setting("spacing_seconds","5").toLong()*1000;nextSpeech()}}
             @Deprecated("TTS callback") override fun onError(id:String?){main.post{if(id!=utterance)return@post;speaking=false;pending.clear();update("Speech failed. Check the installed voice.")}}
         });if(!speechReady)update("Speech unavailable. Install an English system voice.") else{update();nextSpeech()}
     }}
@@ -91,12 +98,12 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
         if(delay>0) { main.removeCallbacks(speechWake);main.postDelayed(speechWake,delay);return }
         while(pending.isNotEmpty()){
             val item=pending.removeFirst();if(item.second<Instant.now()){expired++;continue}
-            speaking=true;utterance="dx"+System.nanoTime();val result=tts?.speak(item.first,TextToSpeech.QUEUE_FLUSH,null,utterance)
+            currentSpeech=item;speaking=true;utterance="dx"+System.nanoTime();val result=tts?.speak(item.first,TextToSpeech.QUEUE_FLUSH,null,utterance)
             if(result==TextToSpeech.ERROR){speaking=false;pending.clear();update("Speech failed. Check the system voice.")};break
         }
         update()
     }
-    private fun clearSpeech(){main.removeCallbacks(speechWake);nextAllowedAt=0;pending.clear();speaking=false;utterance="";tts?.stop()}
+    private fun clearSpeech(){main.removeCallbacks(speechWake);nextAllowedAt=0;pending.clear();currentSpeech=null;speaking=false;utterance="";tts?.stop()}
     private fun snapshot() = listOf("host","port","call","password","source_type","feed_url","poll_seconds","format","min_khz","max_khz","max_age_seconds","repeat_seconds","spacing_seconds","frequency_unit","filter_bands","filter_modes","filter_activities","activity_announcements","license_class","license_region","license_unknown","filter_dx_countries","filter_dx_continents","filter_spotter_countries","filter_spotter_continents","filter_spotter_regions","geography_unknown","location_overrides").mapNotNull { key -> prefs.getString(key,null)?.let { key to it } }.toMap()
     override fun onStartCommand(intent:Intent?,flags:Int,startId:Int):Int {
         if(intent?.action == "switch") {
@@ -124,18 +131,30 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
                     update()
                 }
             }
+            "format" -> { session=session+("format" to prefs.getString("format","New DX on. {frequency} {unit}. {call}.").orEmpty());pending.clear();update("Announcement saved. Current audio finishes normally.") }
             "apply" -> {
                 // Update only listening policy, never an unsaved source or credentials.
                 val keys=setOf("format","min_khz","max_khz","max_age_seconds","repeat_seconds","spacing_seconds","frequency_unit","filter_bands","filter_modes","filter_activities","activity_announcements","license_class","license_region","license_unknown","filter_dx_countries","filter_dx_continents","filter_spotter_countries","filter_spotter_continents","filter_spotter_regions","geography_unknown","location_overrides")
                 val fresh=snapshot(); session=session + fresh.filterKeys { it in keys }; clearSpeech(); seen.clear();synchronized(hidden){hidden.clear()}
-                synchronized(spots) { spots.clear();spotRecords.clear() }; update("Filters applied. Waiting for new matching spots.")
+                synchronized(spots) {
+                    spotRecords.removeAll { SpotPresentation.decide(it) { key -> setting(key,"") }.reason.isNotEmpty() }
+                    spots.clear();spots.addAll(spotRecords.map { SpotPresentation.row(it,setting("frequency_unit","kHz")) })
+                }; update("Filters saved. Receiving matching spots.")
             }
             "start"->if(!running){
                 session=snapshot();activeCall=session["call"].orEmpty();connectionToken=generation+1;connected=false;submissions.clear();spotStatus="";synchronized(hidden){hidden.clear()};expired=0
                 running=true;listeningActive=true;paused=false;generation++;val token=generation;seen.clear();clearSpeech();synchronized(spots){spots.clear();spotRecords.clear()}
                 startForeground(1,notification());update("Connecting. Listening armed for the first spot.");worker=thread(name="dx-listener"){listenLoop(token)}}
             "mute"->{muted=!muted;if(muted)clearSpeech();update();nextSpeech()}
-            "pause"->{paused=!paused;if(paused)clearSpeech();update();nextSpeech()}
+            "pause"->{
+                paused=!paused
+                if(paused) {
+                    main.removeCallbacks(speechWake)
+                    currentSpeech?.takeIf { it.second>=Instant.now() }?.let { pending.addFirst(it) }
+                    currentSpeech=null;speaking=false;utterance="";tts?.stop()
+                }
+                update();nextSpeech()
+            }
             "test"->{if(muted||paused)update("Resume and unmute before testing speech.")else if(speechReady){clearSpeech();pending.add(SpotPolicy.speak(DxSpot("KF4DBX",java.math.BigDecimal("14025.5"),Instant.now()),prefs.getString("format","New DX on. {frequency} {unit}. {call}.").orEmpty(),prefs.getString("frequency_unit","kHz").orEmpty()) to Instant.now().plusSeconds(120));nextSpeech()}else update("Wait for the speech engine or install an English voice.")}
             "stop"->{connected=false;submissions.clear();running=false;listeningActive=false;generation++;try{socket?.close()}catch(_:Exception){};worker?.interrupt();clearSpeech();update("Stopped");stopForeground(STOP_FOREGROUND_REMOVE);stopSelf()}
         };return START_NOT_STICKY
@@ -158,7 +177,7 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
             while(iterator.hasNext())if(iterator.next().second<now){iterator.remove();expired++}
             val age=setting("max_age_seconds","180").toLong();val key=spot.call+":"+spot.frequency.stripTrailingZeros().toPlainString();val tick=android.os.SystemClock.elapsedRealtime()
             seen.entries.removeAll{tick-it.value>=setting("repeat_seconds","300").toLong()*1000}
-            if(muted||paused||spot.time.plusSeconds(age)<now||spot.frequency<setting("min_khz","1").toBigDecimal()||spot.frequency>setting("max_khz","10000000").toBigDecimal()||key in seen||pending.size>=100)return@post
+            if(muted||spot.time.plusSeconds(age)<now||spot.frequency<setting("min_khz","1").toBigDecimal()||spot.frequency>setting("max_khz","10000000").toBigDecimal()||key in seen||pending.size>=100)return@post
             seen[key]=tick
             pending.add(decision.speech to spot.time.plusSeconds(age));nextSpeech();update()
         }

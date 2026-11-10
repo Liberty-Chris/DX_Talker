@@ -28,13 +28,15 @@ from .history import History
 from . import updates
 from .diagnostics import Diagnostics
 from . import transfer
+from .usability import Usability
+from .preferences import RADIO_FIELDS, PREFERENCE_FIELDS, FORMAT_FIELDS, read_group, load_radio_draft, save_radio_draft
 
 
 def resource_root():
     return Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
 
 
-class Application:
+class Application(Usability):
     def __init__(self, root):
         self.root = root
         root.title(f"DX Talker {__version__}")
@@ -94,6 +96,11 @@ class Application:
             settings_error += " Cluster profiles could not be loaded. The existing file has been retained."
         self.engine = Engine(self.settings, self.emit)
         self.engine.source_available = lambda: self.source is not None and self.source.connected.is_set()
+        self.preference_jobs = {}
+        self.preference_errors = {}
+        self.transition_serial = 0
+        self.profile_drafts = {}
+        self.profile_edit_key = None
         self.variables = {}
         for f in fields(Settings):
             value=getattr(self.settings,f.name)
@@ -112,6 +119,8 @@ class Application:
         self._style()
         self._build()
         self._paint_widgets()
+        self._build_usability()
+        self._restore_radio_draft()
         self.initializing = False
         self._refresh_devices()
         self._refresh_spot_units()
@@ -127,7 +136,7 @@ class Application:
         root.after(2500, self._startup_update_check)
         root.after(86400000, self._scheduled_update_check)
         if settings_error:
-            messagebox.showwarning("Settings", settings_error)
+            self._show_notice(settings_error)
         root.protocol("WM_DELETE_WINDOW", self.close)
         root.after(75, self._poll)
 
@@ -207,7 +216,7 @@ class Application:
         try:
             save_appearance(self.theme.get())
         except OSError:
-            messagebox.showwarning("Appearance", "The theme changed, but could not be saved for next time.")
+            self._show_notice("The theme changed but could not be saved for next time.")
 
     def _build(self):
         header = ttk.Frame(self.root, style="Header.TFrame", padding=(20, 14))
@@ -217,7 +226,7 @@ class Application:
         identity = ttk.Frame(header, style="Header.TFrame")
         identity.pack(side="left", padx=16)
         ttk.Label(identity, text="DX TALKER", style="Header.TLabel", font=("Segoe UI", 11, "bold")).pack(anchor="w")
-        ttk.Label(identity, text="Alpha  /  " + __version__, style="Header.TLabel").pack(anchor="w", pady=(4, 0))
+        ttk.Label(identity, text="Beta  /  " + __version__, style="Header.TLabel").pack(anchor="w", pady=(4, 0))
         self.stop_button = ttk.Button(header, text="STOP ALL OUTPUT", style="Stop.TButton", command=self._stop)
         self.stop_button.pack(side="right")
         appearance = ttk.Frame(header, style="Header.TFrame")
@@ -236,7 +245,7 @@ class Application:
         self.output_status = tk.StringVar(value="RF disabled")
         self.activity = tk.StringVar(value="Idle")
         for column, (title, variable) in enumerate((("CONNECTION", self.source_status),
-                                                  ("RADIO OUTPUT", self.output_status),
+                                                  ("AUDIO OUTPUT", self.output_status),
                                                   ("ACTIVITY", self.activity))):
             status.columnconfigure(column, weight=1, uniform="status")
             card = ttk.Frame(status, style="Status.TFrame", padding=(0, 8))
@@ -252,13 +261,13 @@ class Application:
         notebook.pack(fill="both", expand=True, padx=18, pady=(0, 8))
         self.tabs = {}
         self.scroll_tabs = []
-        for name in ("Live spots", "Source", "Audio and PTT", "Identification", "Announcements", "Speech and access", "History and updates", "Help and Info"):
+        for name in ("Live spots", "Source", "Audio and PTT", "Identification", "Announcements", "Speech and access", "History and updates", "Help and Info", "Listening filters"):
             if name in ("Live spots", "Help and Info"):
                 frame = ttk.Frame(notebook, padding=16)
                 notebook.add(frame, text={"Help and Info": "Help"}.get(name, name))
             else:
                 container = ttk.Frame(notebook)
-                notebook.add(container, text={"Audio and PTT": "Audio / PTT", "Identification": "IDs", "Speech and access": "Speech", "History and updates": "History / Updates"}.get(name, name))
+                notebook.add(container, text={"Audio and PTT": "Audio / PTT", "Identification": "IDs", "Speech and access": "Speech", "History and updates": "Maintenance", "Listening filters": "Filters"}.get(name, name))
                 canvas = tk.Canvas(container, background=PALETTES[self.theme.get()]["bg"], highlightthickness=0)
                 scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
                 canvas.configure(yscrollcommand=scrollbar.set)
@@ -284,8 +293,9 @@ class Application:
         self._help_tab()
         footer = ttk.Frame(self.root, padding=(18, 5, 18, 12))
         footer.pack(side="bottom", fill="x", before=notebook)
-        ttk.Label(footer, text="Save settings to apply. RF always starts disabled.").pack(side="left")
-        self.save_button = ttk.Button(footer, text="Save and apply settings", style="Accent.TButton", command=self.guard(self._apply))
+        self.save_status = tk.StringVar(value="Preferences save automatically. RF starts disabled.")
+        ttk.Label(footer, textvariable=self.save_status, wraplength=540).pack(side="left")
+        self.save_button = ttk.Button(footer, text="Apply radio changes", style="Accent.TButton", command=self.guard(self._apply))
         self.save_button.pack(side="right")
         self.update_banner = tk.StringVar()
         ttk.Label(footer, textvariable=self.update_banner, wraplength=420).pack(side="left", padx=12)
@@ -314,7 +324,7 @@ class Application:
         path = filedialog.asksaveasfilename(title='Export diagnostic report', defaultextension='.zip', filetypes=[('ZIP report', '*.zip')])
         if path:
             self.diagnostics.export(path)
-            messagebox.showinfo('Diagnostic report', 'Saved locally. No report was uploaded. You can review and share the ZIP yourself.')
+            self._show_notice("Diagnostic report saved. No report was uploaded.")
 
     def guard(self, action):
         def wrapped():
@@ -323,7 +333,7 @@ class Application:
             except Exception as exc:
                 if not isinstance(exc, ValueError):
                     self.diagnostics.exception('action_exception', type(exc), exc.__traceback__)
-                messagebox.showerror("DX Talker", str(exc) if isinstance(exc, ValueError) else "The action failed. See diagnostic logs for details.")
+                self._show_notice(str(exc) if isinstance(exc, ValueError) else "The action failed. Export diagnostics from Maintenance.")
         return wrapped
 
     def _field(self, parent, row, label, name, choices=None, note=None, browse=False, compact=False):
@@ -356,21 +366,15 @@ class Application:
             ttk.Button(parent, text="Browse", command=self.guard(self._browse_wav)).grid(row=row, column=2, padx=6)
         elif note:
             ttk.Label(parent, text=note, wraplength=260).grid(row=row, column=2, padx=12, sticky="w")
-        var.trace_add("write", self._setting_changed)
+        var.trace_add("write", lambda *args, key=name: self._setting_changed(key))
 
     def _show_notice(self,text):
         self.error_notice.set(text)
         self.error_frame.pack(fill='x',before=self.notebook)
 
     def _open_filters(self):
-        self.notebook.select(1)
-        def reveal():
-            self.root.update_idletasks()
-            canvas=next(c for f,c in self.scroll_tabs if f is self.tabs['Source'])
-            position=self.filter_editor.frame.winfo_y()
-            canvas.yview_moveto(position/max(1,self.tabs['Source'].winfo_height()))
-            self.filter_editor.focus()
-        self.root.after_idle(reveal)
+        self._select_page('Listening filters')
+        self.filter_editor.focus()
 
     def _sync_listening_editor(self, reset_filters=True):
         from .listening import FIELDS
@@ -411,9 +415,10 @@ class Application:
         from .spotting import open_spot_dialog
         open_spot_dialog(self,myself)
 
-    def _setting_changed(self, *args):
-        if not self.initializing and (self.engine.enabled or self.engine.local_enabled):
-            self.engine.stop("Settings changed. RF disabled. Save and apply before enabling again.")
+    def _setting_changed(self, key=None, *args):
+        if self.initializing or not hasattr(self, 'save_status'):
+            return
+        self._queue_preference(key)
 
     def _live_tab(self):
         frame = self.tabs["Live spots"]
@@ -427,31 +432,34 @@ class Application:
         self.live_profile_picker.pack(side="left")
         self.live_profile_picker.bind("<<ComboboxSelected>>", lambda event: self.guard(self._select_profile)())
         self.variables["frequency_unit"] = tk.StringVar(value=self.settings.frequency_unit)
-        self.variables["frequency_unit"].trace_add("write", self._setting_changed)
+        self.variables["frequency_unit"].trace_add("write", lambda *args: self._setting_changed("frequency_unit"))
         units = ttk.Frame(quick)
         units.pack(side="right", padx=8)
         for unit in ("kHz", "MHz"):
             ttk.Radiobutton(units, text=unit, value=unit, variable=self.variables["frequency_unit"]).pack(side="left", padx=4)
         toolbar = ttk.Frame(frame)
         toolbar.grid(row=1, column=0, sticky="ew", pady=(0, 8))
-        self._connection_control(toolbar).grid(row=0, column=0, sticky="ew", padx=(0, 6), pady=(0, 6))
-        for index, (text, action) in enumerate((("Sample preview", self._sample_preview), ("Preview selected", self._preview_spot),
-                             ("Listen locally (F8)", self._listen), ("Clear view", self._clear_spots),
-                             ("Enable RF", self._enable), ("Send ID now", self.engine.identify)), start=1):
-            control = (self._listening_control(toolbar) if action == self._listen else
-                       self._state_control(toolbar, "rf") if action == self._enable else
-                       ttk.Button(toolbar, text=text, command=self.guard(action)))
-            control.grid(row=index // 4, column=index % 4, sticky="ew", padx=(0, 6), pady=(0, 6))
+        self._connection_control(toolbar).grid(row=0,column=0,sticky='ew',padx=(0,6))
+        self._listening_control(toolbar).grid(row=0,column=1,sticky='ew',padx=(0,6))
+        self._state_control(toolbar,'rf').grid(row=0,column=2,sticky='ew',padx=(0,6))
+        ttk.Button(toolbar,text='Filters',command=self._open_filters).grid(row=0,column=3,sticky='ew')
+        for column in range(4):toolbar.columnconfigure(column,weight=1)
         filters=ttk.Frame(toolbar)
-        filters.grid(row=2,column=0,columnspan=4,sticky='w')
-        ttk.Button(filters,text='What do you want to hear?',command=self._open_filters).pack(side='left',padx=(0,8))
-        ttk.Button(filters,text='Spot a station',command=lambda:self._spot_dialog(False)).pack(side='left',padx=(0,8))
-        ttk.Button(filters,text='Spot myself',command=lambda:self._spot_dialog(True)).pack(side='left')
+        filters.grid(row=1,column=0,columnspan=4,sticky='ew',pady=(6,0))
+        self.capability_buttons=[]
+        selected=ttk.Button(filters,text='Preview selected',command=self.guard(self._preview_spot))
+        selected.pack(side='left',padx=(0,6));self.capability_buttons.append((selected,'preview'))
+        self.rejected_button=ttk.Button(filters,text='Spot details',command=self._show_spot_details)
+        self.rejected_button.pack(side='left',padx=(0,6))
+        tools=ttk.Menubutton(filters,text='More actions')
+        menu=tk.Menu(tools,tearoff=False)
+        for label,action in [('Sample preview',self._sample_preview),('Clear view',self._clear_spots),
+                             ('Spot a station',lambda:self._spot_dialog(False)),('Spot myself',lambda:self._spot_dialog(True)),
+                             ('Send ID now',self.engine.identify),('Cluster commands',lambda:self._focus_command(source=True)),
+                             ('Announcement diagnostics',self._show_session_diagnostics)]:
+            menu.add_command(label=label,command=self.guard(action))
+        tools.configure(menu=menu);tools.pack(side='left')
         self.filter_summary=tk.StringVar()
-        ttk.Button(filters,text='Why hidden?',command=self._why_hidden).pack(side='left')
-        self.rejected_button = ttk.Button(filters, text='Rejected spots', command=self._show_rejected_spots)
-        self.rejected_button.pack(side='left', padx=6)
-        ttk.Button(filters, text='Announcement details', command=self._show_spot_status).pack(side='left')
         self.live_hint = ttk.Label(frame, textvariable=self.filter_summary, text="Spots appear here before RF is enabled. Select one to preview it locally.")
         self.live_hint.configure(wraplength=900)
         self.live_hint.grid(row=2, column=0, sticky="w", pady=(0, 8))
@@ -491,7 +499,7 @@ class Application:
     def _export_profiles(self):
         if not self.profile_store or not self.profile_store.profiles:
             raise ValueError('Save a cluster profile first')
-        raw = transfer.encode(transfer.document(self.profile_store.profiles, self._read_settings()))
+        raw = transfer.encode(transfer.document(self.profile_store.profiles, self.settings))
         path = filedialog.asksaveasfilename(title='Export profiles and filters', defaultextension='.dxt.json', filetypes=[('DX Talker transfer','*.json')])
         if path: Path(path).write_bytes(raw)
 
@@ -611,17 +619,11 @@ class Application:
         self.combos["source_type"].bind("<<ComboboxSelected>>", lambda event: self._source_type_changed(clear_secret=True))
         self._source_type_changed()
         from .filter_ui import build_filters
-        self.filter_editor=build_filters(self,page)
-        self.filter_editor.frame.grid(row=0,column=1,sticky='nw',padx=(24,0))
-        page.bind('<Configure>',lambda event:self._layout_source_columns(event.width),add='+')
+        self.filter_editor=build_filters(self,self.tabs["Listening filters"])
+        self.filter_editor.frame.pack(fill="x", anchor="nw")
 
     def _layout_source_columns(self,width):
-        required=self.source_connection_panel.winfo_reqwidth()+self.filter_editor.frame.winfo_reqwidth()+24+32
-        layout='wide' if width>=required else 'stacked'
-        if getattr(self,'source_column_layout',None)==layout:return
-        self.source_column_layout=layout
-        if layout=='wide':self.filter_editor.frame.grid_configure(row=0,column=1,padx=(24,0),pady=0)
-        else:self.filter_editor.frame.grid_configure(row=1,column=0,padx=0,pady=(18,0))
+        self.source_column_layout = 'separate'
 
     def _audio_tab(self):
         frame = self.tabs["Audio and PTT"]
@@ -759,7 +761,7 @@ class Application:
         schedule = ttk.LabelFrame(frame, text="ID schedule", padding=12)
         schedule.grid(row=2, column=0, sticky="w", pady=(0, 12))
         self._field(schedule, 0, "Policy", "id_mode", ["CW", "Voice", "Alternate", "Both", "Independent"], compact=True)
-        self._field(schedule, 1, "Interval (minutes)", "id_minutes", note="1 to 30 minutes", compact=True)
+        self._field(schedule, 1, "CW / policy interval (minutes)", "id_minutes", note="1 to 30 minutes", compact=True)
         self._field(schedule,2,'Voice interval (minutes)','voice_id_minutes',note='Independent policy only. 1 to 120 minutes.',compact=True)
         self.independent_id_widgets=list(schedule.grid_slaves(row=2))
         def id_policy_changed(*args):
@@ -854,7 +856,7 @@ class Application:
         return replace(self.settings, **values).validate_format()
 
     def _format_changed(self, *args):
-        self._setting_changed()
+        self._setting_changed("format")
         order = self.variables["announcement_order"].get().split(",")
         content_width = max(item["content"].winfo_reqwidth() for item in self.format_rows.values()) + 12
         for index, part in enumerate(order):
@@ -896,11 +898,10 @@ class Application:
                 self.variables[name].set(value)
 
     def _preview_format(self):
-        settings = self._format_settings()
+        settings = self._preview_settings('spot')
         now = datetime.now(UTC)
-        spot = parse_line(f"DX de N0CALL: 14025.5 WB4IUY/P {now:%H%M}Z", "sample", now)
-        if self._confirm_preview():
-            self.engine.preview("spot", spot, settings=settings)
+        spot = parse_line(f"DX de N0CALL: 14025.5 WB4IUY/P {now:%H%M}Z", 'sample', now)
+        self._start_preview('spot', spot, settings)
 
     def _connection_control(self, parent):
         return self._state_control(parent, "connection")
@@ -926,14 +927,18 @@ class Application:
         return shell
 
     def _connection_action(self):
-        if self.source is None:
+        if getattr(self,'pending_source',False):
+            self.transition_serial+=1;self.pending_source=False
+            self._render_connections()
+            return
+        if self.source is None or self._has_source_edits():
             self._connect()
         else:
             self._disconnect()
 
     def _render_connections(self):
         p = PALETTES[self.theme.get()]
-        active = self.source is not None
+        active = self.source is not None or getattr(self,'pending_source',False)
         connected = active and getattr(self.source, "connected", threading.Event()).is_set()
         for item in self.connection_controls + self.listening_controls + self.rf_controls:
             attention = item["hover"] or item["focus"]
@@ -948,9 +953,9 @@ class Application:
                     edge, background, ink = (p["accent"] if attention else p["edge"]), p["field"], p["ink"]
             elif item["kind"] == "listening":
                 if self.engine.local_enabled:
-                    text = "Muting..." if stopping else "Unmute" if self.engine.local_muted else "Mute" if attention else "Listening"
+                    text = "Muting..." if stopping else "Unmute" if self.engine.local_muted else "Volume zero" if self.settings.local_volume_percent == 0 else "Mute" if attention else "Listening"
                     if self.engine.local_muted:
-                        edge,background,ink=(p["accent"] if attention else p["edge"]),p["field"],p["ink"]
+                        edge,background,ink=(p["positive"],p["positive_bg"],p["positive_ink"]) if attention else (p["edge"],p["field"],p["ink"])
                     else:
                         edge, background = ("#d63852", "#542334") if attention else (p["accent"], p["selected"])
                         ink = "#ffffff" if attention else p["ink"]
@@ -958,6 +963,15 @@ class Application:
                     text = "Stopping..." if stopping else "Listen locally"
                     edge, background, ink = (p["accent"] if attention else p["edge"]), p["field"], p["ink"]
             elif connected:
+                if self._has_source_edits():
+                    text='Switch cluster'
+                    edge,background,ink=p['accent'],p['field'],p['ink']
+                    rendered=(self.theme.get(),text,background,edge,ink,stopping)
+                    if item.get('rendered')!=rendered:
+                        from .rounded import button_style
+                        item['button'].configure(text=text,style=button_style(self.root,p,background,edge,ink),state='normal')
+                        item['rendered']=rendered
+                    continue
                 text = "Disconnect" if attention else "Connected"
                 edge, background = ("#d63852", "#542334") if attention else (p["accent"], p["selected"])
                 ink = "#ffffff" if attention else p["ink"]
@@ -1000,10 +1014,10 @@ class Application:
     def _responsive_layout(self, event=None):
         if event is not None and event.widget is not self.root:
             return
-        compact = self.root.winfo_height() < 720
+        compact = self.root.winfo_height() < 720 or self.settings.text_size>=14
         self.compact_mode=compact
         self.brand_label.configure(image=(self.compact_logos if compact else self.logos)[self.theme.get()])
-        for widget in (self.log, self.activity_label, self.live_hint,self.live_command_bar):
+        for widget in (self.log, self.activity_label, self.live_command_bar):
             widget.grid_remove() if compact else widget.grid()
         if compact:self.compact_commands_button.pack(side='right',padx=8)
         else:self.compact_commands_button.pack_forget()
@@ -1071,7 +1085,7 @@ class Application:
         self.spot_reasons.clear()
         self.spot_states.clear()
         self.rejected_spots.clear()
-        if hasattr(self,'rejected_button'):self.rejected_button.configure(text='Rejected spots')
+        if hasattr(self,'rejected_button'):self.rejected_button.configure(text='Spot details')
 
     def _trim_spots(self):
         rows = list(self.spots)
@@ -1097,10 +1111,9 @@ class Application:
 
     def _new_profile(self):
         login = self.variables["login"].get()
-        self._disconnect()
-        self._clear_spots()
-        self._clear_console()
-        self.command.set("")
+        previous_key=self.profile_edit_key
+        self._stash_profile_draft()
+        previous_draft=self.profile_drafts.pop('new',None) if previous_key=='new' else None
         self.selected_profile_id = None
         self.profile_choice.set("")
         self.profile_name.set("")
@@ -1112,6 +1125,9 @@ class Application:
         self.remember_secret.set(False)
         self._source_type_changed()
         self._refresh_profiles()
+        self._restore_profile_draft('new')
+        if previous_draft and previous_draft['name']:
+            self._offer_undo('New profile editor ready.',lambda:(self.profile_drafts.update({'new':previous_draft}),self._restore_profile_draft('new')))
         self.profile_name_entry.focus_set()
 
     def _select_profile(self):
@@ -1127,10 +1143,7 @@ class Application:
             updated = replace(self.settings, **item["connection"])
             secret = ""
             credential_unavailable = True
-        self._disconnect()
-        self._clear_spots()
-        self._clear_console()
-        self.command.set("")
+        self._stash_profile_draft()
         self.selected_profile_id = item["id"]
         self.profile_name.set(item["name"])
         self.secret.set(secret)
@@ -1139,8 +1152,9 @@ class Application:
             self.variables[key].set(getattr(updated, key))
         self._source_type_changed()
         self._refresh_profiles()
+        self._restore_profile_draft(item['id'])
         if credential_unavailable:
-            messagebox.showwarning("Profile password or token unavailable",
+            self._profile_credential_notice(
                                    "The connection details were loaded, but This account could not unlock the saved password or token. "
                                    "Enter it again and choose whether to remember it before saving. "
                                    "Saving with Remember unchecked removes the stored credential. You can also delete this profile.")
@@ -1163,14 +1177,22 @@ class Application:
                                        self.remember_secret.get(), self.selected_profile_id)
         self.selected_profile_id = item["id"]
         self.profile_choice.set(item["name"])
+        self.profile_drafts.pop(self.profile_edit_key, None)
+        self.profile_edit_key = item['id']
         self._refresh_profiles()
+        self._show_notice('Profile saved. The active connection is unchanged.')
 
     def _delete_profile(self):
         if self.selected_profile_id:
-            item = next(p for p in self.profile_store.profiles if p["id"] == self.selected_profile_id)
-            if messagebox.askyesno("Delete cluster profile", f"Delete '{item['name']}' and its remembered password or token?"):
-                self.profile_store.delete(self.selected_profile_id)
-                self._new_profile()
+            item = next(p for p in self.profile_store.profiles if p['id'] == self.selected_profile_id)
+            self.profile_store._write([p for p in self.profile_store.profiles if p['id'] != item['id']])
+            self.profile_drafts.pop(item['id'], None)
+            self.profile_edit_key = None
+            self._new_profile()
+            def restore():
+                self.profile_store._write(self.profile_store.profiles + [item])
+                self._refresh_profiles()
+            self._offer_undo('Profile removed. The active session is unchanged.', restore, lambda:self.profile_store._forget(item['secret']))
 
     def _speech_tab(self):
         frame = self.tabs["Speech and access"]
@@ -1186,7 +1208,7 @@ class Application:
         self.windows_speech_fields = ttk.LabelFrame(frame, text="System voice", padding=12)
         self.windows_speech_fields.grid(row=2, column=0, sticky="w", pady=(0, 12))
         self._field(self.windows_speech_fields, 0, "Voice", "voice", [""], compact=True)
-        self.resolved_voice=tk.StringVar(value="Preview to identify the actual system voice.")
+        self.resolved_voice=tk.StringVar(value="System default voice. Preview to hear it.")
         ttk.Label(self.windows_speech_fields,textvariable=self.resolved_voice,wraplength=610).grid(row=2,column=0,columnspan=3,sticky="w",pady=8)
         self._field(self.windows_speech_fields, 1, "Gender preference", "voice_gender", ["Any", "Male", "Female"],
                     note="Used when Voice is blank. Installed voices determine availability.", compact=True)
@@ -1275,7 +1297,7 @@ class Application:
         self.pack_ids={};self.pack_roots={}
         for root in dict.fromkeys(roots):
             for identity,label in installed(root).items():
-                display=label+' ('+identity+')'
+                display=label
                 if display in self.pack_ids:display+=' · '+Path(root).name
                 self.pack_ids[display]=identity;self.pack_roots[display]=root
         self.combos['voice_pack'].configure(values=list(self.pack_ids))
@@ -1283,7 +1305,7 @@ class Application:
         self.pack_display.set(next((label for label,identity in self.pack_ids.items() if identity==selected and self.pack_roots[label]==root),''))
 
     def _speech_help(self):
-        self.notebook.select(self.tabs["Help and Info"])
+        self._select_page("Help and Info")
         self.help_topic.set(next(page["title"] for page in self.help_topics if page["id"] == "speech"))
         self._show_help()
 
@@ -1293,26 +1315,33 @@ class Application:
             self.variables[name].set(value)
 
     def _preview_sample(self):
-        self._apply()
         now = datetime.now(UTC)
-        spot = parse_line(f"DX de N0CALL: 14025.5 WB4IUY/P {now:%H%M}Z", "sample", now)
-        if self._confirm_preview():
-            self.engine.preview("spot", spot)
+        spot = parse_line(f"DX de N0CALL: 14025.5 WB4IUY/P {now:%H%M}Z", 'sample', now)
+        self._start_preview('spot', spot)
 
     def _listen(self):
-        # Listening is an output toggle. It must never apply pending source
-        # edits, change the source generation or reconnect the cluster.
+        self._flush_preferences(('preview_device','local_volume_percent'))
         if self.engine.local_enabled:
-            if self.engine.local_muted and not self._confirm_preview():return
-            self.engine.set_local_muted(not self.engine.local_muted)
+            muted = not self.engine.local_muted
+            if not muted:
+                self._when_idle(lambda: self.engine.set_local_muted(False))
+            else:
+                self.engine.set_local_muted(True)
         else:
-            if not self._confirm_preview():
-                return
-            self.engine.listen_locally()
+            if not self.engine.settings.preview_device:
+                self._select_page('Audio and PTT')
+                self.field_widgets['preview_device'].focus_set()
+                raise ValueError('Choose Local listening speakers in Audio / PTT. The choice saves automatically.')
+            self._confirm_preview()
+            self._when_idle(self.engine.listen_locally, stop=True)
         self._render_connections()
 
     def _history_tab(self):
-        frame = self.tabs["History and updates"]
+        groups=ttk.Notebook(self.tabs['History and updates'])
+        groups.grid(row=0,column=0,sticky='nsew')
+        history=ttk.Frame(groups,padding=12);updates_frame=ttk.Frame(groups,padding=12);diagnostics=ttk.Frame(groups,padding=12)
+        for title,panel in [('Updates',updates_frame),('History',history),('Diagnostics',diagnostics)]:groups.add(panel,text=title)
+        frame=history
         self._field(frame, 0, "Live view maximum spots", "display_limit", note="50 to 5000. Oldest rows leave the view.")
         self._field(frame, 1, "Keep spot and connection history", "logging_enabled")
         self._field(frame, 2, "History folder", "log_directory", note="Blank uses the DXTalker settings folder / logs.")
@@ -1320,8 +1349,10 @@ class Application:
         self._field(frame, 4, "History file size in MiB", "log_max_mb", note="1 to 100 MiB per file")
         self._field(frame, 5, "History backup files", "log_backups", note="1 to 30 plus the active file")
         ttk.Button(frame, text="Open history folder", command=self.guard(self._open_history)).grid(row=6, column=1, sticky="w", pady=8)
-        self._field(frame, 12, "Keep local diagnostic logs", "diagnostics_enabled", note="No automatic upload. Restart to apply.")
-        ttk.Button(frame, text="Export diagnostic report", command=self.guard(self._export_diagnostics)).grid(row=13, column=1, sticky="w", pady=8)
+        frame=diagnostics
+        self._field(frame, 0, "Keep local diagnostic logs", "diagnostics_enabled", note="No automatic upload. Restart to apply.")
+        ttk.Button(frame, text="Export diagnostic report", command=self.guard(self._export_diagnostics)).grid(row=1, column=1, sticky="w", pady=8)
+        frame=updates_frame
         self._field(frame, 7, "Check for updates automatically", "check_updates")
         self._field(frame, 8, "Update channel", "update_channel", ["Pilot", "Stable"])
         self.update_status = tk.StringVar(value="Installed version: " + __version__)
@@ -1329,8 +1360,11 @@ class Application:
         controls = ttk.Frame(frame)
         controls.grid(row=10, column=0, columnspan=3, sticky="w")
         for label, action in (("Check now", self._check_updates), ("Release page", self._release_page),
-                              ("Download update", self._download_update), ("Install update", self._install_update)):
-            ttk.Button(controls, text=label, command=self.guard(action)).pack(side="left", padx=(0, 8))
+                              ("Download update", self._download_update), ("Install and restart", self._install_update)):
+            button=ttk.Button(controls,text=label,command=self.guard(action))
+            button.pack(side='left',padx=(0,8))
+            if label in ('Check now','Download update','Install and restart'):
+                self.capability_buttons.append((button,{'Check now':'check','Download update':'download','Install and restart':'install'}[label]))
         self.release_notes = tk.Text(frame, height=6, wrap="word", state="disabled", font=("Segoe UI", 10))
         self.release_notes.grid(row=11, column=0, columnspan=3, sticky="ew", pady=12)
         ttk.Label(frame, text="Pilot includes preview releases. Stable includes final releases only. Checks run at startup and daily.\nUpdates never install automatically. Download verification uses the release SHA256 checksum.\nInstallation stops output and closes DX Talker. Settings and cluster profiles are retained.",
@@ -1432,8 +1466,6 @@ class Application:
         if not updates.verify_download(path, checksum):
             self.update_download = None
             raise ValueError("The downloaded installer changed. Download it again.")
-        if not messagebox.askyesno("Install DX Talker update", "Stop output, close DX Talker and open the verified setup program? Your settings and profiles will be retained."):
-            return
         self.engine.stop("Stopping output for update")
         self._disconnect()
         self._wait_install(path, checksum, time.monotonic() + 30)
@@ -1441,7 +1473,7 @@ class Application:
     def _wait_install(self, path, checksum, deadline):
         if self.engine.busy:
             if time.monotonic() > deadline:
-                messagebox.showerror("Update paused", "Output has not stopped. Verify the radio and try installing again after Idle.")
+                self._show_notice("Output has not stopped. Verify the radio and try installing again after Idle.")
                 return
             self.root.after(100, lambda: self._wait_install(path, checksum, deadline))
             return
@@ -1454,7 +1486,7 @@ class Application:
             else:
                 subprocess.Popen([str(path)], shell=False)
         except Exception:
-            messagebox.showerror("Update", "Could not open the verified installer. Download it again or use the release page.")
+            self._show_notice("Could not open the verified installer. Download it again or use the release page.")
             return
         self.close()
 
@@ -1474,23 +1506,11 @@ class Application:
         self.help_text.configure(yscrollcommand=scrollbar.set)
         self.help_topic.set(self.help_topics[0]["title"])
         self._show_help()
-        ttk.Label(frame, text=f"DX Talker {__version__}  |  Alpha  |  All rights reserved\nSettings: {settings_path()}", wraplength=900).grid(row=2, column=0, sticky="w", pady=10)
+        ttk.Label(frame, text=f"DX Talker {__version__}  |  Beta  |  All rights reserved\nSettings: {settings_path()}", wraplength=900).grid(row=2, column=0, sticky="w", pady=10)
 
     def _show_help(self):
-        topic = next(p for p in self.help_topics if p["title"] == self.help_topic.get())
-        text = (resource_root() / "docs/help" / topic["path"]).read_text(encoding="utf-8")
-        self.help_text.configure(state="normal")
-        self.help_text.delete("1.0", "end")
-        # The canonical Markdown is displayed locally. Topic navigation is provided
-        # by the selector, avoiding any remote content or embedded browser dependency.
-        self.help_text.insert("1.0", text)
-        import re
-        for index,match in enumerate(re.finditer(r'https://[^\s)]+',text)):
-            tag='help_link_'+str(index);url=match.group()
-            self.help_text.tag_add(tag,f'1.0+{match.start()}c',f'1.0+{match.end()}c')
-            self.help_text.tag_configure(tag,foreground=PALETTES[self.theme.get()]['accent'],underline=True)
-            self.help_text.tag_bind(tag,'<Button-1>',lambda event,link=url:webbrowser.open(link))
-        self.help_text.configure(state="disabled")
+        from .help_ui import render
+        render(self)
 
     def _read_settings(self):
         values = {}
@@ -1505,39 +1525,39 @@ class Application:
         return self.filter_editor.current(pending) if hasattr(self,'filter_editor') else pending.validate()
 
     def _apply(self):
-        updated = self._read_settings()
-        if self.engine.enabled or self.engine.local_enabled:
-            self.engine.stop("Settings applied. RF disabled.")
-        self.engine.configure(updated)
-        source_fields = ("source_type", "host", "port", "login", "feed_url", "poll_seconds")
-        if any(getattr(updated, k) != getattr(self.settings, k) for k in source_fields):
-            self._disconnect()
-            self._clear_spots()
-            self._clear_console()
-        save_settings(updated)
-        history_changed = any(getattr(updated, key) != getattr(self.settings, key) for key in
-                              ("logging_enabled", "log_directory", "log_max_mb", "log_backups"))
-        self.settings = updated
-        self._sync_listening_editor()
-        if history_changed or self.history is None:
-            self._configure_history()
-        self._trim_spots()
-        self._refresh_spot_units()
-        self._refresh_filtered_view()
-        self._style()
-        self.help_text.configure(font=("Segoe UI", self.settings.text_size + 1))
-        self._paint_widgets()
-        self.emit("journal", "Settings saved")
+        self._flush_preferences()
+        updated = read_group(self.settings, self.variables, RADIO_FIELDS)
+        def apply_radio():
+            current = replace(self.settings, **{k: getattr(updated, k) for k in RADIO_FIELDS})
+            save_settings(current)
+            self.engine.configure(current)
+            self.settings = current
+            save_radio_draft(self.variables, current)
+            self.save_status.set('Radio changes applied. RF remains disabled.')
+            self._radio_dirty_state()
+        self._when_idle(apply_radio, stop=True)
 
     def _connect(self):
-        keep_listening = self.engine.local_enabled
-        keep_muted = self.engine.local_muted
-        self._apply()
-        self.settings.validate_connection()
+        updated = read_group(self.settings, self.variables, SOURCE_FIELDS)
+        updated.validate_connection()
         secret = self.secret.get()
         if len(secret) > 512 or any(ord(c) < 32 or ord(c) > 126 for c in secret):
-            raise ValueError("Use a single line ASCII password or token of at most 512 characters")
+            raise ValueError('Use a single line ASCII password or token of at most 512 characters')
+        keep_listening = self.engine.local_enabled
+        keep_muted = self.engine.local_muted
+        def connected():
+            self.pending_source=False
+            current = replace(self.settings, **{k: getattr(updated, k) for k in SOURCE_FIELDS})
+            save_settings(current)
+            self.settings = current
+            with self.engine.lock:
+                self.engine.settings = replace(self.engine.settings, **{k: getattr(current, k) for k in SOURCE_FIELDS})
+            self._start_source(secret, keep_listening, keep_muted)
         self._disconnect()
+        self.pending_source=True
+        self._when_idle(connected)
+
+    def _start_source(self, secret, keep_listening=False, keep_muted=False):
         identity = tuple(getattr(self.settings, key) for key in SOURCE_FIELDS)
         if identity != self.connected_identity:
             self._clear_spots()
@@ -1551,9 +1571,11 @@ class Application:
             if generation != self.source_generation:
                 return
             if kind == "source_lost":
+                self.transition_serial += 1
                 self.engine.stop("Source lost. RF disabled.")
             self.emit("source_event", (generation, kind, value))
 
+        self.active_secret=secret
         self.source = SourceClient(self.settings, source_event, secret)
         self.connection_phase = "connecting"
         if keep_listening:
@@ -1562,6 +1584,8 @@ class Application:
         self.source.start()
 
     def _disconnect(self):
+        self.pending_source=False
+        self.transition_serial += 1
         if self.source:
             self._history_record("disconnect", profile=self.connected_profile)
         self.source_generation += 1
@@ -1620,7 +1644,7 @@ class Application:
         if reason:
             self.rejected_spots.append((spot,reason))
             self.rejected_spots=self.rejected_spots[-self.settings.display_limit:]
-            self.rejected_button.configure(text='Rejected spots ('+str(len(self.rejected_spots))+')')
+            self.rejected_button.configure(text='Spot details ('+str(len(self.rejected_spots))+' excluded)')
             return reason
         self._add_spot(spot, token)
         return ''
@@ -1650,31 +1674,28 @@ class Application:
     def _preview_spot(self):
         selected = self.tree.selection()
         if not selected:
-            raise ValueError("Select a spot first or load the sample spots")
-        spot = self.spots[selected[0]]
-        self._apply()
-        if self._confirm_preview():
-            self.engine.preview("spot", spot)
+            raise ValueError('Select a live spot or open Sample preview.')
+        self._start_preview('spot', self.spots[selected[0]])
 
     def _preview(self, kind):
-        self._apply()
-        if self._confirm_preview():
-            self.engine.preview(kind)
+        self._start_preview(kind)
 
     def _confirm_preview(self):
         if self.settings.preview_device and self.settings.preview_device == self.settings.radio_device:
-            return messagebox.askyesno("Preview audio reaches radio output", "Preview and radio outputs are the same device. Preview audio may key a VOX radio. Play it on this device?")
+            self._show_notice('Local audio uses the radio device and may key VOX. Change Local listening in Audio / PTT to use speakers.')
         return True
 
     def _enable(self):
-        # RF is an output toggle over applied settings, independent of source login.
         if self.engine.enabled:
-            self.engine.stop("RF disabled. Source remains connected.")
+            self._stop()
         else:
-            self.engine.enable()
+            self.engine.settings.validate_rf()
+            self._when_idle(self.engine.enable, stop=True)
         self._render_connections()
 
     def _stop(self):
+        self.pending_source=False
+        self.transition_serial += 1
         self.engine.stop()
         self._render_connections()
 
@@ -1684,9 +1705,6 @@ class Application:
             self.variables["voice_wav"].set(filename)
 
     def _refresh_devices(self):
-        if self.engine.enabled or self.engine.local_enabled:
-            self.engine.stop("Device refresh. RF disabled.")
-        self.engine.monitor.close()
         try:
             devices = AudioOutput.devices()
             for name in ("preview_device", "radio_device"):
@@ -1788,14 +1806,14 @@ class Application:
                     self.combos['eleven_voice'].configure(values=['']+list(value))
                     selected=self.variables['eleven_voice'].get()
                     self.eleven_display.set(next((label for label,identity in value.items() if identity==selected),''))
-                    self.eleven_status.set('Shared pilot voices ready. Choose a voice or leave blank for the service default. Save and apply, then preview locally.')
+                    self.eleven_status.set('Shared voices ready. Choose a voice. The selection saves automatically; preview when ready.')
                     continue
                 elif kind == 'shared_voices_error':
                     self.shared_voices_loading=False
                     self.eleven_status.set(value)
                     continue
                 elif kind == "voices":
-                    self.combos["voice"].configure(values=[""] + value)
+                    self.combos["voice"].configure(values=["System default"] + value)
                     continue
                 elif kind == "update_result":
                     self.update_busy = False
@@ -1828,10 +1846,11 @@ class Application:
         self._render_connections()
         self._receive_meter()
         count,age,expired=self.engine.queue_status()
-        self.queue_summary.set(f'{count} pending. Oldest {age}s. Expired {expired}. Last preparation {self.engine.preparation_seconds:.2f}s.')
+        self.queue_summary.set(f'{count} waiting announcements. Oldest {age}s.')
         from .filtering import summary
         visible=sum(not reason for reason in self.spot_reasons.values())
-        self.filter_summary.set(summary(self.settings)+f' · {visible} live rows · Green check: announced. Gray D: audio off. Gray M: muted. Red check: open for reason.')
+        self.filter_summary.set(summary(self.settings)+f" · {visible} live spots")
+        self._refresh_operating_ui(count, age)
         self.root.after(75, self._poll)
 
     def _journal(self, text):
@@ -1849,6 +1868,11 @@ class Application:
 
     def close(self):
         if hasattr(self,'filter_editor'):self.filter_editor.flush()
+        self._flush_preferences()
+        self._save_radio_draft()
+        self._persist_profile_drafts()
+        self.transition_serial += 1
+        if getattr(self,'undo_finalize',None):self.undo_finalize()
         self.closing = True
         for callback in self.root.tk.call("after", "info"):
             self.root.after_cancel(callback)
@@ -1862,7 +1886,7 @@ class Application:
     def _wait_close(self, count):
         if self.engine.worker.is_alive():
             if count == 100:
-                messagebox.showwarning("Waiting for output", "Output is still stopping. Verify the radio is unkeyed. The application will remain open while cleanup finishes.")
+                self._show_notice("Output is still stopping. Verify the radio is unkeyed. The application will remain open while cleanup finishes.")
             self.root.after(50, lambda: self._wait_close(count + 1))
         else:
             self.diagnostics.close()

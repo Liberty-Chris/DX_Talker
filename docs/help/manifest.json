@@ -66,7 +66,12 @@
       "id": "ubuntu",
       "title": "Ubuntu desktop",
       "path": "ubuntu.md"
+    },
+    {
+      "id": "usability",
+      "title": "Operation and saving",
+      "path": "usability.md"
     }
   ],
-  "version": "0.2.0a25"
+  "version": "1.0.0b1"
 }

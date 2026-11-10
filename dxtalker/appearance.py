@@ -5,11 +5,11 @@ from .models import settings_path
 
 PALETTES = {
     "High contrast": dict(bg="#000000", panel="#000000", field="#101010", ink="#ffffff",
-                          muted="#ffffff", edge="#ffffff", accent="#007da6", selected="#005a80"),
+                          muted="#ffffff", edge="#ffffff", accent="#007da6", selected="#005a80", positive="#00ff83", positive_bg="#003c20", positive_ink="#ffffff"),
     "Dark": dict(bg="#111820", panel="#18232f", field="#202e3c", ink="#f4f7fb",
-                 muted="#b5c6d6", edge="#334659", accent="#00b9ef", selected="#064f6a"),
+                 muted="#b5c6d6", edge="#334659", accent="#00b9ef", selected="#064f6a", positive="#57d99a", positive_bg="#17583c", positive_ink="#ffffff"),
     "Light": dict(bg="#edf2f6", panel="#ffffff", field="#ffffff", ink="#111b28",
-                  muted="#465b70", edge="#c6d3df", accent="#007da6", selected="#cceefa"),
+                  muted="#465b70", edge="#c6d3df", accent="#007da6", selected="#cceefa", positive="#16804a", positive_bg="#d6f3e3", positive_ink="#12472d"),
 }
 
 

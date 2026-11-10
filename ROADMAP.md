@@ -114,3 +114,7 @@ For a24, test optional activity wording during mixed listening and automatic wor
 For a25, verify live spots continue during local mute, audio stops promptly, filters remain active and unmute speaks new reports only. Test muted connection changes, local zero volume, active synthesis/playback cancellation and Stop all output on Windows, XP and Ubuntu. Android retains its existing dedicated mute.
 
 The a25 correction also admits matching cluster rows while both audio routes are off. Gray D identifies display only rows and gray M identifies local mute. Turning on an output speaks only new reports. The local hover label is Mute and the muted action is Unmute. Listening and RF enablement never gate filtered display admission.
+
+## First beta usability acceptance
+
+1.0.0b1 moves daily operation to scoped connection/audio actions, automatic ordinary preferences and explicitly applied radio drafts. Test desktop and Android first use, ordinary listening, filter/preset changes, profile editing, previews, output route switching, Stop during transitions, draft recovery and the simplified update flow. Retain existing features and continue named Windows, XP, Ubuntu, Android and physical radio acceptance. Beta status does not close the outstanding hardware and operating system evidence requirements.

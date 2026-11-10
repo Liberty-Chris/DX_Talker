@@ -11,6 +11,7 @@ def images(root):
             icon.put(color,to=(6,6,12,12))
         else:
             strokes=[(3,14,3,4),(3,4,8,10),(8,10,13,4),(13,4,13,14)] if state=='muted' else [(3,9,7,13),(7,13,15,4)]
+            if state=='rejected':strokes=[(4,4,14,14),(14,4,4,14)]
             if state=='display_only':strokes=[(3,4,3,14),(3,4,9,4),(9,4,13,8),(13,8,13,10),(13,10,9,14),(9,14,3,14)]
             for x1,y1,x2,y2 in strokes:
                 steps=max(abs(x2-x1),abs(y2-y1))
@@ -41,7 +42,7 @@ def rejected(app):
     if window is not None and window.winfo_exists():window.destroy()
     window=tk.Toplevel(app.root);app.rejected_window=window
     window.title('Rejected spots · not in announcement list');window.transient(app.root)
-    ttk.Label(window,text='Recent incoming spots rejected before admission. These are not queued for speech. Select a red check or press Enter for the reason.',wraplength=650).pack(padx=12,pady=12)
+    ttk.Label(window,text='Recent incoming spots rejected before admission. These are not queued for speech. Select an exclusion and open its reason, or press Enter.',wraplength=650).pack(padx=12,pady=12)
     table=ttk.Treeview(window,columns=('call','frequency','reason'),show='tree headings',height=10,selectmode='browse')
     table.column('#0',width=38,stretch=False);table.heading('#0',text='State')
     for key,title,width in [('call','DX callsign',130),('frequency','Frequency',110),('reason','Rejected because',350)]:
@@ -77,7 +78,7 @@ def sample_preview(app):
     def preview():
         selected=table.selection()
         if not selected:raise ValueError('Select a sample first')
-        if app._confirm_preview():app.engine.preview('spot',samples[selected[0]])
+        app._start_preview('spot',samples[selected[0]])
     ttk.Button(window,text='Preview selected sample',command=app.guard(preview)).pack(pady=12)
     ttk.Button(window,text='Close',command=window.destroy).pack(pady=(0,12))
     return window
