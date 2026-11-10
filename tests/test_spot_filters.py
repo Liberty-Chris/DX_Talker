@@ -36,6 +36,25 @@ class SpotFilterTests(unittest.TestCase):
             self.assertEqual(data['filters'][key],'None')
             with self.assertRaises(ValueError):replace(Settings(),**{key:'None,CW'}).validate()
 
+    def test_activity_wording_preference_survives_presets_and_transfer_without_bypassing_filters(self):
+        from dxtalker.listening import snapshot,validate_presets
+        settings=replace(Settings(),activity_announcements=True,filter_bands='40m',filter_modes='CW',filter_activities='POTA',license_class='General')
+        preset=json.dumps({'Activity':snapshot(settings)})
+        self.assertTrue(validate_presets(preset)['Activity']['activity_announcements'])
+        profiles=[dict(name='Test',connection={key:getattr(settings,key) for key in transfer.SOURCE_FIELDS})]
+        self.assertTrue(transfer.decode(transfer.encode(transfer.document(profiles,settings)))['filters']['activity_announcements'])
+        for value in ('true',1,None):
+            with self.assertRaises(ValueError):replace(settings,activity_announcements=value).validate()
+        now=datetime.now(UTC)
+        spot=parse_line(f'DX de N0CALL: 14250 WB4IUY POTA SSB {now:%H%M}Z','test',now)
+        self.assertEqual(filtering.rejection(spot,settings),'Band')
+        self.assertEqual(filtering.rejection(spot,replace(settings,filter_bands='20m')),'Mode')
+        self.assertEqual(filtering.rejection(spot,replace(settings,filter_bands='20m',filter_modes='SSB',license_class='Novice')),'Outside selected license segments')
+        self.assertEqual(filtering.rejection(spot,replace(settings,filter_bands='20m',filter_modes='SSB',filter_dx_countries='CA')),'Location unknown')
+        self.assertEqual(filtering.activity_tags('POTATO FOTAX SOTAX'),())
+        self.assertFalse(filtering.activity_style(replace(settings,activity_announcements=False,filter_activities='POTA,General')))
+        self.assertFalse(filtering.activity_style(replace(settings,activity_announcements=False,filter_activities='None')))
+
     def test_explicit_mode_wins_and_bad_metadata_is_bounded(self):
         now=datetime.now(UTC)
         payload=[dict(dx_call='WB4IUY',spotter='N0CALL',frequency_khz='14074',time=now.isoformat(),comment='FT8 POTA'+chr(0)+'x'*300,mode='USB')]

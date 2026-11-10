@@ -308,3 +308,7 @@ The live desktop receive path now adds a row only after the coordinator accepts 
 ## 0.2.0a23. US operating inference
 
 The US default supersedes the regional intersection in a21 and a22. Desktop and Android share expanded 160m/80m/40m/30m ranges and lower 6m/2m CW exclusive ranges. Digital overlaps, explicit mode priority and independent FCC license eligibility remain intact. Shared fixtures cover all boundaries, Dad's 3540/7035 examples and class specific privilege ambiguity. Local and hosted verification accompany the PR. No live RF or remote station mode is verified by these tests.
+
+## 0.2.0a24. Activity announcement wording
+
+The shared policy selects activity wording from an explicit mixed listening switch or an activity only selection. Desktop and Android retain all filter admission checks. All 257 local Python tests passed with one native Windows test skipped on Linux. All Android main sources compile and 23 local Kotlin tests passed. Preference validation, preset/transfer persistence, mode omission and speech order are covered; existing filter rejection tests remain intact. Hosted package and installation checks accompany the PR. Real speech pronunciation and physical audio/RF acceptance remain operator tests.

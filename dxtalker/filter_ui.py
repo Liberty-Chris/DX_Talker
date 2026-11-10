@@ -92,6 +92,8 @@ def build_filters(app,parent):
         staged[key].trace_add('write',update_label);update_label()
         ttk.Label(row,textvariable=label,wraplength=430).pack(side='left',padx=12)
     ttk.Label(filters,text='The same filters select displayed and announced spots. Mode comes from a reported tag or a single mode band segment. Include unknown admits uncertain modes within your other selections.',wraplength=620).pack(anchor='w',pady=8)
+    ttk.Checkbutton(filters,text='Use POTA / FOTA / SOTA wording during mixed listening',variable=staged['activity_announcements']).pack(anchor='w',pady=4)
+    ttk.Label(filters,text='Activity-only selections use this wording automatically: activity, mode, frequency, callsign. Unknown modes are omitted. All listening filters still apply.',wraplength=620).pack(anchor='w',pady=4)
     license=ttk.LabelFrame(frame,text='My operating privileges (optional)',padding=12);license.pack(fill='x',pady=6)
     for row,(key,title,values) in enumerate((('license_class','FCC license class',CLASSES),('license_region','Operating region',REGIONS))):
         ttk.Label(license,text=title).grid(row=row,column=0,sticky='w',padx=(0,12),pady=3)
@@ -119,7 +121,7 @@ def build_filters(app,parent):
             status.set('Filters saved automatically.' if not dirty else 'Complete the unfinished fields. Other choices are saved.')
         except (ValueError,tk.TclError,OSError) as exc:status.set('Not saved: '+str(exc))
         describe()
-    immediate={'filter_bands','filter_modes','filter_activities','license_class','license_region','license_unknown','geography_unknown','frequency_unit'}
+    immediate={'activity_announcements','filter_bands','filter_modes','filter_activities','license_class','license_region','license_unknown','geography_unknown','frequency_unit'}
     def changed(key,*args):
         if resetting[0]:return
         dirty.add(key)

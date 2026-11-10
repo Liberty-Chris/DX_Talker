@@ -254,3 +254,7 @@ Collapse the raw console with explicit unfiltered wording and keep manual sample
 ## November 9, 2026. US default mode inference
 
 Supersede the November 8 common regional subset. DX Talker's intended users are primarily US operators. Derive the default CW inference from ARRL US operating guidance and FCC CW exclusive VHF segments rather than intersecting IARU regions. Keep known digital overlaps Unknown, document conflicting ARRL references instead of pretending they are exclusive and retain explicit mode evidence as authoritative. A CW only label on a Novice/Technician chart does not establish a remote station's mode. License eligibility remains a separate FCC based policy. Keep desktop and Android data and boundary fixtures identical.
+
+## November 9, 2026. Selectable activity announcement wording
+
+Use a switch for activity wording during mixed listening, default off. Explicit selections limited to POTA, FOTA and SOTA use that wording automatically. The final owner choice is wording only and supersedes the earlier proposal to bypass listening filters. Preserve all filter and output admission decisions. Keep the fixed activity/mode/frequency/callsign order, omit unknown modes and preserve unit and speech pause preferences. Carry the switch in presets and transfers with explicit boolean validation.

@@ -26,6 +26,34 @@ class SpeechTests(unittest.TestCase):
         self.assertEqual([x.attrib["time"] for x in breaks].count("650ms"), 2)
         self.assertNotIn("CQ", ET.tostring(root).decode())
 
+    def test_activity_announcements_override_format_and_omit_unknown_mode(self):
+        from dxtalker.voicepacks import keys_for, vocabulary
+        now=datetime.now(UTC)
+        settings=replace(Settings(),activity_announcements=True,frequency_unit='MHz',announcement_intro='Custom DX',announcement_order='callsign,intro,frequency',include_frequency=False,include_callsign=False)
+        for tag in ('POTA','FOTA','SOTA'):
+            spot=parse_line(f'DX de N0CALL: 14250 WB4IUY {tag} SSB private-comment {now:%H%M}Z','test',now)
+            groups=spot.announcement_groups(settings)
+            self.assertEqual([part for part,_ in groups],['intro','mode','frequency','callsign'])
+            self.assertEqual([text for _,text in groups[:2]],[tag,'SSB'])
+            self.assertEqual(groups[2][1],'one four point two five megahertz')
+            self.assertEqual(groups[3][1],'Whiskey Bravo four India Uniform Yankee')
+            plan=spot_plan(spot,settings)
+            self.assertNotIn('private-comment',' '.join(text for text,_ in plan))
+            self.assertNotIn('Custom DX',' '.join(text for text,_ in plan))
+            for text,_ in plan:self.assertTrue(set(keys_for(text)) <= set(vocabulary()))
+        unknown=replace(spot,comment='POTA private-comment')
+        self.assertEqual([part for part,_ in unknown.announcement_groups(settings)],['intro','frequency','callsign'])
+        inferred=replace(spot,frequency_khz=__import__('decimal').Decimal('3540'),comment='POTA')
+        self.assertEqual(inferred.announcement_groups(settings)[1],('mode','CW'))
+        multiple=replace(spot,comment='sota FOTA pota SSB')
+        self.assertEqual([text for part,text in multiple.announcement_groups(settings) if part=='intro'],['POTA','FOTA','SOTA'])
+        normal=replace(settings,activity_announcements=False)
+        self.assertEqual(spot.announcement_groups(normal),[('intro','Custom DX')])
+        activity_only=replace(normal,filter_activities='POTA')
+        self.assertEqual(replace(spot,comment='POTA SSB').announcement_groups(activity_only)[0],('intro','POTA'))
+        no_units=replace(settings,speak_units=False)
+        self.assertNotIn('megahertz',' '.join(text for _,text in spot.announcement_groups(no_units)))
+
     def test_ssml_escapes_operator_text(self):
         root = ET.fromstring(plan_ssml([('hello <voice> & text', 0)]))
         self.assertEqual(root.text, 'hello <voice> & text ')

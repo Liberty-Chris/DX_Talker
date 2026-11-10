@@ -145,3 +145,13 @@ On Ubuntu, eSpeak NG replaces the Windows provider. It renders offline WAV audio
 ## Desktop live row checks
 
 Live rows are admitted only while local listening or RF output is enabled. The admission includes the listening filters and speech queue conditions. Green checks confirm completed playback. Red checks open a reason for an admitted row that did not complete; queued rows have a neutral marker. Select a row and press Enter for text details. Rejected spots is a separate review of incoming rejections. Manual samples use Sample preview instead of filling the live list. See [Listening filters and receipts](listening_filters.md).
+
+## POTA, FOTA and SOTA announcement wording
+
+In Source on desktop or Filters on Android, turn on Use POTA / FOTA / SOTA wording during mixed listening to announce an accepted tagged spot as activity, mode, frequency and callsign. For example: POTA. SSB. One four point two five megahertz. Whiskey Bravo four India Uniform Yankee. The switch starts off. When the activity selection contains only POTA, FOTA or SOTA, the same wording is used automatically even with the mixed listening switch off. An empty activity selection or one including General is mixed listening. Selecting None admits no spots.
+
+This changes wording only. Band, mode, activity, frequency limits, license and location filters remain in force. Stop, mute, age, repeat, queue and radio controls also remain unchanged. Ordinary spots retain the configured DX format. Tagged spots use the fixed activity order instead of custom introduction, section visibility and section ordering. Existing kHz/MHz and spoken unit choices remain respected.
+
+Only recognized activity tags are spoken, not arbitrary comments. If several tags are present, announce POTA, FOTA and SOTA in that order, omitting absent tags. Use the identified mode and omit it when Unknown. The existing US inference and explicit mode evidence rules determine that mode. Recorded packs can spell the activity and mode acronyms with their existing letter assets.
+
+The switch saves immediately with listening choices and is included in presets and profile/QR transfers. Update both receiving and sending apps to a24 or later before transferring this new preference. Older files without the field remain supported and default it to off.

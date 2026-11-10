@@ -20,6 +20,6 @@ object SpotPresentation {
         if(reason.isNotEmpty())return Decision(reason)
         val unit=get("frequency_unit").ifBlank { "kHz" }
         val format=get("format").ifBlank { "New DX on. {frequency} {unit}. {call}." }
-        return Decision("",row(spot,unit),SpotPolicy.speak(spot,format,unit))
+        return Decision("",row(spot,unit),SpotPolicy.speak(spot,format,unit,SpotFilters.activityStyle(get)))
     }
 }
