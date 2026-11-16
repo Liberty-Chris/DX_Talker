@@ -231,7 +231,7 @@ class MainActivity : Activity() {
         } catch(error:Exception) { filterApplyStatus?.text="Not saved: "+keys.joinToString(", ") { it.replace('_',' ') }+". Check this field and its allowed range." }
     }
     private fun saveFilter(key:String) {
-        val keys=if(key in listOf("min_khz","max_khz"))setOf("min_khz","max_khz").filter { drafts.containsKey("Filters:$it") }.toSet() else if(key.startsWith("special_calls"))setOf("special_calls","special_calls_only","special_calls_portable").filter { drafts.containsKey("Filters:$it") }.toSet() else setOf(key)
+        val keys=if(key in listOf("min_khz","max_khz"))setOf("min_khz","max_khz").filter { drafts.containsKey("Filters:$it") }.toSet() else if((key.startsWith("special_calls") || key.startsWith("special_keywords")))setOf("special_calls","special_calls_only","special_calls_portable","special_keywords","special_keywords_only").filter { drafts.containsKey("Filters:$it") }.toSet() else setOf(key)
         saveFilters(keys)
     }
     private fun scheduleFilterSave(key:String) {
@@ -551,9 +551,15 @@ class MainActivity : Activity() {
             panel.addView(button(title+": "+staged(key).replace("General","No activity tag").replace("Unknown","Include unknown").ifBlank { if(key=="filter_modes")"All known modes"else "All" }) { chooseFilter(key,title,values) })
         }
         panel.addView(label("Choose POTA, 20m and SSB to require all three. Selecting several bands accepts any of those bands. Mode comes from a reported tag or a single mode band segment. Include unknown admits uncertain modes within your other selections.",14f,secondary))
-        edit(panel,"Special calls (comma separated)",staged("special_calls"),key="special_calls")
+        edit(panel,"Special spotted calls (comma separated)",staged("special_calls"),key="special_calls")
         panel.addView(CheckBox(this).apply { text="Only these calls";setTextColor(ink);isChecked=staged("special_calls_only")=="true";setOnCheckedChangeListener { _,checked->drafts["Filters:special_calls_only"]=checked.toString();saveFilters(setOf("special_calls","special_calls_only","special_calls_portable")) } })
         panel.addView(CheckBox(this).apply { text="Include portable callsign variants";setTextColor(ink);isChecked=staged("special_calls_portable")!="false";setOnCheckedChangeListener { _,checked->drafts["Filters:special_calls_portable"]=checked.toString();saveFilters(setOf("special_calls","special_calls_only","special_calls_portable")) } })
+        panel.addView(label("Special calls match the spotted DX station, not the spotter.",13f,secondary))
+        edit(panel,"Special words or phrases (Cobia,mobile,county hunter)",staged("special_keywords"),key="special_keywords")
+        panel.addView(CheckBox(this).apply { text="Only these words";setTextColor(ink);isChecked=staged("special_keywords_only")=="true";setOnCheckedChangeListener { _,checked->drafts["Filters:special_keywords_only"]=checked.toString();saveFilters(setOf("special_keywords","special_keywords_only")) } })
+        panel.addView(label("Whole word or phrase matching ignores case. Either Only switch limits listening to its matches. With both selected, a listed call OR word qualifies. Band, mode and other filters still apply.",13f,secondary))
+        spinner(panel,"Special match sound",SpecialAlert.sounds,staged("special_alert").ifBlank { "Off" },key="special_alert")
+        panel.addView(label("The sound plays before matching announcements. Mute, Pause, Stop and repeat suppression also control sounds.",13f,secondary))
         panel.addView(CheckBox(this).apply { text="Use activity wording during mixed listening";setTextColor(ink);isChecked=staged("activity_announcements")=="true";setOnCheckedChangeListener { _,checked -> drafts["Filters:activity_announcements"]=checked.toString();saveFilter("activity_announcements") } })
         panel.addView(label("Activity-only selections use this wording automatically: activity, mode, frequency, callsign. Unknown modes are omitted. All listening filters still apply.",14f,secondary))
         val license=section("My operating privileges (optional)")

@@ -1,7 +1,7 @@
 """Named listening presets are independent of cluster credentials and radio settings."""
 import json
 from dataclasses import replace
-FIELDS=('min_khz','max_khz','max_age_seconds','repeat_seconds','spacing_seconds','frequency_unit','filter_bands','filter_modes','filter_activities','special_calls','special_calls_only','special_calls_portable','activity_announcements','license_class','license_region','license_unknown','filter_dx_countries','filter_dx_continents','filter_spotter_countries','filter_spotter_continents','filter_spotter_regions','geography_unknown','location_overrides')
+FIELDS=('min_khz','max_khz','max_age_seconds','repeat_seconds','spacing_seconds','frequency_unit','filter_bands','filter_modes','filter_activities','special_calls','special_calls_only','special_calls_portable','special_keywords','special_keywords_only','special_alert','activity_announcements','license_class','license_region','license_unknown','filter_dx_countries','filter_dx_continents','filter_spotter_countries','filter_spotter_continents','filter_spotter_regions','geography_unknown','location_overrides')
 
 def validate_presets(text):
     try:

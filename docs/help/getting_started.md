@@ -32,7 +32,7 @@ Ordinary preferences save automatically. Apply radio changes when changing radio
 
 ## Stop and recover
 
-STOP ALL OUTPUT cancels current and queued output and requests PTT release. Wait for Idle before applying changes or previewing. Source loss or an output fault disables RF. Reconnect does not automatically enable it again.
+STOP ALL OUTPUT cancels current and queued output and requests PTT release. Wait for Idle before applying changes or previewing. Source loss or an output fault disables RF. Reconnect leaves RF off by default. The optional Resume RF after source reconnect setting can restore a previously enabled session after source readiness, starting with identification. Stop, disconnect, restart and output faults cancel recovery.
 
 Settings are saved locally. RF and local listening enable state are never saved. Radio drafts are retained separately and do not become active on restart. Passwords and tokens remain session only unless you explicitly remember one in a Windows protected cluster profile.
 

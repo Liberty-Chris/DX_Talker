@@ -14,7 +14,7 @@ Configure the radio audio device and PTT method in Audio / PTT. Set your station
 
 ## Stop and recover
 
-Stop all output cancels current and queued audio and requests PTT release. Source loss or an output fault disables RF. Reconnecting does not enable RF automatically. Check Source and Output status separately before deliberately restarting output. The application always starts with RF disabled.
+Stop all output cancels current and queued audio and requests PTT release. Source loss or an output fault disables RF. Reconnecting leaves RF off by default. Audio / PTT offers an explicit Resume RF after source reconnect option for a previously enabled session. Stop and output faults cancel that recovery. Check Source and Output status separately before deliberately restarting output. The application always starts with RF disabled.
 
 ## More help
 

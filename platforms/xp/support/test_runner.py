@@ -26,7 +26,7 @@ def run(root):
     sys.path.insert(0, os.path.join(root, 'tests'))
     os.environ['PYTHONPATH'] = root
     names = ['test_models', 'test_protocol', 'test_spot_filters', 'test_engine', 'test_power',
-             'test_source', 'test_profiles_history', 'test_diagnostics_transfer_packs',
+             'test_source', 'test_special_watches', 'test_id_schedule', 'test_band_table_update', 'test_profiles_history', 'test_diagnostics_transfer_packs',
              'test_collection_qr', 'test_personal_assistant.PrivilegeTests',
              'test_personal_assistant.ReceiveHealthTests', 'test_personal_assistant.AssistantEngineTests',
              'test_personal_assistant.SubmissionTests',

@@ -26,7 +26,7 @@ The timestamp must represent the actual spot time. The example above illustrates
 
 ## Disconnects
 
-Connection failures disable RF and clear queued output. The source retries with increasing delays up to 60 seconds. Reconnect does not enable RF. Verify the connection and deliberately enable output when ready.
+Connection failures disable RF and clear queued output. The source retries with increasing delays up to 60 seconds. Reconnect leaves RF disabled by default. Verify the connection and deliberately enable output when ready, or explicitly configure Resume RF after source reconnect as described in [Radio audio and PTT](radio.md).
 
 Retries start at 2 seconds and increase through 4, 8, 16, 32 and 60 seconds. Successful sign in or valid feed reception resets the next failure's delay to 2 seconds. Each attempt creates a new socket and processes login again. Manual commands and spot submissions never carry across sessions. Disconnect cancels the retry wait. Diagnostics record attempt numbers, retry delays and fixed error categories without server addresses, credentials or remote exception text. Receiver audio cleanup runs on the output worker so it cannot hold up the source retry loop.
 

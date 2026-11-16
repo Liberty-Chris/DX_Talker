@@ -81,9 +81,11 @@ def rejection(spot, settings):
     if modes and mode not in modes:return 'Mode unknown' if mode=='Unknown' else 'Mode'
     special = calls_selection(settings.special_calls)
     call_match = call_matches(spot.dx_call, special, settings.special_calls_portable)
-    if settings.special_calls_only:
-        if not call_match: return 'Special calls'
-    elif activities and not activities & activities_of(spot.comment) and not call_match:
+    word_match = keyword_matches(spot.comment, keyword_selection(settings.special_keywords))
+    if settings.special_calls_only or settings.special_keywords_only:
+        if not (settings.special_calls_only and call_match or settings.special_keywords_only and word_match):
+            return 'Special calls or words' if settings.special_keywords_only else 'Special calls'
+    elif activities and not activities & activities_of(spot.comment) and not call_match and not word_match:
         return 'Activity tag'
     from .privileges import eligibility
     eligible=eligibility(spot.frequency_khz,mode,settings.license_class,settings.license_region)
@@ -116,6 +118,7 @@ def summary(settings):
     for key,title in (('filter_spotter_countries','Reported from'),('filter_spotter_continents','Reporting continents'),('filter_spotter_regions','Reporting regions'),('filter_dx_countries','DX countries'),('filter_dx_continents','DX continents')):
         if getattr(settings,key):parts.append(title+': '+getattr(settings,key))
     if settings.special_calls: parts.append(('Only calls: ' if settings.special_calls_only else 'Special calls: ') + settings.special_calls)
+    if settings.special_keywords: parts.append(('Only words: ' if settings.special_keywords_only else 'Special words: ') + settings.special_keywords)
     return ' · '.join(parts)
 
 
@@ -130,3 +133,20 @@ def calls_selection(value):
 def call_matches(call, selected, portable=True):
     call = call.upper()
     return call in selected or portable and any('/' not in wanted and wanted in call.split('/') for wanted in selected)
+
+
+def keyword_selection(value):
+    words = [' '.join(word.split()).upper() for word in value.split(',') if word.strip()]
+    if len(words) > 50 or len(set(words)) != len(words) or any(len(word) > 80 or not any(c.isalnum() for c in word) or any(ord(c) < 32 or ord(c) > 126 for c in word) for word in words):
+        raise ValueError('Enter up to 50 distinct words or phrases, up to 80 characters each, separated by commas')
+    return tuple(words)
+
+
+def keyword_matches(comment, words):
+    comment = ' '.join(comment.split()).upper()
+    return any(re.search(r'(?<![A-Z0-9])' + re.escape(word) + r'(?![A-Z0-9])', comment) for word in words)
+
+
+def special_match(spot, settings):
+    return (call_matches(spot.dx_call, calls_selection(settings.special_calls), settings.special_calls_portable) or
+            keyword_matches(spot.comment, keyword_selection(settings.special_keywords)))

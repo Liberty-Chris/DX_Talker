@@ -7,7 +7,7 @@ Added up to twenty scheduled voice IDs, calendar and interval recurrence, multip
 
 Hardened cluster retry cleanup, backoff reset and diagnostic attempt records. Preserved deliberate RF enable after source loss. Fixed stale radio save status, apply preservation and accent hover feedback.
 
-Imported WB4IUY's authoritative selection table with shared desktop and Android generation, twenty supported modes and explicit DIGITAL/Unknown behavior. Added IOTA, JOTA, LLOTA and special calls with portable matching and preset/transfer support. Added a compact offline getting started guide, connection and troubleshooting help and links to WB4IUY's additional guides at https://wb4iuy.net/dxtalker/. Android Open Help uses the same site. Froze features for stable v1 acceptance.
+Imported WB4IUY's authoritative selection table with shared desktop and Android generation, twenty supported modes and explicit DIGITAL/Unknown behavior. Added IOTA, JOTA, LLOTA and special calls with portable matching and preset/transfer support. Added a compact offline getting started guide, connection and troubleshooting help and links to WB4IUY's additional guides at https://wb4iuy.net/dxtalker/. Android Open Help uses the same site. Added explicitly opted in source reconnect RF recovery for previously enabled sessions, literal special keyword filters and generated attention sounds for special calls/words across desktop and Android. Froze features for stable v1 acceptance.
 
 ## 0.2.0a19. Unreleased
 

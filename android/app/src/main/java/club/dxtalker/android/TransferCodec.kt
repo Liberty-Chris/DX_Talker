@@ -9,7 +9,7 @@ import java.util.zip.Inflater
 object TransferCodec {
     private const val MAX = 65536
     private val connectionKeys = setOf("source_type","host","port","login","feed_url","poll_seconds")
-    private val filterKeys = setOf("min_khz","max_khz","max_age_seconds","repeat_seconds","spacing_seconds","frequency_unit","filter_bands","filter_modes","filter_activities","special_calls","special_calls_only","special_calls_portable","activity_announcements","license_class","license_region","license_unknown","filter_dx_countries","filter_dx_continents","filter_spotter_countries","filter_spotter_continents","filter_spotter_regions","geography_unknown","location_overrides","listening_presets")
+    private val filterKeys = setOf("min_khz","max_khz","max_age_seconds","repeat_seconds","spacing_seconds","frequency_unit","filter_bands","filter_modes","filter_activities","special_calls","special_calls_only","special_calls_portable","special_keywords","special_keywords_only","special_alert","activity_announcements","license_class","license_region","license_unknown","filter_dx_countries","filter_dx_continents","filter_spotter_countries","filter_spotter_continents","filter_spotter_regions","geography_unknown","location_overrides","listening_presets")
     private fun keys(value: JSONObject) = value.keys().asSequence().toSet()
     fun decode(text: String): JSONObject {
         var raw = text.toByteArray(Charsets.UTF_8)
@@ -46,9 +46,9 @@ object TransferCodec {
         require(filterKeys.containsAll(keys(f))) { "Unsupported filter fields" }
         for(key in keys(f)){
             val value=f.get(key)
-            if(value is String)require(value.length <= (if(key=="listening_presets")32768 else if(key=="location_overrides")8192 else 2048) && value.none { it.code<32 })
-            if(key in setOf("special_calls_only","special_calls_portable","activity_announcements","license_unknown","geography_unknown"))require(value is Boolean)
-            else if(key=="frequency_unit" || key.startsWith("filter_") || key in setOf("special_calls","license_class","license_region","location_overrides","listening_presets"))require(value is String) else {
+            if(value is String)require(value.length <= (if(key=="listening_presets")32768 else if(key in setOf("location_overrides","special_keywords"))8192 else 2048) && value.none { it.code<32 })
+            if(key in setOf("special_keywords_only","special_calls_only","special_calls_portable","activity_announcements","license_unknown","geography_unknown"))require(value is Boolean)
+            else if(key=="frequency_unit" || key.startsWith("filter_") || key in setOf("special_keywords","special_alert","special_calls","license_class","license_region","location_overrides","listening_presets"))require(value is String) else {
                 require(value is Number && value.toDouble().isFinite()) { "Filter numbers must be numeric" }
                 if(key in setOf("max_age_seconds","repeat_seconds","spacing_seconds")) require(value is Int) { "Timing values must be integers" }
             }
@@ -60,6 +60,9 @@ object TransferCodec {
         SpotFilters.selection(f.optString("filter_bands",""),SpotFilters.bands.keys+"Other")
         SpotFilters.selection(f.optString("filter_modes",""),SpotFilters.modes)
         SpotFilters.selection(f.optString("filter_activities",""),SpotFilters.activities)
+        val words=SpotFilters.keywordSelection(f.optString("special_keywords",""))
+        require(!f.optBoolean("special_keywords_only",false) || words.isNotEmpty()) { "Add a special word or turn off Only these words" }
+        require(f.optString("special_alert","Off") in SpecialAlert.sounds) { "Choose a valid special match sound" }
         val calls=SpotFilters.callsSelection(f.optString("special_calls",""))
         require(!f.optBoolean("special_calls_only",false) || calls.isNotEmpty()) { "Add a special callsign or turn off Only these calls" }
         require(f.optString("license_class","Off") in UsPrivileges.classes && f.optString("license_region","US Region 2") in UsPrivileges.regions)
@@ -108,7 +111,7 @@ object TransferCodec {
         val editor = prefs.edit().putString("profiles",existing.toString())
         val f = data.getJSONObject("filters")
         for (key in filterKeys) if (f.has(key)) editor.putString(key,f.get(key).toString())
-        for(key in filterKeys) if(!f.has(key))editor.putString(key,when(key) { "license_class"->"Off";"license_region"->"US Region 2";"listening_presets"->"{}";"special_calls_portable"->"true";"special_calls_only","activity_announcements","license_unknown","geography_unknown"->"false";"min_khz"->"1";"max_khz"->"10000000";"max_age_seconds"->"180";"repeat_seconds"->"300";"spacing_seconds"->"5";"frequency_unit"->"kHz";else->"" })
+        for(key in filterKeys) if(!f.has(key))editor.putString(key,when(key) { "license_class"->"Off";"license_region"->"US Region 2";"listening_presets"->"{}";"special_calls_portable"->"true";"special_alert"->"Off";"special_keywords_only","special_calls_only","activity_announcements","license_unknown","geography_unknown"->"false";"min_khz"->"1";"max_khz"->"10000000";"max_age_seconds"->"180";"repeat_seconds"->"300";"spacing_seconds"->"5";"frequency_unit"->"kHz";else->"" })
         check(editor.commit()) { "Could not save imported profiles" }
     }
 }

@@ -1956,5 +1956,93 @@
       "filter_bands": "20m"
     },
     "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 K1ABC SSB USS Cobia 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_keywords": "Cobia",
+      "special_keywords_only": true
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 K1ABC SSB USS SCobias 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_keywords": "Cobia",
+      "special_keywords_only": true
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14225 K1ABC SSB COUNTY HUNTER 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_keywords": "county hunter",
+      "special_keywords_only": true
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 TZ4AM SSB DX 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "TZ4AM",
+      "special_calls_only": true,
+      "special_keywords": "Cobia",
+      "special_keywords_only": true
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 K1ABC SSB USS Cobia 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_keywords": "Cobia",
+      "special_keywords_only": true,
+      "filter_bands": "40m"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14225 K1ABC USS Cobia 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_keywords": "Cobia",
+      "special_keywords_only": true,
+      "filter_modes": "Unknown"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 K1ABC USS Cobia 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_keywords": "Cobia",
+      "special_keywords_only": true
+    },
+    "match": false
   }
 ]

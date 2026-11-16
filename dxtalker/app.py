@@ -663,6 +663,8 @@ class Application(Usability):
         self._field(timing, 0, "Lead time (ms)", "lead_ms", note="0 to 5000 ms", compact=True)
         self._field(timing, 1, "Tail time (ms)", "tail_ms", note="0 to 5000 ms", compact=True)
         self._field(timing, 2, "Maximum transmit (s)", "max_tx_seconds", note="5 to 120 seconds, including lead and tail", compact=True)
+        self._field(timing, 3, "Resume RF after source reconnect", "rf_auto_reconnect", compact=True)
+        ttk.Label(timing,text='Optional. Restores RF only if it was enabled before source loss and the source signs in or receives valid data again. Starts with an ID. Stop, disconnect, restart or an output fault cancels recovery.',wraplength=610).grid(row=4,column=0,columnspan=3,sticky='w',pady=6)
         levels = ttk.LabelFrame(frame, text="Audio levels", padding=12)
         levels.grid(row=3, column=0, sticky="w", pady=(0, 12))
         for row, (label, name) in enumerate((("Spot radio (%)", "volume_percent"), ("CW ID (%)", "cw_volume_percent"),
@@ -1606,6 +1608,8 @@ class Application(Usability):
             if kind == "source_lost":
                 self.transition_serial += 1
                 self.engine.stop("Source lost. RF disabled.", defer_cleanup=True)
+            elif kind == "source_ready" or kind == "source_state" and value.startswith("Signed in"):
+                self.engine.source_restored()
             self.emit("source_event", (generation, kind, value))
 
         self.active_secret=secret

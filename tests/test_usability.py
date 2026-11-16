@@ -15,6 +15,43 @@ class UsabilityTests(unittest.TestCase):
     setUp=_Fixtures.setUp
     tearDown=_Fixtures.tearDown
 
+    def test_words_and_attention_sound_autosave_without_applying_rf_option(self):
+        app = self.app
+        app.variables['rf_auto_reconnect'].set(True)
+        self.assertFalse(app.settings.rf_auto_reconnect)
+        panel = app.filter_editor
+        panel.variables['special_keywords'].set('Cobia,county hunter')
+        panel.variables['special_keywords_only'].set(True)
+        panel.variables['special_alert'].set('Double ding')
+        saved = load_settings()
+        self.assertEqual(saved.special_keywords, 'Cobia,county hunter')
+        self.assertTrue(saved.special_keywords_only)
+        self.assertEqual(saved.special_alert, 'Double ding')
+        self.assertFalse(saved.rf_auto_reconnect)
+        self.assertFalse(app.engine.enabled)
+        app._apply()
+        self.assertTrue(load_settings().rf_auto_reconnect)
+        self.assertFalse(app.engine.enabled)
+
+    def test_source_readiness_is_ordered_before_loss_without_waiting_for_ui_poll(self):
+        app = self.app
+        class Source:
+            def __init__(self, settings, emit, secret): self.emit=emit; self.connected=threading.Event()
+            def start(self): pass
+            def stop(self): pass
+        with patch('dxtalker.app.SourceClient', Source): app._connect()
+        with app.engine.lock:
+            app.engine.settings=replace(app.settings, rf_auto_reconnect=True)
+            app.engine.enabled=True
+            app.source.emit('source_lost','Source lost')
+            app.source.emit('source_ready','Receiving DX spots')
+            self.assertTrue(app.engine.reconnect_ready)
+            app.source.emit('source_lost','Source lost again')
+            self.assertFalse(app.engine.reconnect_ready)
+            # Processing the old ready event must not rearm recovery.
+            app._poll()
+            self.assertFalse(app.engine.reconnect_ready)
+
     def test_radio_apply_preserves_rf_and_monitor_after_validated_cleanup(self):
         app = self.app
         with app.engine.lock, patch.object(app.engine, 'enable') as enable:

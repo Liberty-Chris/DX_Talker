@@ -21,7 +21,7 @@ Work through the connection and local audio stages before enabling radio transmi
 
 ## Immediate next task
 
-The 1.0.0b3 batch is the final feature update before stable v1. Test and fix this scope: cluster recovery and output state, radio apply behavior, the supplied mode table, expanded activities and special calls, scheduled voice IDs and essential offline help. Essential help stays bundled. Additional guides link to [WB4IUY’s DX Talker help](https://wb4iuy.net/dxtalker/).
+The 1.0.0b3 batch is the final feature update before stable v1. Test and fix this scope: cluster recovery and output state, radio apply behavior, the supplied mode table, expanded activities and special calls, scheduled voice IDs and essential offline help. The final requested additions are opted in source RF recovery, special keyword watches and attention sounds on desktop and Android. Essential help stays bundled. Additional guides link to [WB4IUY’s DX Talker help](https://wb4iuy.net/dxtalker/).
 
 Freeze additional features after this batch. Complete regression and build verification, then record Windows 10 overnight operation, Windows 11, Android listening and named radio interface acceptance. Test first Tuesday reminders at two daily times, busy channel deferral, required ID priority, Stop, source loss, device failure and restart without RF resumption. Prepare stable v1 only after this beta is vetted. New feature requests go beyond stable v1.
 

@@ -155,6 +155,7 @@ class Settings:
     feed_url: str = ""
     poll_seconds: int = 30
     radio_device: str = ""
+    rf_auto_reconnect: bool = False
     preview_device: str = ""
     receive_guard: bool = False
     receive_device: str = ""
@@ -187,6 +188,9 @@ class Settings:
     special_calls: str = ""
     special_calls_only: bool = False
     special_calls_portable: bool = True
+    special_keywords: str = ""
+    special_keywords_only: bool = False
+    special_alert: str = "Off"
     activity_announcements: bool = False
     license_class: str = "Off"
     license_region: str = "US Region 2"
@@ -241,7 +245,7 @@ class Settings:
                 if type(default) is float and type(value) in (float, int):
                     continue
                 raise ValueError(f"Invalid value for {f.name}")
-            if isinstance(value, str) and (len(value) > (65536 if f.name=="voice_ids" else 32768 if f.name=="listening_presets" else 8192 if f.name=="location_overrides" else 2048) or any(ord(c) < 32 for c in value)):
+            if isinstance(value, str) and (len(value) > (65536 if f.name=="voice_ids" else 32768 if f.name=="listening_presets" else 8192 if f.name in ("location_overrides", "special_keywords") else 2048) or any(ord(c) < 32 for c in value)):
                 raise ValueError(f"Invalid text in {f.name}")
         bounds = {"port": (1, 65535), "poll_seconds": (15, 3600), "lead_ms": (0, 5000),
                   "tail_ms": (0, 5000), "max_tx_seconds": (5, 120), "speech_rate": (-10, 10),
@@ -284,6 +288,12 @@ class Settings:
         calls_selection(self.special_calls)
         if self.special_calls_only and not self.special_calls.strip():
             raise ValueError("Add at least one special callsign or turn off Only these calls")
+        from .filtering import keyword_selection
+        keyword_selection(self.special_keywords)
+        if self.special_keywords_only and not self.special_keywords.strip():
+            raise ValueError("Add at least one special word or turn off Only these words")
+        if self.special_alert not in ("Off", "Double ding", "Chime", "Beep"):
+            raise ValueError("Choose a valid special match sound")
         self.validate_format()
         if self.log_directory and not Path(self.log_directory).is_absolute():
             raise ValueError("Choose an absolute history folder path")

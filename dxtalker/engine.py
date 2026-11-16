@@ -71,6 +71,8 @@ class Engine:
         self.stop_reason = ''
         self.fault_generation = 0
         self.source_loss_generation = 0
+        self.reconnect_rf = None
+        self.reconnect_ready = False
         self.expired_spots = 0
         self.preparation_seconds = 0
         self.worker = threading.Thread(target=self._run, daemon=True, name="DX transmission")
@@ -81,6 +83,8 @@ class Engine:
             if self.enabled or self.local_enabled or self.busy:
                 raise ValueError("Stop output and wait for Idle before applying settings")
             self.settings = settings
+            self.reconnect_rf = None
+            self.reconnect_ready = False
             completed = self.schedule_book.completed
             self.schedule_book = ScheduleBook(settings.voice_ids, self.wall_clock(), self.clock())
             self.schedule_book.completed = completed
@@ -94,6 +98,8 @@ class Engine:
             if self.busy or self.monitor_cleanup.is_set():
                 raise ValueError("Wait for audio and receiver cleanup to finish")
             self.settings.validate_rf()
+            self.reconnect_rf = None
+            self.reconnect_ready = False
             local = self.local_enabled if local is None else local
             muted = self.local_muted if muted is None else muted
             if local and not muted: self._validate_monitor()
@@ -120,7 +126,14 @@ class Engine:
     def stop(self, message="RF disabled. Output stopped.", defer_cleanup=False):
         self.stop_reason = message
         with self.lock:
-            if defer_cleanup: self.source_loss_generation += 1
+            if defer_cleanup:
+                self.source_loss_generation += 1
+                if self.enabled and self.settings.rf_auto_reconnect:
+                    self.reconnect_rf = (self.local_enabled, self.local_muted, self.fault_generation)
+                self.reconnect_ready = False
+            else:
+                self.reconnect_rf = None
+                self.reconnect_ready = False
             self.enabled = self.local_enabled = False
             self.local_generation += 1
             self.local_muted = False
@@ -132,7 +145,29 @@ class Engine:
         elif not self.busy:
             self.monitor.close()
         self.wake.set()
-        self.emit("output", message)
+        self.emit("output", message + (' Automatic RF recovery is waiting for the source.' if self.reconnect_rf else ''))
+
+    def source_restored(self):
+        with self.lock:
+            if self.reconnect_rf is not None:
+                self.reconnect_ready = True
+        self.wake.set()
+
+    def _recover_source(self):
+        with self.lock:
+            intent = self.reconnect_rf
+            if not intent or not self.reconnect_ready or self.busy or self.monitor_cleanup.is_set(): return
+            if not self.settings.rf_auto_reconnect or intent[2] != self.fault_generation:
+                self.reconnect_rf = None
+                self.reconnect_ready = False
+                return
+            if not self.source_available(): return
+            self.reconnect_rf = None
+            self.reconnect_ready = False
+            seen = dict(self.seen)
+            self.enable(local=intent[0], muted=intent[1])
+            self.seen = seen
+        self.emit('journal', 'Source recovered. Automatic RF recovery enabled output; required identification is due first.')
 
     def shutdown(self):
         self.stop()
@@ -193,7 +228,7 @@ class Engine:
         return ''
 
     def preview(self, kind, text=None, settings=None):
-        if kind not in ("voice", "cw", "spot"):
+        if kind not in ("voice", "cw", "spot", "alert"):
             raise ValueError("Unknown preview")
         with self.lock:
             if self.enabled or (self.local_enabled and not self.local_muted) or self.busy or self.items:
@@ -268,6 +303,8 @@ class Engine:
 
     def listen_locally(self, muted=False):
         with self.lock:
+            self.reconnect_rf = None
+            self.reconnect_ready = False
             if self.enabled:
                 self._validate_monitor()
                 self.local_enabled = True
@@ -321,8 +358,14 @@ class Engine:
 
     def _spot_audio(self, spot, s):
         if hasattr(self.speech, "render_spot"):
-            return self.speech.render_spot(spot, s, self.cancel)
-        return self._speak(". ".join(text for _, text in spot.announcement_groups(s)) + ".", s)
+            clip = self.speech.render_spot(spot, s, self.cancel)
+        else:
+            clip = self._speak(". ".join(text for _, text in spot.announcement_groups(s)) + ".", s)
+        from .filtering import special_match
+        if s.special_alert != 'Off' and special_match(spot, s):
+            from .attention import prepend_alert
+            clip = prepend_alert(clip, s.special_alert)
+        return clip
 
     def _voice(self, s):
         clip = wav_clip(s.voice_wav) if s.voice_mode == "WAV" else self._speak(s.voice_text, s)
@@ -454,15 +497,25 @@ class Engine:
                 if hasattr(self.speech, 'close'):
                     self.speech.close()
 
+    def _cleanup_receive(self):
+        try:
+            self.monitor.close()
+        except Exception as exc:
+            with self.lock:
+                self.fault_generation += 1
+                self.reconnect_rf = None
+                self.reconnect_ready = False
+            self.emit('diagnostic', dict(error_type=type(exc).__name__, code='receive_cleanup_failed'))
+            self.emit('output', 'Receive input cleanup failed. RF recovery cancelled.')
+            self.emit('error', 'Check the receive audio input before enabling RF again.')
+
     def _run_output(self, power):
         while not self.quit.is_set():
             if self.monitor_cleanup.is_set():
                 with self.lock:
                     self.busy = True
                     self.monitor_cleanup.clear()
-                try: self.monitor.close()
-                except Exception as exc:
-                    self.emit('diagnostic', dict(error_type=type(exc).__name__, code='receive_cleanup_failed'))
+                try: self._cleanup_receive()
                 finally:
                     with self.lock: self.busy = False
             power.set_active(self.enabled or (self.local_enabled and not self.local_muted) or self.busy, self.settings.keep_awake)
@@ -472,6 +525,7 @@ class Engine:
             final_reason = 'Spot expired or no longer matches the listening filters'
             s = self.settings
             try:
+                self._recover_source()
                 task = self._select()
                 if task is None:
                     continue
@@ -494,6 +548,9 @@ class Engine:
                     clip = self._spot_audio(value, s)
                 elif kind == "preview_spot":
                     clip = self._spot_audio(value, s) if hasattr(value, "dx_call") else self._speak(value, s)
+                elif kind == "preview_alert":
+                    from .attention import alert_clip
+                    clip = alert_clip(s.special_alert)
                 elif kind == "preview_voice":
                     clip = self._voice(s)
                 elif kind == "preview_cw":
@@ -592,7 +649,7 @@ class Engine:
                     if locally_muted:
                         self.seen[value.key]=self.clock()
                         self._finish_spot(value,'muted','Local audio muted during announcement. Will not replay on unmute.')
-                if not locally_muted:self.stop("Output cancelled. RF disabled.")
+                if not locally_muted and self.reconnect_rf is None:self.stop("Output cancelled. RF disabled.")
             except Exception as exc:
                 evidence = dict(error_type=type(exc).__name__, frames=Diagnostics.frames(exc.__traceback__))
                 if isinstance(exc, ValueError) and s.receive_guard:
@@ -618,9 +675,12 @@ class Engine:
                         else:
                             self._finish_spot(value, 'rejected', final_reason)
                     self.current_spot = None
-                    self.busy = False
-                    if kind is not None and not self.enabled:
-                        self.monitor.close()
+                    close_monitor = kind is not None and not self.enabled
+                    self.busy = close_monitor
+                if close_monitor:
+                    try: self._cleanup_receive()
+                    finally:
+                        with self.lock: self.busy = False
                 if kind is not None:
                     self.emit("activity", "Idle")
 

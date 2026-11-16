@@ -62,8 +62,10 @@ object SpotFilters {
         val calls=callsSelection(get("special_calls"))
         val portable=get("special_calls_portable")!="false"
         val callMatch=spot.call.uppercase() in calls || portable && calls.any { '/' !in it && it in spot.call.uppercase().split('/') }
-        if(get("special_calls_only")=="true") { if(!callMatch)return "Special calls" }
-        else if(selectedActivities.isNotEmpty() && tags(spot.comment).none { it in selectedActivities } && !callMatch)return "Activity tag"
+        val wordMatch=keywordMatches(spot.comment,keywordSelection(get("special_keywords")))
+        if(get("special_calls_only")=="true" || get("special_keywords_only")=="true") {
+            if(!(get("special_calls_only")=="true" && callMatch || get("special_keywords_only")=="true" && wordMatch))return if(get("special_keywords_only")=="true")"Special calls or words" else "Special calls"
+        } else if(selectedActivities.isNotEmpty() && tags(spot.comment).none { it in selectedActivities } && !callMatch && !wordMatch)return "Activity tag"
         val eligibility=UsPrivileges.eligibility(spot.frequency,mode,get("license_class").ifBlank { "Off" },get("license_region").ifBlank { "US Region 2" })
         if(eligibility=="outside")return "Outside selected license segments"
         if(eligibility=="unknown" && get("license_unknown")!="true")return "License eligibility unverified"
@@ -79,6 +81,19 @@ object SpotFilters {
         require(calls.size<=50 && calls.size==calls.toSet().size && calls.all { Regex("[A-Z0-9][A-Z0-9/\\-]{1,19}").matches(it) && it.any(Char::isDigit) && it.any(Char::isLetter) }) { "Enter up to 50 distinct callsigns separated by commas" }
         return calls.toSet()
     }
+    fun keywordSelection(value:String):List<String> {
+        val words=value.split(',').filter { it.isNotBlank() }.map { it.trim().replace(Regex("\\s+")," ").uppercase(java.util.Locale.US) }
+        require(words.size<=50 && words.size==words.toSet().size && words.all { it.length<=80 && it.any(Char::isLetterOrDigit) && it.all { c->c.code in 32..126 } }) { "Enter up to 50 distinct words or phrases separated by commas" }
+        return words
+    }
+    fun keywordMatches(comment:String,words:List<String>):Boolean {
+        val text=comment.trim().replace(Regex("\\s+")," ").uppercase(java.util.Locale.US)
+        return words.any { Regex("(?<![A-Z0-9])"+Regex.escape(it)+"(?![A-Z0-9])").containsMatchIn(text) }
+    }
+    fun specialMatch(spot:DxSpot,get:(String)->String):Boolean {
+        val calls=callsSelection(get("special_calls"));val call=spot.call.uppercase(java.util.Locale.US)
+        return call in calls || get("special_calls_portable")!="false" && calls.any { '/' !in it && it in call.split('/') } || keywordMatches(spot.comment,keywordSelection(get("special_keywords")))
+    }
     private data class PolicyRule(val low:java.math.BigDecimal,val high:java.math.BigDecimal,val point:Boolean,val result:String)
     private val policyIndex by lazy { BandTableData.rules.groupBy { it[0] to it[1] }.mapValues { (_, rows)->rows.map { r-> PolicyRule(r[2].toBigDecimal(),r[3].toBigDecimal(),r[4]=="point",r[5]) } } }
     fun bandPolicy(f:java.math.BigDecimal,mode:String,license:String):String {
@@ -93,6 +108,7 @@ object SpotFilters {
         for((key,default) in listOf("filter_bands" to "All bands","filter_modes" to "All known modes","filter_activities" to "All activities"))parts.add(get(key).replace("General","No activity tag").replace("Unknown","Include unknown").ifBlank { default })
         for((key,title) in listOf("filter_spotter_countries" to "Reported from","filter_spotter_continents" to "Reporting continents","filter_spotter_regions" to "Reporting regions","filter_dx_countries" to "DX countries","filter_dx_continents" to "DX continents"))if(get(key).isNotBlank())parts.add(title+": "+get(key))
         if(get("special_calls").isNotBlank())parts.add((if(get("special_calls_only")=="true")"Only calls: " else "Special calls: ")+get("special_calls"))
+        if(get("special_keywords").isNotBlank())parts.add((if(get("special_keywords_only")=="true")"Only words: " else "Special words: ")+get("special_keywords"))
         return parts.joinToString(" · ")
     }
 }
