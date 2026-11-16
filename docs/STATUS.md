@@ -1,6 +1,6 @@
 # Project status
 
-Updated November 7, 2026.
+Updated November 15, 2026.
 
 ## Where things stand
 
@@ -16,7 +16,7 @@ Audio output is selected explicitly for preview and radio use. Windows System.Sp
 
 PTT adapters support serial RTS, DTR, both lines and an explicit VOX mode. CM108 HID, CAT and vendor specific controls remain open. Compatibility with physical interfaces is not yet claimed.
 
-One coordinator prioritizes IDs, serializes audio, limits the queue, expires spots and attempts PTT release on completion, cancellation and errors. Source loss disables RF. Startup, settings changes and recovery require deliberate RF enable. Passwords and tokens are never journaled. A source profile can optionally remember its secret using Windows account DPAPI protection. Ordinary settings exclude credentials.
+One coordinator prioritizes IDs, serializes audio, limits the queue, expires spots and attempts PTT release on completion, cancellation and errors. Source loss disables RF. Startup and recovery require deliberate RF enable. Explicit valid radio Apply preserves already enabled RF after cleanup unless Stop, source loss or a new output fault intervenes. Passwords and tokens are never journaled. A source profile can optionally remember its secret using Windows account DPAPI protection. Ordinary settings exclude credentials.
 
 The desktop now includes the DXt header, light and dark appearance, a matching Windows icon and EXE version information. Appearance is saved independently of radio settings.
 
@@ -342,3 +342,23 @@ Local headless verification completed 281 tests with no failures and 64 expected
 Desktop now keeps local listening and RF independently enabled. A separate local audio stream mirrors the single generated spot or ID during RF playback. Local mute and live volume do not cancel radio output or discard its queue. Receive hold gates both streams and receive interruption cancels both before retry. Stop and RF faults disarm both. PTT release precedes local speaker cleanup; a local device failure mutes only monitoring and reports it. Disabling RF returns to the existing local session. Station and self spotting are visible main page buttons, including compact layouts.
 
 Local headless verification passed 292 tests with 65 expected graphical or native platform skips. Ten focused dual output tests passed, covering both destinations, shared synthesis, independent volume and mute, queue preservation, receive hold and interruption, Stop, radio and local faults and prompt PTT release with slow speakers. Android pronunciation unit tests, APK build and emulator navigation passed on the first PR revision. Hosted verification of this expanded revision remains pending. Real audio devices and physical RF were not exercised. Version 1.0.0b2 follows the already published first beta, with Android versionCode 21 and aligned installer, EXE and Help metadata.
+
+## 1.0.0b3. Final feature beta before stable v1
+
+Implemented twenty named scheduled voice messages with speech/WAV assignment, add/edit/remove/local preview, interval and calendar recurrence, multiple daily times, date bounds, same day windows and bounded busy channel grace. Existing CW and primary voice policy settings remain intact. The coordinator prioritizes required IDs, then scheduled messages and then spots; it preserves prepared messages around required deadlines. Calendar dispatch uses the local clock, skips disabled time and nonexistent spring minutes and suppresses repeated fall minutes within a running session. Interval dispatch uses monotonic completion deadlines. WAV validation and all existing RF stop/fault/watchdog behavior remain in force.
+
+The supplied Windows 10 b2 diagnostic recorded source ConnectionError at 2026-11-14 06:54:43 UTC and retry status without further spot announcements before export. An earlier recovered radio underflow was followed by more announcements. This establishes source loss, not its network cause or a permanent audio failure. Retry socket cleanup now tolerates close errors, sign in/feed success resets bounded backoff and fixed attempt/connection/reception records expose progress. Source loss disarms immediately while receiver audio cleanup belongs to the output worker, avoiding audio driver work on the retry thread. Reconnect remains unable to reenable RF.
+
+Radio Apply now validates before stopping active output and preserves already enabled RF and local monitor/mute choices after cleanup, with required ID first. Stop, source loss generations and output fault generations prevent stale apply resumption. The saved notice is neutral, the disabled button says Radio settings saved and enabled accent controls have distinct hover feedback.
+
+Preserved WB4IUY's exact CSV and generated desktop/Android policy data from its kHz columns. Individual mode support covers all twenty supplied labels plus distinct DIGITAL and Unknown handling. The eleven CW inference segments and legal authorization boundaries remain separate and unchanged. The supplied policy adds class/mode selection ranges for US Region 2. Malformed or inconsistent MHz reference values remain untouched and are not used in comparisons. IOTA, JOTA, LLOTA and special calls, including exact/portable matching and Only these calls, share desktop/Android display and speech decisions and preset/transfer behavior. Essential connection and troubleshooting content stays bundled, with Dad's original reference links retained. Additional hosted help now links to https://wb4iuy.net/dxtalker/, as supplied November 16.
+
+Local verification: the full graphical Linux suite passed 313 tests with one native Windows API skip. A final targeted run passed 42 source, scheduler and graphical usability regressions after adding a source loss/apply race guard. Boundary checks independently read the supplied CSV. All Android main and unit test Kotlin sources compiled with Kotlin 2.0.21 against the Android 15 framework reference and all 27 JUnit tests passed. The local compile used temporary resource IDs and ignored framework annotation nullability differences; it is not an APK build. Documentation/help, release version alignment, generated band/privilege checks, XP generated Python 3.4 syntax and diff whitespace checks passed. The historical archive is unchanged. Hosted native Windows/XP builds, Android APK/emulator checks and actual Windows 10 overnight/audio/PTT/repeater acceptance remain pending. No live public cluster, paid speech call or physical RF was used during verification.
+
+Features are frozen after this batch. Further work before stable v1 is regression correction, build verification and recorded operator acceptance.
+
+## November 16, 2026. Compact Help and WB4IUY guides
+
+The first desktop Help page now contains a compact guide to cluster connection, local listening, filtering, radio setup and stopping/recovery. It links to https://wb4iuy.net/dxtalker/ for additional guides. Detailed bundled topics remain available offline, with existing manifest IDs preserved. Getting started and connection help link to the same site. Android Open Help now opens that destination while retaining its local filter explanation. No external content is fetched when desktop Help opens.
+
+Local documentation/manifest, release version alignment and whitespace checks passed. The live website could not be fetched by the research service in this environment; the configured URL is the destination supplied by Chris. This is part of the pending 1.0.0b3 update. Publication and native package verification remain outstanding.

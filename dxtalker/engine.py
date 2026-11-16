@@ -14,6 +14,7 @@ from .speech import SpeechService
 from .ptt import create_ptt
 from .receiver import ReceiveMonitor, ReceiveCancel, ChannelBusy
 from .power import OutputPower
+from .id_schedule import ScheduleBook
 
 
 @dataclass(frozen=True)
@@ -43,9 +44,13 @@ class MonitorCancel:
 
 class Engine:
     def __init__(self, settings, emit, audio=None, speech=None, ptt_factory=create_ptt,
-                 clock=time.monotonic, monitor=None, local_audio=None):
+                 clock=time.monotonic, monitor=None, local_audio=None, wall_clock=datetime.now):
         self.settings, self.emit = settings, emit
         self.source_available = lambda: True
+        self.wall_clock = wall_clock
+        self.schedule_book = ScheduleBook(settings.voice_ids, wall_clock(), clock())
+        self.scheduled_clip = None
+        self.monitor_cleanup = threading.Event()
         self.audio, self.speech = audio or AudioOutput(), speech or SpeechService()
         self.local_audio = local_audio or AudioOutput()
         self.local_generation = 0
@@ -64,6 +69,8 @@ class Engine:
         self.next_voice_id = 0
         self.pending_voice_clip = None
         self.stop_reason = ''
+        self.fault_generation = 0
+        self.source_loss_generation = 0
         self.expired_spots = 0
         self.preparation_seconds = 0
         self.worker = threading.Thread(target=self._run, daemon=True, name="DX transmission")
@@ -74,14 +81,18 @@ class Engine:
             if self.enabled or self.local_enabled or self.busy:
                 raise ValueError("Stop output and wait for Idle before applying settings")
             self.settings = settings
+            completed = self.schedule_book.completed
+            self.schedule_book = ScheduleBook(settings.voice_ids, self.wall_clock(), self.clock())
+            self.schedule_book.completed = completed
+            self.scheduled_clip = None
             self.pending_voice_clip = None
             self._clear_pending('Settings changed before announcement')
             self.seen.clear()
 
     def enable(self, local=None, muted=None):
         with self.lock:
-            if self.busy:
-                raise ValueError("Wait for the current preview to finish")
+            if self.busy or self.monitor_cleanup.is_set():
+                raise ValueError("Wait for audio and receiver cleanup to finish")
             self.settings.validate_rf()
             local = self.local_enabled if local is None else local
             muted = self.local_muted if muted is None else muted
@@ -98,20 +109,27 @@ class Engine:
             self.seen.clear()
             self.enabled, self.next_id, self.next_spot, self.alternate = True, self.clock(), 0, 0
             self.next_voice_id = self.clock()
+            completed = self.schedule_book.completed
+            self.schedule_book = ScheduleBook(self.settings.voice_ids, self.wall_clock(), self.clock())
+            self.schedule_book.completed = completed
+            self.scheduled_clip = None
             self.pending_voice_clip = None
         self.emit("output", "RF enabled. Identification due before announcements.")
         self.wake.set()
 
-    def stop(self, message="RF disabled. Output stopped."):
+    def stop(self, message="RF disabled. Output stopped.", defer_cleanup=False):
         self.stop_reason = message
         with self.lock:
+            if defer_cleanup: self.source_loss_generation += 1
             self.enabled = self.local_enabled = False
             self.local_generation += 1
             self.local_muted = False
             self.pending_voice_clip = None
             self.cancel.set()
             self._clear_pending(message)
-        if not self.busy:
+        if defer_cleanup:
+            self.monitor_cleanup.set()
+        elif not self.busy:
             self.monitor.close()
         self.wake.set()
         self.emit("output", message)
@@ -208,6 +226,9 @@ class Engine:
                     fresh.append((kind,value))
             self.expired_spots += len(self.items)-len(fresh)
             self.items.clear(); self.items.extend(fresh)
+            if self.enabled:
+                for outcome, item in self.schedule_book.tick(self.wall_clock(), now):
+                    self.emit("schedule_event", dict(code=outcome, id=item["id"]))
             if self.enabled and self.settings.receive_guard:
                 ready = self.monitor.ready()
                 if ready != self.gate_state:
@@ -221,6 +242,9 @@ class Engine:
             if self.enabled and self.settings.id_mode=="Independent" and now>=self.next_voice_id:
                 self.busy = True
                 return "id_voice", None, self.settings
+            if self.enabled and self.schedule_book.due():
+                self.busy = True
+                return "id_scheduled", self.schedule_book.due(), self.settings
             if self.items:
                 kind, value = self.items[0]
                 if kind == "spot" and (not (self.enabled or self.local_enabled) or now < self.next_spot):
@@ -432,6 +456,15 @@ class Engine:
 
     def _run_output(self, power):
         while not self.quit.is_set():
+            if self.monitor_cleanup.is_set():
+                with self.lock:
+                    self.busy = True
+                    self.monitor_cleanup.clear()
+                try: self.monitor.close()
+                except Exception as exc:
+                    self.emit('diagnostic', dict(error_type=type(exc).__name__, code='receive_cleanup_failed'))
+                finally:
+                    with self.lock: self.busy = False
             power.set_active(self.enabled or (self.local_enabled and not self.local_muted) or self.busy, self.settings.keep_awake)
             self.wake.wait(0.1)
             self.wake.clear()
@@ -469,6 +502,10 @@ class Engine:
                     clip = scale_clip(morse_clip(s.cw_text,s.cw_wpm,s.cw_hz),s.cw_volume_percent)
                 elif kind=='id_voice':
                     clip = self.pending_voice_clip or self._voice(s)
+                elif kind == "id_scheduled":
+                    from dataclasses import replace
+                    voice_settings = replace(s, voice_mode=value["source"], voice_text=value["text"], voice_wav=value["wav"])
+                    clip = self.scheduled_clip[1] if self.scheduled_clip and self.scheduled_clip[0] == value["id"] else self._voice(voice_settings)
                 else:
                     clip = self._id(s)
                 self.preparation_seconds=round(time.monotonic()-preparation_started,3)
@@ -480,8 +517,8 @@ class Engine:
                 if kind=='spot':
                     from .filtering import matches
                     if not matches(value,self.settings):continue
-                if kind=='id_voice' and clip.duration+(s.lead_ms+s.tail_ms)/1000>=s.id_minutes*60:
-                    raise ValueError('Voice ID is longer than the CW interval. Shorten the message or increase the interval.')
+                if kind in ('id_voice', 'id_scheduled') and clip.duration+(s.lead_ms+s.tail_ms)/1000>=min(s.id_minutes, s.voice_id_minutes if kind == 'id_scheduled' and s.id_mode == 'Independent' else s.id_minutes)*60:
+                    raise ValueError('Voice ID is longer than the required ID interval. Shorten the message or increase the interval.')
                 if kind == "spot" and self.local_enabled and (not self.enabled or s.volume_percent == 0):
                     if (datetime.now(UTC) - value.timestamp).total_seconds() > s.max_age_seconds:
                         continue
@@ -499,9 +536,14 @@ class Engine:
                         if not self.enabled:
                             raise Cancelled()
                         # Preserve prepared voice audio if a CW deadline needs priority.
-                        if kind=='id_voice' and self.clock()+clip.duration+(s.lead_ms+s.tail_ms)/1000>=self.next_id:
-                            self.pending_voice_clip=clip
-                            self.next_id=self.clock()
+                        deadline = min(self.next_id, self.next_voice_id) if kind == 'id_scheduled' and s.id_mode == 'Independent' else self.next_id
+                        if kind in ('id_voice', 'id_scheduled') and self.clock()+clip.duration+(s.lead_ms+s.tail_ms)/1000>=deadline:
+                            if kind == 'id_voice': self.pending_voice_clip=clip
+                            else: self.scheduled_clip=(value['id'], clip)
+                            if kind == 'id_scheduled' and s.id_mode == 'Independent' and self.next_voice_id < self.next_id:
+                                self.next_voice_id = self.clock()
+                            else:
+                                self.next_id=self.clock()
                             continue
                         # Recheck expiry after synthesis and do not overrun the next ID.
                         if kind == "spot":
@@ -521,7 +563,11 @@ class Engine:
                         self.emit("announcement", {"dx_call": value.dx_call, "frequency_khz": str(value.frequency_khz), "route": "radio"})
                         self._finish_spot(value, 'announced', 'Playback completed and PTT cleanup finished')
                     with self.lock:
-                        if kind == "id_voice":
+                        if kind == "id_scheduled":
+                            self.schedule_book.finish(value["id"], self.wall_clock(), self.clock())
+                            self.scheduled_clip = None
+                            self.emit("schedule_event", dict(code="completed", id=value["id"]))
+                        elif kind == "id_voice":
                             self.pending_voice_clip=None
                             self.next_voice_id = self.clock() + s.voice_id_minutes * 60
                         elif kind in ("id", "id_cw"):
@@ -535,6 +581,7 @@ class Engine:
                     self.emit("journal","PTT test interrupted by receive audio. PTT released; run the test again when clear.")
                 with self.lock:
                     if self.enabled and kind=='id_voice':self.pending_voice_clip=clip
+                    if self.enabled and kind=='id_scheduled':self.scheduled_clip=(value['id'],clip)
                     if self.enabled and kind == 'spot':
                         self.items.appendleft((kind, value))
                 self.emit('activity', 'RF waiting for receive audio to clear')
@@ -558,6 +605,7 @@ class Engine:
                 # validation messages are shown verbatim.
                 detail = str(exc) if isinstance(exc, (ValueError, TimeoutError, AudioPlaybackError)) else type(exc).__name__
                 final_reason = 'Announcement failed: ' + detail
+                with self.lock: self.fault_generation += 1
                 self.stop("Output fault. RF disabled.")
                 self.emit("error", detail)
             finally:

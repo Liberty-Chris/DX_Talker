@@ -1,9 +1,13 @@
-DX Talker 1.0.0b2 adds simultaneous local listening and RF output, restores direct spotting buttons and refines activity pronunciation.
+DX Talker 1.0.0b3 is the final feature beta before stable v1 acceptance.
 
-Enable Listen locally and RF in either order using separate local speakers and radio audio outputs. The local control reads Monitoring RF while both are active. Spots and IDs play through both outputs from the same generated audio. Local mute and volume affect speakers only. Disable RF leaves local listening active. Stop all output, source loss and RF faults stop both routes. Receive hold still controls RF and its local monitor together.
+IDs adds up to 20 named scheduled voice messages using generated speech or PCM WAV recordings. Choose interval, daily, weekly, monthly weekday, monthly date or one time schedules, multiple daily times, date limits and a daily window. First Tuesday reminders at two times are supported. Existing CW and primary voice ID settings are preserved. Due station identification stays ahead of scheduled messages and all audio uses the existing transmission coordinator, receive hold, maximum duration and Stop control. Missed disabled times are skipped and busy messages expire after a bounded grace period.
 
-Spot a station and Spot myself are visible buttons on Live spots again.
+Cluster retries create fresh sockets and log attempt numbers and bounded delays. Successful sign in or feed reception resets backoff. Receiver cleanup is separated from the source retry worker. Quiet source status clears when data resumes. Source loss and output faults still disable RF; reconnect never rearms it.
 
-Recognized activity announcements use poughta for POTA, phota for FOTA and sota for SOTA on desktop and Android. Screen labels retain their normal acronyms. Newly generated recorded packs include these pronunciation phrases. Existing packs remain playable with letter spelling until regenerated.
+Explicitly applying valid radio settings preserves previously enabled RF and local monitoring after cleanup, with required identification first. Invalid drafts leave the running configuration alone. Stop, source loss and output faults prevent resumption. The footer now shows a neutral saved confirmation and disables Radio settings saved when no edits are pending. Enabled accent buttons have visible hover feedback.
 
-Saved settings and profiles remain compatible. Physical radio and audio device acceptance remain part of beta testing.
+WB4IUY's supplied table is preserved and compiled for desktop and Android. All twenty named modes are supported with DIGITAL and Unknown kept distinct. The eleven CW inference ranges are unchanged and license authorizations remain separate from the table's listening ranges. IOTA, JOTA, LLOTA and special calls filters work on both platforms, including portable variants and Only these calls. The same decision governs display and speech.
+
+A compact getting started guide opens in desktop Help and remains available offline with connection and troubleshooting topics. Additional guides link to https://wb4iuy.net/dxtalker/. Android's Open Help action uses the same destination.
+
+Features are frozen after this batch. Stable v1 preparation follows regression testing and operator acceptance on actual computers, phones and radio interfaces. This beta does not establish physical RF or Windows 10 overnight acceptance.

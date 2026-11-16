@@ -1,19 +1,23 @@
-# Help and Info
+# Help and getting started
 
-DX Talker 0.2.0a8 is the first Windows pilot. Start by testing audio locally, then connect your source and configure radio output.
+## Connect a cluster
 
-Use the topic selector above this page to open Getting started, Source connections, Radio audio and PTT, Station identification, Troubleshooting or About DX Talker.
+Open Source and choose a saved cluster profile or select a node from Cluster directory. Enter the hostname, port and your callsign. Add a password only if the node requires one, then choose Connect. Source status and Source activity show connection and login progress. Matching spots appear on Live spots even with audio off.
 
-RF starts disabled. STOP ALL OUTPUT is always available at the top of the window. The activity area reports connection and output state. Source has a bounded session console. History stores validated spots and connection events, excluding raw traffic and credentials.
+## Listen and filter
 
-This manual is bundled with the application and is available without internet access. Physical interface compatibility is established through bench testing. The pilot supports serial RTS and DTR and an operator selected VOX mode. CM108 HID and CAT remain future options.
+In Audio / PTT, choose your speakers or headphones for local listening. Choose Listen locally on Live spots. Mute silences local audio while spots continue updating. Open Filters to choose bands, modes, activities or special calls. Ordinary preferences and filters save automatically.
 
-Additional topics cover Listening and accessibility, History and updates and Cluster customization.
+## Use a radio
 
-[Listening filters and operating privileges](listening_filters.md)
+Configure the radio audio device and PTT method in Audio / PTT. Set your station identification in IDs, then Apply radio changes. Choose Enable RF when ready. RF begins with identification. Local listening and RF can run together using separate speakers and radio outputs. Previously displayed spots are not replayed.
 
-[Share a DX spot](spotting.md)
+## Stop and recover
 
-[Ubuntu installation, speech, credentials and radio setup](ubuntu.md)
+Stop all output cancels current and queued audio and requests PTT release. Source loss or an output fault disables RF. Reconnecting does not enable RF automatically. Check Source and Output status separately before deliberately restarting output. The application always starts with RF disabled.
 
-[Operation and saving](usability.md) covers the beta controls, autosave, drafts and Undo.
+## More help
+
+[Open the full DX Talker help site](https://wb4iuy.net/dxtalker/) for additional guides maintained by Dave Hockaday, WB4IUY. The website requires internet access.
+
+This compact guide and the bundled help topics remain available offline. Use the topic selector for [Getting started](getting_started.md), [Troubleshooting](troubleshooting.md), [Station identification](identification.md), [Listening filters](listening_filters.md) or [Operation and saving](usability.md).

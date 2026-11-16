@@ -104,7 +104,7 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
         update()
     }
     private fun clearSpeech(){main.removeCallbacks(speechWake);nextAllowedAt=0;pending.clear();currentSpeech=null;speaking=false;utterance="";tts?.stop()}
-    private fun snapshot() = listOf("host","port","call","password","source_type","feed_url","poll_seconds","format","min_khz","max_khz","max_age_seconds","repeat_seconds","spacing_seconds","frequency_unit","filter_bands","filter_modes","filter_activities","activity_announcements","license_class","license_region","license_unknown","filter_dx_countries","filter_dx_continents","filter_spotter_countries","filter_spotter_continents","filter_spotter_regions","geography_unknown","location_overrides").mapNotNull { key -> prefs.getString(key,null)?.let { key to it } }.toMap()
+    private fun snapshot() = listOf("host","port","call","password","source_type","feed_url","poll_seconds","format","min_khz","max_khz","max_age_seconds","repeat_seconds","spacing_seconds","frequency_unit","filter_bands","filter_modes","filter_activities","special_calls","special_calls_only","special_calls_portable","activity_announcements","license_class","license_region","license_unknown","filter_dx_countries","filter_dx_continents","filter_spotter_countries","filter_spotter_continents","filter_spotter_regions","geography_unknown","location_overrides").mapNotNull { key -> prefs.getString(key,null)?.let { key to it } }.toMap()
     override fun onStartCommand(intent:Intent?,flags:Int,startId:Int):Int {
         if(intent?.action == "switch") {
             connected=false;submissions.clear();running=false;generation++;try { socket?.close() } catch(_:Exception) {};worker?.interrupt();clearSpeech()
@@ -134,7 +134,7 @@ class ListenerService : Service(), TextToSpeech.OnInitListener {
             "format" -> { session=session+("format" to prefs.getString("format","New DX on. {frequency} {unit}. {call}.").orEmpty());pending.clear();update("Announcement saved. Current audio finishes normally.") }
             "apply" -> {
                 // Update only listening policy, never an unsaved source or credentials.
-                val keys=setOf("format","min_khz","max_khz","max_age_seconds","repeat_seconds","spacing_seconds","frequency_unit","filter_bands","filter_modes","filter_activities","activity_announcements","license_class","license_region","license_unknown","filter_dx_countries","filter_dx_continents","filter_spotter_countries","filter_spotter_continents","filter_spotter_regions","geography_unknown","location_overrides")
+                val keys=setOf("format","min_khz","max_khz","max_age_seconds","repeat_seconds","spacing_seconds","frequency_unit","filter_bands","filter_modes","filter_activities","special_calls","special_calls_only","special_calls_portable","activity_announcements","license_class","license_region","license_unknown","filter_dx_countries","filter_dx_continents","filter_spotter_countries","filter_spotter_continents","filter_spotter_regions","geography_unknown","location_overrides")
                 val fresh=snapshot(); session=session + fresh.filterKeys { it in keys }; clearSpeech(); seen.clear();synchronized(hidden){hidden.clear()}
                 synchronized(spots) {
                     spotRecords.removeAll { SpotPresentation.decide(it) { key -> setting(key,"") }.reason.isNotEmpty() }

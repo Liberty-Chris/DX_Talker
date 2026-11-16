@@ -38,7 +38,13 @@ Use STOP ALL OUTPUT. If the hardware remains keyed, stop transmission using the 
 
 ## Settings do not apply
 
-Stop output and wait for Idle, then save and apply. Passwords and tokens are session only. Settings are at %LOCALAPPDATA%\DXTalker\settings.json. If the file is unreadable or from an unsupported schema, move it aside to start with defaults. Keep a copy for investigation.
+Ordinary preferences save automatically. Radio edits remain a draft until Apply radio changes. The button is disabled and says Radio settings saved when there are no pending edits. A valid explicit apply preserves previously enabled RF after cleanup and a required ID. Stop, source loss and faults prevent that resumption. Source status, the RF button and Output status describe different parts of operation. The settings confirmation no longer makes a persistent claim about RF being disabled. Settings are at %LOCALAPPDATA%\DXTalker\settings.json. If the file is unreadable or from an unsupported schema, move it aside to start with defaults. Keep a copy for investigation.
+
+## Output went quiet overnight
+
+First check Source status separately from RF and local audio. A source failure disables RF and clears pending output while automatic cluster retries continue. Reconnecting never rearms RF. If the feed has recovered but RF remains off, inspect Activity and deliberately enable RF when ready. A connected but quiet node is not proof of a failed audio device. If new eligible spots continue to arrive but playback fails, export diagnostics and check output failure records. Include the approximate local time and timezone. Retry attempt records distinguish a new login attempt from a feed that stayed quiet. ID preparation and Transmitting records describe software activity, not confirmed sound at the radio.
+
+For a scheduled message that did not play, check its enabled state, assigned text or recording, local clock, date bounds, selected weekday and daily window. A missed time while RF was disabled is skipped. A message waiting beyond its grace period is marked expired. Required station IDs remain ahead of scheduled messages. See [Station identification](identification.md).
 
 ## Report a problem
 

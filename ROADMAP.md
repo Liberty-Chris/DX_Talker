@@ -1,6 +1,6 @@
 # DX Talker modernization roadmap
 
-Updated November 7, 2026.
+Updated November 15, 2026.
 
 The first Windows pilot is implemented in source. Automated tests cover the portable core and the Windows workflow checks and packages the desktop application. Live source and physical radio verification remain open. [Project status](docs/STATUS.md) tracks progress.
 
@@ -21,15 +21,15 @@ Work through the connection and local audio stages before enabling radio transmi
 
 ## Immediate next task
 
-Build the Windows pilot and test local sample spots and ID previews on Windows 11. Connect a live source next and record any login differences. Then select the first physical radio interface and verify its audio routing, PTT polarity, stop and failure behavior.
+The 1.0.0b3 batch is the final feature update before stable v1. Test and fix this scope: cluster recovery and output state, radio apply behavior, the supplied mode table, expanded activities and special calls, scheduled voice IDs and essential offline help. Essential help stays bundled. Additional guides link to [WB4IUY’s DX Talker help](https://wb4iuy.net/dxtalker/).
 
-The initial adapters keep hardware choice open through explicit audio selection, serial RTS and DTR modes and VOX. HID and CAT adapters are future work. The language and dependencies are selected in the decision record. An Inno Setup installer and automated installation checks are now defined alongside the portable package. Windows 10 and Windows 11 acceptance tests remain open. Release notifications and verified interactive updates are implemented in source. The first two release upgrade acceptance test remains open. General recording conversion remains future work.
+Freeze additional features after this batch. Complete regression and build verification, then record Windows 10 overnight operation, Windows 11, Android listening and named radio interface acceptance. Test first Tuesday reminders at two daily times, busy channel deferral, required ID priority, Stop, source loss, device failure and restart without RF resumption. Prepare stable v1 only after this beta is vetted. New feature requests go beyond stable v1.
 
 ## First release acceptance
 
 An operator can configure a source, sign in as required, see valid spots and preview speech locally. They can select the radio audio device and supported PTT method, configure CW and voice IDs and choose generated speech or a WAV voice ID.
 
-Enabling transmission is explicit. Parsed spots enter a bounded queue, stale spots expire and scheduled identification receives priority. Stop cancels queued transmission and releases PTT. Reconnection or application restart never silently resumes RF operation.
+Enabling transmission is explicit. Parsed spots enter a bounded queue, stale spots expire and scheduled identification receives priority. Stop cancels queued transmission and releases PTT. Reconnection or application restart never silently resumes RF operation. An explicit valid radio Apply may preserve already enabled RF after cleanup; faults and Stop cancel that resumption.
 
 The pilot must demonstrate ordinary operation and failure recovery using actual supported hardware. Application Help and Info are generated from the maintained documentation and accurately describe the released version.
 

@@ -32,6 +32,10 @@ def eligibility(frequency, mode, license_class, region='US Region 2'):
     """Return eligible, outside or unknown. Unknown never silently becomes legal."""
     if license_class == 'Off': return 'eligible'
     if license_class not in ALLOCATIONS or region not in REGIONS: return 'unknown'
+    # Expanded digital labels use the existing data emission check. The separate
+    # supplied band table retains their individual listening ranges.
+    if mode in ('DOMINO','HELL','MFSK','MT63','OLIVIA','THROB','MSK144','FSK441','JT6M','JTSCALL','WSPR','DIGITAL'): mode = 'RTTY'
+    if mode == '10MRPT': mode = 'FM'
     f=Decimal(str(frequency)); novice=license_class in ('Novice','Technician')
     allocations=list(ALLOCATIONS[license_class])
     if license_class != 'Novice': allocations += VHF

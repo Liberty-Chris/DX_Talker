@@ -8,7 +8,7 @@ RADIO_FIELDS = (
     'radio_device', 'receive_guard', 'receive_device', 'receive_threshold_db',
     'receive_quiet_seconds', 'ptt_method', 'serial_port', 'active_high', 'lead_ms',
     'tail_ms', 'max_tx_seconds', 'voice_text', 'cw_text', 'voice_wav', 'voice_mode',
-    'cw_wpm', 'cw_hz', 'id_mode', 'id_minutes', 'voice_id_minutes',
+    'cw_wpm', 'cw_hz', 'id_mode', 'id_minutes', 'voice_id_minutes', 'voice_ids',
     'volume_percent', 'cw_volume_percent', 'voice_id_volume_percent',
 )
 FORMAT_FIELDS = ('announcement_order', 'announcement_intro', 'include_intro',
@@ -51,7 +51,7 @@ def save_radio_draft(variables, base):
 def load_radio_draft():
     try:
         path = settings_path().with_name('radio-draft.json')
-        if path.stat().st_size > 32768:
+        if path.stat().st_size > 131072:
             return {}
         values = json.loads(path.read_text(encoding='utf-8'))
         return {key: value for key, value in values.items()

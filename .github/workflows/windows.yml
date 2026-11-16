@@ -38,6 +38,7 @@ jobs:
       - run: python scripts/check_docs.py
       - run: python scripts/check_versions.py
       - run: python scripts/sync_privileges.py --check
+      - run: python scripts/sync_band_table.py --check
       - name: Verify private PHP speech gateway
         if: runner.os == 'Linux'
         run: php server/speech/test_gateway.php

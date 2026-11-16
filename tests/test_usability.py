@@ -15,6 +15,84 @@ class UsabilityTests(unittest.TestCase):
     setUp=_Fixtures.setUp
     tearDown=_Fixtures.tearDown
 
+    def test_radio_apply_preserves_rf_and_monitor_after_validated_cleanup(self):
+        app = self.app
+        with app.engine.lock, patch.object(app.engine, 'enable') as enable:
+            app.engine.enabled = True
+            app.engine.local_enabled = True
+            app.engine.local_muted = True
+            app.variables['radio_device'].set('radio')
+            app.variables['preview_device'].set('local')
+            app.variables['cw_text'].set('E')
+            app._apply()
+            enable.assert_called_once_with(local=True, muted=True)
+            self.assertEqual(app.save_status.get(), 'Radio changes applied.')
+            self.assertEqual(str(app.save_button.cget('state')), 'disabled')
+            self.assertEqual(app.save_button.cget('text'), 'Radio settings saved')
+        self.assertEqual(load_settings().cw_text, 'E')
+
+    def test_invalid_radio_apply_leaves_running_output_alone(self):
+        app = self.app
+        with app.engine.lock:
+            app.engine.enabled = True
+            app.variables['radio_device'].set('')
+            app.variables['cw_text'].set('E')
+            with self.assertRaises(ValueError): app._apply()
+            self.assertTrue(app.engine.enabled)
+            self.assertFalse(app.engine.cancel.is_set())
+
+    def test_fault_during_pending_apply_prevents_rf_resumption(self):
+        app = self.app
+        with app.engine.lock, patch.object(app.engine, 'enable') as enable:
+            app.engine.enabled = True
+            app.engine.busy = True
+            app.variables['radio_device'].set('radio')
+            app.variables['cw_text'].set('E')
+            app._apply()
+            app.engine.fault_generation += 1
+            app.engine.busy = False
+            self.root.after(100, self.root.quit); self.root.mainloop()
+            enable.assert_not_called()
+            self.assertFalse(app.engine.enabled)
+
+    def test_source_loss_during_apply_validation_cannot_restore_rf(self):
+        app = self.app
+        with app.engine.lock, patch.object(app.engine, 'enable') as enable:
+            app.engine.enabled = True
+            app.variables['radio_device'].set('radio')
+            app.variables['cw_text'].set('E')
+            with patch.object(Settings, 'validate_rf', side_effect=lambda: app.engine.stop('Source lost', defer_cleanup=True)):
+                app._apply()
+            enable.assert_not_called()
+            self.assertFalse(app.engine.enabled)
+
+    def test_scheduled_id_dialog_add_edit_remove_and_preview_are_radio_drafts(self):
+        from dxtalker.id_schedule import new_entry
+        import json
+        import tkinter as tk
+        app = self.app
+        panel = next(w for w in app.tabs['Identification'].winfo_children() if w.winfo_class() == 'TLabelframe' and w.cget('text') == 'Scheduled voice IDs')
+        controls = next(w for w in panel.winfo_children() if w.winfo_class() == 'TFrame')
+        buttons = {w.cget('text'): w for w in controls.winfo_children()}
+        buttons['+ Add voice ID'].invoke(); self.root.update()
+        dialog = next(w for w in self.root.winfo_children() if isinstance(w, tk.Toplevel))
+        inputs = {int(w.grid_info()['row']): w for w in dialog.winfo_children() if w.winfo_class() == 'TEntry' and 'row' in w.grid_info()}
+        inputs[0].delete(0, 'end'); inputs[0].insert(0, 'Meeting reminder')
+        inputs[2].insert(0, 'Club meeting tonight')
+        actions = next(w for w in dialog.winfo_children() if w.winfo_class() == 'TFrame' and int(w.grid_info().get('row', -1)) == 17)
+        next(w for w in actions.winfo_children() if w.cget('text') == 'Save voice ID').invoke()
+        ids = json.loads(app.variables['voice_ids'].get())
+        self.assertEqual(len(ids), 1); self.assertEqual(ids[0]['name'], 'Meeting reminder')
+        self.assertEqual(load_settings().voice_ids, '[]')
+        self.assertEqual(str(app.save_button.cget('state')), 'normal')
+        tree = next(w for w in panel.winfo_children() if w.winfo_class() == 'Treeview')
+        tree.selection_set(ids[0]['id'])
+        with patch.object(app, '_start_preview') as preview:
+            buttons['Preview locally'].invoke()
+            self.assertEqual(preview.call_args.kwargs['settings'].voice_text, 'Club meeting tonight')
+        buttons['Remove'].invoke()
+        self.assertEqual(app.variables['voice_ids'].get(), '[]')
+
     def test_rf_and_local_controls_work_independently_and_spot_actions_are_visible(self):
         app=self.app
         with app.engine.lock:

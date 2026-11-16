@@ -5,8 +5,13 @@ object UsPrivileges {
     val classes=listOf("Off","Novice","Technician","General","Advanced","Extra")
     val regions=listOf("US Region 2","US Region 1","US Region 3")
     private fun inside(f:BigDecimal,spans:List<Pair<BigDecimal,BigDecimal>>) = spans.any { f>=it.first && f<it.second }
-    fun eligibility(f:BigDecimal,mode:String,license:String,region:String="US Region 2"):String {
+    fun eligibility(f:BigDecimal,reportedMode:String,license:String,region:String="US Region 2"):String {
         if(license=="Off")return "eligible"
+        val mode=when(reportedMode) {
+            "DOMINO","HELL","MFSK","MT63","OLIVIA","THROB","MSK144","FSK441","JT6M","JTSCALL","WSPR","DIGITAL"->"RTTY"
+            "10MRPT"->"FM"
+            else->reportedMode
+        }
         val base=UsPrivilegeData.allocations[license] ?: return "unknown"
         if(region !in regions)return "unknown"
         val novice=license in listOf("Novice","Technician")

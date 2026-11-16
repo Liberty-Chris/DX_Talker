@@ -164,7 +164,7 @@ class Usability:
     def _radio_dirty_state(self):
         changed=any(str(self.variables[k].get())!=str(getattr(self.settings,k)) for k in RADIO_FIELDS)
         if hasattr(self,'save_button'):
-            self.save_button.configure(state='normal' if changed else 'disabled')
+            self.save_button.configure(state='normal' if changed else 'disabled', text='Apply radio changes' if changed else 'Radio settings saved')
         return changed
 
     def _save_radio_draft(self):

@@ -228,7 +228,7 @@ class AppTests(unittest.TestCase):
         flags['Include unknown'].invoke()
         self.assertEqual(load_settings().filter_modes,'None')
         buttons['Known modes only'].invoke()
-        self.assertEqual(set(load_settings().filter_modes.split(',')),{'CW','SSB','FT8','FT4','RTTY','PSK','FM','AM'})
+        self.assertEqual(set(load_settings().filter_modes.split(',')),set(__import__('dxtalker.filtering',fromlist=['MODES']).MODES)-{'Unknown'})
         buttons['All modes, including unknown'].invoke()
         self.assertIn('Unknown',load_settings().filter_modes.split(','))
         self.assertNotIn('Apply selection',[w.cget('text') for w in dialog.winfo_children() if isinstance(w,ttk.Button)])
