@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.0b5
+
+Listed special spotted calls now bypass the band checklist on desktop and Android. Short calls such as C8K and W1A already parse correctly. Preserve mode, explicit frequency range, license, location and output gates. Keyword matches alone still follow selected bands. Add shared cases for short and portable calls, unrelated stations and the remaining filter limits.
+
 ## 1.0.0b4
 
 Enlarged Source raw traffic to 25 rows with an independent scrollbar, bounded 500 line session history and scrolling that stays put while reviewing older traffic. Added default half duplex receive blanking during own transmissions, fault monitoring during blanking and a fresh quiet interval after release and settling. Full duplex interruption remains available by disabling the option.

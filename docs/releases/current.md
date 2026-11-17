@@ -1,9 +1,7 @@
-DX Talker 1.0.0b4 improves receive gating and cluster recovery during beta testing.
+DX Talker 1.0.0b5 corrects special call band selection.
 
-Source raw cluster traffic is 25 text rows tall with a separate scrollbar and the latest 500 redacted session lines. Reviewing older lines no longer forces scrolling back to the newest traffic.
+A listed special spotted callsign now matches on any band, even when another band or None is selected. This applies to ordinary supplementary watches and Only these calls on desktop and Android. Portable variants follow the existing checkbox. Short calls such as C8K and genuine 1x1 calls such as W1A were already valid; the band check was rejecting their spots before the special call match was considered.
 
-Half duplex receive gating is enabled by default. Receive activity still holds transmission before keying, but the app ignores busy audio during its own transmission so interface loopback does not cancel an ID. Input faults, Stop and the transmit watchdog remain active. After release, allow 300 ms for the receiver to settle and require a fresh quiet interval. Disable half duplex only with an independent receiver to retain interruption by incoming audio during transmission.
+Mode selections, Include unknown, explicit minimum/maximum frequency, license and location filters still apply. So do age, duplicate, queue, mute, Stop, identification and receive hold. Special keyword matches alone continue to follow the band selection. The same acceptance decision controls display, speech and the optional attention sound.
 
-Optional Cycle saved clusters after two retries applies on Connect. After two failed reconnect attempts, try the next saved TCP/Telnet profile using its own callsign and stored credentials. Each alternate gets an initial attempt and two retries. The saved list cycles with bounded backoff, skipping duplicate endpoints and profiles that cannot be unlocked. A quiet but open connection is not treated as failed. Old commands, spot forms and queued packets cannot cross sessions. RF recovery remains a separate explicit option and required identification stays first.
-
-Desktop, Windows XP compatibility and Android release versions stay aligned. These new radio and Source controls are desktop features. Physical Digirig/Baofeng verification and overnight operator acceptance remain necessary before stable v1.
+All beta 4 receiver, console and cluster failover behavior remains in place. This is a filter correction during stable v1 testing. Android version code is 24.

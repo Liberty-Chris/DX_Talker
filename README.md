@@ -12,7 +12,7 @@ The first Windows pilot is now implemented in source. It includes cluster connec
 
 [Downloads in version order](docs/releases/README.md). [Build and publish DX Talker](https://github.com/Liberty-Chris/DX_Talker/actions/workflows/windows.yml).
 
-DX Talker 1.0.0b4 follows the final feature beta with fixes for receive detection of our own transmission, a larger raw traffic console and the remaining saved cluster failover option. Scheduled IDs, the updated mode table, special watches and attention sounds remain in place. Further work is testing and fixes before stable v1. See [Operation and saving](docs/help/usability.md) for the controls, autosave and radio drafts.
+DX Talker 1.0.0b5 corrects special calls to match across selected bands on desktop and Android. Beta 4 added fixes for receive detection of our own transmission, a larger raw traffic console and the remaining saved cluster failover option. Scheduled IDs, the updated mode table, special watches and attention sounds remain in place. Further work is testing and fixes before stable v1. See [Operation and saving](docs/help/usability.md) for the controls, autosave and radio drafts.
 
 The Ubuntu desktop pilot is being packaged for Ubuntu 22.04 and 24.04 on Intel and AMD computers using the same desktop core. See [Ubuntu setup and verification limits](docs/help/ubuntu.md). Raspberry Pi needs a separate ARM build.
 
