@@ -91,7 +91,9 @@ def rejection(spot, settings):
     eligible=eligibility(spot.frequency_khz,mode,settings.license_class,settings.license_region)
     if eligible=='outside':return 'Outside selected license segments'
     if eligible=='unknown' and not settings.license_unknown:return 'License eligibility unverified'
-    if settings.license_region == 'US Region 2' and settings.license_class != 'Off':
+    # Unknown has already passed the class frequency check and the separate
+    # unverified opt in above. Mode-specific table gaps cannot identify its mode.
+    if mode != 'Unknown' and settings.license_region == 'US Region 2' and settings.license_class != 'Off':
         from .band_table import policy_eligibility
         policy = policy_eligibility(spot.frequency_khz, mode, settings.license_class)
         if policy == 'outside': return 'Outside selected band table'

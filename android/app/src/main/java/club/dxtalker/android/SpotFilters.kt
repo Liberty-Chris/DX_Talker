@@ -69,7 +69,8 @@ object SpotFilters {
         val eligibility=UsPrivileges.eligibility(spot.frequency,mode,get("license_class").ifBlank { "Off" },get("license_region").ifBlank { "US Region 2" })
         if(eligibility=="outside")return "Outside selected license segments"
         if(eligibility=="unknown" && get("license_unknown")!="true")return "License eligibility unverified"
-        if(get("license_class").ifBlank { "Off" }!="Off" && get("license_region").ifBlank { "US Region 2" }=="US Region 2") {
+        // Unknown already passed the class frequency check and unverified opt in.
+        if(mode!="Unknown" && get("license_class").ifBlank { "Off" }!="Off" && get("license_region").ifBlank { "US Region 2" }=="US Region 2") {
             val policy=bandPolicy(spot.frequency,mode,get("license_class"))
             if(policy=="outside")return "Outside selected band table"
             if(policy=="unknown" && get("license_unknown")!="true")return "License eligibility unverified"

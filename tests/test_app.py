@@ -929,6 +929,23 @@ class AppTests(unittest.TestCase):
         self.assertIn('Synthetic playback failure',' '.join(str(w.cget('text')) for w in detail.winfo_children()))
         detail.destroy()
 
+    def test_returned_untagged_2m_spot_reaches_live_list_and_playback(self):
+        from tests.test_engine import FakeAudio, wait_for
+        from dxtalker.filtering import MODES
+        self._arm_receipt_test(FakeAudio())
+        settings=replace(self.app.settings,filter_bands='',filter_modes=','.join(MODES),license_class='General',license_unknown=True)
+        self.app._apply_listening(settings)
+        now=datetime.now(UTC)
+        line='DX de KF4DBX: 146520.0 AC4QD pota '+now.strftime('%H%MZ')
+        spot=parse_line(line,'cluster',now)
+        self.assertEqual(self.app._receive_spot(spot),'')
+        self.assertEqual(len(self.app.tree.get_children()),1)
+        row=next(iter(self.app.spots))
+        self.assertEqual(self.app.spots[row].dx_call,'AC4QD')
+        wait_for(lambda:not self.app.engine.busy and not self.app.engine.items)
+        self.app._poll()
+        self.assertEqual(self.app.spot_states[row][0],'announced')
+
     def test_unknown_mode_rejection_and_all_modes_selection_are_consistent(self):
         from tests.test_engine import FakeAudio
         spot=self._arm_receipt_test(FakeAudio())
