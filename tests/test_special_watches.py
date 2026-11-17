@@ -22,6 +22,20 @@ def spot(call='W1AW/3', comment='SSB USS Cobia', frequency='14225', reporter='N0
 
 
 class KeywordTests(unittest.TestCase):
+    def test_special_call_watch_text_accepts_fragments_and_matches_alerts_literally(self):
+        from dxtalker.filtering import calls_selection, call_matches
+        self.assertEqual(calls_selection(' 8p/ , ZZZ, 8P/ , /P, * '),{'8P/','ZZZ','/P','*'})
+        for call,watch,expected in [('8P/K1ABC','8p/',True),('8P9AA','8P',True),('8P9AA','8P/',False),('K1ABC/P','/P',True),('K1ABC','*',False)]:
+            s=Settings(special_calls=watch,special_calls_only=True,filter_bands='40m')
+            self.assertEqual(matches(spot(call=call),s),expected)
+            self.assertEqual(special_match(spot(call=call),s),expected)
+        self.assertFalse(call_matches('8P/K1ABC',{'8P/'},False))
+        self.assertTrue(call_matches('8P/K1ABC',{'8P/K1ABC'},False))
+        Settings(special_calls='8P/,8p/,ZZZ,/P,*').validate()
+        with self.assertRaises(ValueError):Settings(special_calls=', ,',special_calls_only=True).validate()
+        for value in ('A'*81,'A\nB',','.join(str(n) for n in range(51))):
+            with self.assertRaises(ValueError):calls_selection(value)
+
     def test_short_special_calls_bypass_band_selection_but_not_other_limits(self):
         from dxtalker.models import parse_line, valid_call
         from dxtalker.filtering import calls_selection, rejection

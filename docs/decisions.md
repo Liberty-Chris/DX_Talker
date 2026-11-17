@@ -314,3 +314,10 @@ Increment the source session epoch for each transport attempt. Bind incoming spo
 A saved special spotted call now bypasses the listening band checklist on desktop and Android. This corrects the reported C8K watch behavior without changing callsign syntax: the existing parser already accepts C8K and genuine 1x1 calls such as W1A. Compute the case insensitive special call match before rejecting an unselected band. Include portable variants uses the existing matching policy. A listed call can match even with the band checklist set to None, whether supplementary watching or Only these calls is selected.
 
 Keep the exception narrow. Explicit minimum/maximum frequency, mode and Unknown mode choices, license/band table class rules, geography, Only switches and all age, repeat and output controls remain effective. Special word matches alone do not bypass bands. Shared fixtures exercise these boundaries across Python and Kotlin; the same eligibility decision still controls display and speech. This supersedes the earlier statement that every band selection also restricts special calls.
+
+
+## Literal special call watch text. November 16, 2026
+
+Treat the special call field as a watch list, not a callsign entry validator. Accept comma separated printable text, trim and normalize case, deduplicate and retain the existing maximum of 50 distinct entries with an 80 character per entry bound. Do not require a digit, letter, complete prefix or suffix. Keep actual spotted station and login validation unchanged.
+
+Expand the existing special_calls_portable setting rather than changing transfer keys. Label it Match partial calls and portable variants. True, the existing default, means literal substring matching within the spotted callsign; false means an exact complete string match. Thus 8P/ finds 8P/K1ABC, 8P finds 8P9AA and W1AW can also find W1AWX. Symbols have no wildcard or regex interpretation. Use one matcher per platform for both spot selection and special alert selection. Preserve the band checklist exception and the other existing filters and output controls.

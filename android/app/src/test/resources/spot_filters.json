@@ -1925,7 +1925,7 @@
       "filter_activities": "POTA",
       "filter_bands": "20m"
     },
-    "match": false
+    "match": true
   },
   {
     "line": "DX de N0CALL: 14225 W1AW/3 SSB 1234Z",
@@ -2156,6 +2156,131 @@
     "filters": {
       "special_keywords": "Cobia",
       "filter_bands": "40m"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14225 8P/K1ABC SSB 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "8p/",
+      "special_calls_only": true,
+      "special_calls_portable": true,
+      "filter_bands": "40m"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 8P9AA SSB 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "8P",
+      "special_calls_only": true,
+      "special_calls_portable": true,
+      "filter_bands": "40m"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 8P9AA SSB 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "8P/",
+      "special_calls_only": true,
+      "special_calls_portable": true,
+      "filter_bands": "40m"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14225 8P/K1ABC SSB 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "8P/",
+      "special_calls_only": true,
+      "special_calls_portable": false,
+      "filter_bands": "40m"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14225 8P/K1ABC SSB 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "8P/K1ABC",
+      "special_calls_only": true,
+      "special_calls_portable": false,
+      "filter_bands": "40m"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 K1ABC/P SSB 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "/P",
+      "special_calls_only": true,
+      "special_calls_portable": true,
+      "filter_bands": "40m"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 K1ABC SSB 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "*",
+      "special_calls_only": true,
+      "special_calls_portable": true,
+      "filter_bands": "40m"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14225 ZZZ1 SSB 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "ZZZ",
+      "special_calls_only": true,
+      "special_calls_portable": true,
+      "filter_bands": "40m"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 W1AWX SSB 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "W1AW",
+      "special_calls_only": true,
+      "special_calls_portable": false
     },
     "match": false
   }

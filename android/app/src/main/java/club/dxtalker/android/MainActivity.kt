@@ -551,9 +551,10 @@ class MainActivity : Activity() {
             panel.addView(button(title+": "+staged(key).replace("General","No activity tag").replace("Unknown","Include unknown").ifBlank { if(key=="filter_modes")"All known modes"else "All" }) { chooseFilter(key,title,values) })
         }
         panel.addView(label("Choose POTA, 20m and SSB to require all three. Listed special calls match on any band. Other spots follow selected bands. Mode comes from a reported tag or a single mode band segment. Include unknown admits uncertain modes within your other selections.",14f,secondary))
-        edit(panel,"Special spotted calls (comma separated)",staged("special_calls"),key="special_calls")
+        edit(panel,"Special spotted call watch text (comma separated)",staged("special_calls"),key="special_calls")
         panel.addView(CheckBox(this).apply { text="Only these calls";setTextColor(ink);isChecked=staged("special_calls_only")=="true";setOnCheckedChangeListener { _,checked->drafts["Filters:special_calls_only"]=checked.toString();saveFilters(setOf("special_calls","special_calls_only","special_calls_portable")) } })
-        panel.addView(CheckBox(this).apply { text="Include portable callsign variants";setTextColor(ink);isChecked=staged("special_calls_portable")!="false";setOnCheckedChangeListener { _,checked->drafts["Filters:special_calls_portable"]=checked.toString();saveFilters(setOf("special_calls","special_calls_only","special_calls_portable")) } })
+        panel.addView(CheckBox(this).apply { text="Match partial calls and portable variants. Off means exact matches.";setTextColor(ink);isChecked=staged("special_calls_portable")!="false";setOnCheckedChangeListener { _,checked->drafts["Filters:special_calls_portable"]=checked.toString();saveFilters(setOf("special_calls","special_calls_only","special_calls_portable")) } })
+        panel.addView(label("Entries need not be complete callsigns. 8P/ matches 8P/K1ABC and 8P matches 8P9AA. Ignores case; symbols are literal, not wildcards.",13f,secondary))
         panel.addView(label("Special calls match the spotted DX station, not the spotter.",13f,secondary))
         edit(panel,"Special words or phrases (Cobia,mobile,county hunter)",staged("special_keywords"),key="special_keywords")
         panel.addView(CheckBox(this).apply { text="Only these words";setTextColor(ink);isChecked=staged("special_keywords_only")=="true";setOnCheckedChangeListener { _,checked->drafts["Filters:special_keywords_only"]=checked.toString();saveFilters(setOf("special_keywords","special_keywords_only")) } })

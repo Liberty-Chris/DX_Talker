@@ -8,7 +8,7 @@ import unittest
 
 from dxtalker.band_table import policy_eligibility
 from dxtalker.band_table_data import SOURCE_SHA256, INFERENCE
-from dxtalker.filtering import mode_of, MODES, matches, activities_of, rejection
+from dxtalker.filtering import mode_of, MODES, matches, activities_of, rejection, calls_selection
 from dxtalker.models import Settings, UTC, make_spot
 from dxtalker import transfer
 
@@ -58,7 +58,8 @@ class BandTableTests(unittest.TestCase):
         s = Settings(filter_activities='POTA', special_calls='TZ4AM,W1AW', special_calls_only=True)
         self.assertTrue(matches(spot, s))
         self.assertFalse(matches(spot, replace(s, special_calls_portable=False)))
-        self.assertFalse(matches(replace(spot, dx_call='W1AWX'), s))
+        self.assertTrue(matches(replace(spot, dx_call='W1AWX'), s))
+        self.assertFalse(matches(replace(spot, dx_call='W1AWX'), replace(s,special_calls_portable=False)))
         self.assertFalse(matches(spot, replace(s, filter_modes='CW')))
         self.assertTrue(matches(spot, replace(s, filter_bands='40m')))
         self.assertFalse(matches(spot, replace(s, filter_dx_countries='JP')))
@@ -72,7 +73,7 @@ class BandTableTests(unittest.TestCase):
         self.assertEqual(data['filters']['special_calls'], 'W1AW,TZ4AM')
         self.assertEqual(Settings().special_calls, '')
         with self.assertRaises(ValueError): Settings(special_calls_only=True).validate()
-        with self.assertRaises(ValueError): Settings(special_calls='W1AW,w1aw').validate()
+        self.assertEqual(calls_selection('W1AW,w1aw'),{'W1AW'})
 
     def test_authoritative_selection_ranges_do_not_rewrite_license_authorizations(self):
         from dxtalker.privileges import eligibility
