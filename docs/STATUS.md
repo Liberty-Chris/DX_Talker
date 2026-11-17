@@ -410,3 +410,12 @@ Reproduced C8K parsing and special matching successfully, then reproduced Band r
 Updated both platforms' visible descriptions, canonical filter help and release notes. Beta 4 is already published, so release metadata advances to 1.0.0b5 with Android version code 24. Nine shared cases cover C8K, W1A, portable calls, unlisted calls, modes, license, location and keyword band limits. The previous W1AW portable band rejection fixture and band table regression expectation now reflect the corrected requirement.
 
 Verification: 347 tests completed successfully on a Linux dummy X display in 46.4 seconds, with one native Windows API test skipped. All Android main and unit test Kotlin sources compiled using temporary resource IDs and the existing framework annotation compatibility flag; all 32 JUnit tests passed. All 117 generated XP files passed Python 3.4 syntax parsing. Documentation, version alignment, generated band rules and whitespace checks passed. Hosted native package and Android emulator verification remain outstanding. No actual RF was exercised.
+
+
+## November 16, 2026. XP CI HTTPS rate limit
+
+Main run 44010575184 passed desktop tests, Windows x86/x64 installers, Ubuntu 22.04/24.04 installation, neural speech, the XP source kit and XP x86. XP x64 passed its shared behavior and UI checks, then its separate public update HTTPS probe received HTTP 403 rate limit exceeded. This is the anonymous GitHub API quota on the hosted runner, not a certificate failure or special call regression. The earlier Ubuntu probe repair did not cover this separate XP script.
+
+Pass the temporary read only job token only to the XP HTTPS verification step, at its fixed release API endpoint. Reject redirects so credentials cannot follow another URL. Keep certificate, hostname, TLS version and release JSON checks required. HTTP failures still fail the job. The token is not written to the verification report or included in the installer. Beta 5 is not published yet, so its version remains unchanged.
+
+Verification: two focused probe tests and five XP build tests passed. Cases check scoped authorization, redirect refusal, no token in the report and continued failure on HTTP errors. The probe parses as Python 3.4 and release version alignment, documentation and whitespace checks passed. Native bundled interpreter verification will run on the repair PR. The failed main job was not rerun unchanged.

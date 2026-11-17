@@ -58,6 +58,8 @@ jobs:
           Get-WinEvent -FilterHashtable @{ LogName='Application'; StartTime=(Get-Date).AddMinutes(-15) } -ErrorAction SilentlyContinue | Where-Object { $_.Id -eq 1000 } | Select-Object -First 3 -ExpandProperty Message
           exit 0
       - name: Verify public update HTTPS with the bundled interpreter
+        env:
+          DXTALKER_VERIFY_GITHUB_TOKEN: ${{ github.token }}
         run: |
           $app = "$PWD/build/xp-${{ matrix.architecture }}"
           & "$app/runtime/python.exe" -I platforms/xp/check_https.py "$app" "xp-${{ matrix.architecture }}-https-smoke.json"
