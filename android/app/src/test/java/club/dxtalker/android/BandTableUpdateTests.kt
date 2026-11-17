@@ -28,6 +28,27 @@ class BandTableUpdateTests {
         // Legal emission authorization and the supplied listening table stay separate.
         assertEquals("eligible",UsPrivileges.eligibility("3540".toBigDecimal(),"RTTY","General"))
     }
+    @Test fun receivedUntaggedSelfSubmissionHonorsBothUnknownOptions() {
+        val spot=SpotPolicy.parse("DX de KF4DBX:   146520.0  AC4QD        pota                           0557Z",Instant.parse("2026-11-17T05:57:00Z"))!!
+        for(license in listOf("Technician","General","Advanced","Extra")) {
+            val values=mapOf("license_class" to license,"license_region" to "US Region 2","license_unknown" to "true","filter_modes" to SpotFilters.modes.joinToString(","))
+            fun reason(changes:Map<String,String> = emptyMap()):String {
+                val settings=values+changes
+                return SpotPresentation.decide(spot) { settings[it].orEmpty() }.reason
+            }
+            assertEquals("",reason())
+            val admitted=SpotPresentation.decide(spot) { values[it].orEmpty() }
+            assertTrue(admitted.row.contains("AC4QD"))
+            assertTrue(admitted.speech.isNotBlank())
+            assertEquals("License eligibility unverified",reason(mapOf("license_unknown" to "false")))
+            assertEquals("Mode unknown",reason(mapOf("filter_modes" to "FM")))
+            assertEquals("Band",reason(mapOf("filter_bands" to "20m")))
+            assertEquals("Outside selected license segments",reason(mapOf("license_class" to "Novice")))
+            assertEquals("Frequency range",reason(mapOf("max_khz" to "30000")))
+            assertEquals("Outside selected license segments",SpotFilters.rejection(spot.copy(frequency="149000".toBigDecimal())) { values[it].orEmpty() })
+            assertEquals(if(license=="Technician")"Outside selected license segments" else "Outside selected band table",SpotFilters.rejection(spot.copy(frequency="3540".toBigDecimal(),comment="RTTY")) { values[it].orEmpty() })
+        }
+    }
     @Test fun allNewActivitiesHaveAnnouncementText() {
         for(tag in listOf("IOTA","JOTA","LLOTA")) {
             val spot=DxSpot("W1AW/3","14225".toBigDecimal(),Instant.now(),"SSB $tag")

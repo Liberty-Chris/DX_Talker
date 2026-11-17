@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+Fix desktop and Android rejection of Unknown modes by the separate mode specific band table after class frequency eligibility and the unverified opt in have already passed. Untagged 2m spots, including returned self submissions, now follow both Unknown options correctly. Preserve known mode table restrictions and frequencies outside the selected class.
+
 ## 1.0.0b5
 
 Accept literal special call watch text, including prefixes and incomplete calls. The renamed partial matching option defaults on and finds an entry anywhere in the spotted callsign; turn it off for exact matches. Ignore case and duplicate entries. Keep symbols literal and use the same matcher for filtering and attention sounds on both platforms.

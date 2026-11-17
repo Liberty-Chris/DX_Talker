@@ -83,3 +83,27 @@ class BandTableTests(unittest.TestCase):
         spot = make_spot('WB4IUY', '3540', 'KF4DBX', now, 'test', now, 'RTTY')
         self.assertEqual(rejection(spot, Settings(license_class='General')), 'Outside selected band table')
         self.assertTrue(matches(spot, Settings()))
+
+    def test_received_untagged_self_submission_honors_both_unknown_options(self):
+        from dxtalker.models import parse_line
+        now = datetime(2026, 11, 17, 5, 57, tzinfo=UTC)
+        spot = parse_line('DX de KF4DBX:   146520.0  AC4QD        pota                           0557Z', 'cluster', now)
+        self.assertIsNotNone(spot)
+        self.assertEqual(mode_of(spot.comment, spot.mode, spot.frequency_khz), 'Unknown')
+        for cls in ('Technician', 'General', 'Advanced', 'Extra'):
+            settings = Settings(license_class=cls, filter_modes=','.join(MODES), license_unknown=True)
+            with self.subTest(cls=cls):
+                self.assertEqual(rejection(spot, settings), '')
+                self.assertEqual(rejection(spot, replace(settings, license_unknown=False)), 'License eligibility unverified')
+                self.assertEqual(rejection(spot, replace(settings, filter_modes='FM')), 'Mode unknown')
+                self.assertEqual(rejection(spot, replace(settings, filter_bands='20m')), 'Band')
+        self.assertEqual(rejection(spot, Settings(license_class='Novice', filter_modes=','.join(MODES), license_unknown=True)), 'Outside selected license segments')
+
+    def test_unknown_does_not_bypass_frequency_or_known_mode_restrictions(self):
+        now = datetime.now(UTC)
+        settings = Settings(license_class='General', filter_modes=','.join(MODES), license_unknown=True)
+        spot = make_spot('AC4QD', '146520', 'KF4DBX', now, 'test', now, 'POTA')
+        self.assertEqual(rejection(replace(spot, frequency_khz=Decimal('149000')), settings), 'Outside selected license segments')
+        self.assertEqual(rejection(spot, replace(settings, max_khz=30000)), 'Frequency range')
+        known = replace(spot, frequency_khz=Decimal('3540'), comment='RTTY')
+        self.assertEqual(rejection(known, settings), 'Outside selected band table')
