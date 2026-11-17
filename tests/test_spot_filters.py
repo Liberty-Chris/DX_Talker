@@ -24,7 +24,9 @@ class SpotFilterTests(unittest.TestCase):
         import re
         root=Path(__file__).resolve().parent.parent
         android=(root/'android/app/src/main/java/club/dxtalker/android/SpotFilters.kt').read_text()
-        spans=[(int(lo),int(hi),mode) for lo,hi,mode in re.findall(r'Triple\((\d+),(\d+),"([A-Z0-9]+)"\)',android)]
+        self.assertIn('val modeSegments = BandTableData.inference', android)
+        data=(root/'android/app/src/main/java/club/dxtalker/android/BandTableData.kt').read_text()
+        spans=[(int(lo),int(hi),mode) for lo,hi,mode in re.findall(r'Triple\("(\d+)".toBigDecimal\(\),"(\d+)".toBigDecimal\(\),"([A-Z0-9]+)"\)',data)]
         self.assertEqual(spans,list(filtering.MODE_SEGMENTS))
         self.assertEqual((root/'tests/fixtures/spot_filters.json').read_bytes(),(root/'android/app/src/test/resources/spot_filters.json').read_bytes())
 

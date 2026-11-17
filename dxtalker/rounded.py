@@ -59,8 +59,13 @@ def button_style(root,palette,fill,edge,ink,name=None):
     cache=getattr(root,'_rounded_images',None)
     if cache is None:cache={};root._rounded_images=cache
     if element not in cache:
+        def hover_color(value):
+            # Accent buttons also need a distinct hover surface.
+            channels = [int(value[i:i+2], 16) for i in (1, 3, 5)]
+            target = 0 if sum(channels) > 500 else 255
+            return '#' + ''.join(f'{round(c * .78 + target * .22):02x}' for c in channels)
         images=[_image(root,f,e) for f,e in
-                ((fill,edge),(fill,edge if edge not in (palette['edge'],) else palette['accent']),(palette['selected'] if fill==palette['field'] else fill,edge),(palette['field'],palette['edge']))]
+                ((fill,edge),(fill,edge if edge not in (palette['edge'],) else palette['accent']),(palette['selected'] if fill==palette['field'] else hover_color(fill),edge),(palette['field'],palette['edge']))]
         cache[element]=images
         style.element_create(element,'image',images[0],('disabled',images[3]),('focus',images[1]),('active',images[2]),border=10,padding=0,width=32,height=32,sticky='nsew')
     if name is None:

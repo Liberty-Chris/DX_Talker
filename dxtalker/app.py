@@ -663,6 +663,8 @@ class Application(Usability):
         self._field(timing, 0, "Lead time (ms)", "lead_ms", note="0 to 5000 ms", compact=True)
         self._field(timing, 1, "Tail time (ms)", "tail_ms", note="0 to 5000 ms", compact=True)
         self._field(timing, 2, "Maximum transmit (s)", "max_tx_seconds", note="5 to 120 seconds, including lead and tail", compact=True)
+        self._field(timing, 3, "Resume RF after source reconnect", "rf_auto_reconnect", compact=True)
+        ttk.Label(timing,text='Optional. Restores RF only if it was enabled before source loss and the source signs in or receives valid data again. Starts with an ID. Stop, disconnect, restart or an output fault cancels recovery.',wraplength=610).grid(row=4,column=0,columnspan=3,sticky='w',pady=6)
         levels = ttk.LabelFrame(frame, text="Audio levels", padding=12)
         levels.grid(row=3, column=0, sticky="w", pady=(0, 12))
         for row, (label, name) in enumerate((("Spot radio (%)", "volume_percent"), ("CW ID (%)", "cw_volume_percent"),
@@ -779,6 +781,8 @@ class Application(Usability):
         self.variables['id_mode'].trace_add('write',id_policy_changed);id_policy_changed()
         ttk.Label(frame, text="Independent gives CW and voice separate schedules. Audio never overlaps.\nRF starts with an ID. IDs take priority over spots. Both sends CW followed by voice.\nFor Both, a recorded voice ID must be mono 22050 Hz PCM16.",
                   wraplength=650).grid(row=3, column=0, sticky="w")
+        from .id_schedule_ui import build_scheduled_ids
+        build_scheduled_ids(self, frame, row=5)
 
     def _voice_id_source_changed(self):
         recorded = self.variables["voice_mode"].get() == "WAV"
@@ -1548,13 +1552,23 @@ class Application(Usability):
     def _apply(self):
         self._flush_preferences()
         updated = read_group(self.settings, self.variables, RADIO_FIELDS)
+        source_loss_generation = self.engine.source_loss_generation
+        keep_rf, keep_local, keep_muted = self.engine.enabled, self.engine.local_enabled, self.engine.local_muted
+        fault_generation = self.engine.fault_generation
+        if keep_rf:
+            updated.validate_rf()
         def apply_radio():
             current = replace(self.settings, **{k: getattr(updated, k) for k in RADIO_FIELDS})
             save_settings(current)
             self.engine.configure(current)
             self.settings = current
             save_radio_draft(self.variables, current)
-            self.save_status.set('Radio changes applied. RF remains disabled.')
+            self.save_status.set('Radio changes applied.')
+            can_resume = self.engine.fault_generation == fault_generation and self.engine.source_loss_generation == source_loss_generation
+            if keep_rf and can_resume:
+                self.engine.enable(local=keep_local, muted=keep_muted)
+            elif keep_local and can_resume:
+                self.engine.listen_locally(muted=keep_muted)
             self._radio_dirty_state()
         self._when_idle(apply_radio, stop=True)
 
@@ -1593,7 +1607,9 @@ class Application(Usability):
                 return
             if kind == "source_lost":
                 self.transition_serial += 1
-                self.engine.stop("Source lost. RF disabled.")
+                self.engine.stop("Source lost. RF disabled.", defer_cleanup=True)
+            elif kind == "source_ready" or kind == "source_state" and value.startswith("Signed in"):
+                self.engine.source_restored()
             self.emit("source_event", (generation, kind, value))
 
         self.active_secret=secret
@@ -1779,6 +1795,9 @@ class Application(Usability):
                     generation, kind, value = value
                     if generation != self.source_generation:
                         continue
+                    if kind == "source_health":
+                        self.diagnostics.record("source_health", **value)
+                        continue
                     if kind == "source_lost":
                         self.diagnostics.record("source_failure", code=str(value).split(". Retrying")[0])
                     if kind == 'spot_sent':
@@ -1801,6 +1820,12 @@ class Application(Usability):
                         self.source_ready = False
                         self.connection_phase = "retrying"
                     self.source_status.set("Source: " + value)
+                elif kind == "schedule_event":
+                    self.diagnostics.record("voice_schedule", **value)
+                    from .id_schedule import entries
+                    label = next((item["name"] for item in entries(self.settings.voice_ids) if item["id"] == value["id"]), "Voice ID")
+                    self._journal(label + ": scheduled voice ID " + value["code"] + ".")
+                    continue
                 elif kind == "diagnostic":
                     self.diagnostics.record('output_failure', **value)
                     continue

@@ -231,7 +231,7 @@ class MainActivity : Activity() {
         } catch(error:Exception) { filterApplyStatus?.text="Not saved: "+keys.joinToString(", ") { it.replace('_',' ') }+". Check this field and its allowed range." }
     }
     private fun saveFilter(key:String) {
-        val keys=if(key in listOf("min_khz","max_khz"))setOf("min_khz","max_khz").filter { drafts.containsKey("Filters:$it") }.toSet() else setOf(key)
+        val keys=if(key in listOf("min_khz","max_khz"))setOf("min_khz","max_khz").filter { drafts.containsKey("Filters:$it") }.toSet() else if((key.startsWith("special_calls") || key.startsWith("special_keywords")))setOf("special_calls","special_calls_only","special_calls_portable","special_keywords","special_keywords_only").filter { drafts.containsKey("Filters:$it") }.toSet() else setOf(key)
         saveFilters(keys)
     }
     private fun scheduleFilterSave(key:String) {
@@ -551,7 +551,16 @@ class MainActivity : Activity() {
             panel.addView(button(title+": "+staged(key).replace("General","No activity tag").replace("Unknown","Include unknown").ifBlank { if(key=="filter_modes")"All known modes"else "All" }) { chooseFilter(key,title,values) })
         }
         panel.addView(label("Choose POTA, 20m and SSB to require all three. Selecting several bands accepts any of those bands. Mode comes from a reported tag or a single mode band segment. Include unknown admits uncertain modes within your other selections.",14f,secondary))
-        panel.addView(CheckBox(this).apply { text="Use POTA / FOTA / SOTA wording during mixed listening";setTextColor(ink);isChecked=staged("activity_announcements")=="true";setOnCheckedChangeListener { _,checked -> drafts["Filters:activity_announcements"]=checked.toString();saveFilter("activity_announcements") } })
+        edit(panel,"Special spotted calls (comma separated)",staged("special_calls"),key="special_calls")
+        panel.addView(CheckBox(this).apply { text="Only these calls";setTextColor(ink);isChecked=staged("special_calls_only")=="true";setOnCheckedChangeListener { _,checked->drafts["Filters:special_calls_only"]=checked.toString();saveFilters(setOf("special_calls","special_calls_only","special_calls_portable")) } })
+        panel.addView(CheckBox(this).apply { text="Include portable callsign variants";setTextColor(ink);isChecked=staged("special_calls_portable")!="false";setOnCheckedChangeListener { _,checked->drafts["Filters:special_calls_portable"]=checked.toString();saveFilters(setOf("special_calls","special_calls_only","special_calls_portable")) } })
+        panel.addView(label("Special calls match the spotted DX station, not the spotter.",13f,secondary))
+        edit(panel,"Special words or phrases (Cobia,mobile,county hunter)",staged("special_keywords"),key="special_keywords")
+        panel.addView(CheckBox(this).apply { text="Only these words";setTextColor(ink);isChecked=staged("special_keywords_only")=="true";setOnCheckedChangeListener { _,checked->drafts["Filters:special_keywords_only"]=checked.toString();saveFilters(setOf("special_keywords","special_keywords_only")) } })
+        panel.addView(label("Whole word or phrase matching ignores case. Either Only switch limits listening to its matches. With both selected, a listed call OR word qualifies. Band, mode and other filters still apply.",13f,secondary))
+        spinner(panel,"Special match sound",SpecialAlert.sounds,staged("special_alert").ifBlank { "Off" },key="special_alert")
+        panel.addView(label("The sound plays before matching announcements. Mute, Pause, Stop and repeat suppression also control sounds.",13f,secondary))
+        panel.addView(CheckBox(this).apply { text="Use activity wording during mixed listening";setTextColor(ink);isChecked=staged("activity_announcements")=="true";setOnCheckedChangeListener { _,checked -> drafts["Filters:activity_announcements"]=checked.toString();saveFilter("activity_announcements") } })
         panel.addView(label("Activity-only selections use this wording automatically: activity, mode, frequency, callsign. Unknown modes are omitted. All listening filters still apply.",14f,secondary))
         val license=section("My operating privileges (optional)")
         spinner(license,"FCC license class",UsPrivileges.classes,staged("license_class"),key="license_class").apply {
@@ -569,7 +578,7 @@ class MainActivity : Activity() {
         for((key,title) in listOf("min_khz" to "Minimum frequency (kHz)","max_khz" to "Maximum frequency (kHz)","max_age_seconds" to "Maximum spot age (30 to 600 seconds)","repeat_seconds" to "Repeat suppression (30 to 3600 seconds)","spacing_seconds" to "Additional gap (0 to 120 seconds)"))edit(advanced,title,staged(key),key=key).apply { inputType=InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL }
         root.addView(button("Filter help and FCC sources") {
             AlertDialog.Builder(this).setTitle("Listening filters").setMessage("Unknown means no single mode can be identified from the report or frequency. Include unknown admits those spots for display and speech within your other selections. No activity tag means no POTA, SOTA or FOTA tag was recognized. License filtering checks reported frequency and mode, not occupied bandwidth, split frequency or every location and station condition. It does not grant permission to transmit. Sources and current limitations are in the maintained Help page.")
-                .setPositiveButton("Open Help") { _,_->startActivity(Intent(Intent.ACTION_VIEW,android.net.Uri.parse("https://github.com/Liberty-Chris/DX_Talker/blob/main/docs/help/listening_filters.md"))) }.setNegativeButton("Close",null).show()
+                .setPositiveButton("Open Help") { _,_->startActivity(Intent(Intent.ACTION_VIEW,android.net.Uri.parse("https://wb4iuy.net/dxtalker/"))) }.setNegativeButton("Close",null).show()
         })
     }
     private fun reviewImport(text: String) {

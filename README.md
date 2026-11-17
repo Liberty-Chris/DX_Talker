@@ -12,7 +12,7 @@ The first Windows pilot is now implemented in source. It includes cluster connec
 
 [Downloads in version order](docs/releases/README.md). [Build and publish DX Talker](https://github.com/Liberty-Chris/DX_Talker/actions/workflows/windows.yml).
 
-DX Talker 1.0.0b1 is the first beta. The feature set is entering usability and release testing. See [Operation and saving](docs/help/usability.md) for the revised controls, autosave and radio drafts.
+DX Talker 1.0.0b3 is the final feature beta before stable v1 testing. It adds scheduled voice IDs, the updated band selection table, expanded activity and spotted call filters, special keyword watches, attention sounds and optional RF recovery after source reconnect. Features are frozen after this batch while we test and fix release defects. See [Operation and saving](docs/help/usability.md) for the revised controls, autosave and radio drafts.
 
 The Ubuntu desktop pilot is being packaged for Ubuntu 22.04 and 24.04 on Intel and AMD computers using the same desktop core. See [Ubuntu setup and verification limits](docs/help/ubuntu.md). Raspberry Pi needs a separate ARM build.
 

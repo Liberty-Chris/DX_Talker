@@ -70,8 +70,8 @@ def build_filters(app,parent):
         ttk.Button(dialog,text='None',command=lambda:select(set())).grid(row=1,column=2,padx=12,pady=4)
         for i,(value,flag) in enumerate(flags.items()):
             ttk.Checkbutton(dialog,text='Include unknown' if value=='Unknown' else value,variable=flag,command=use).grid(row=2+i//3,column=i%3,padx=12,pady=6,sticky='w')
-        ttk.Label(dialog,text='Saves immediately. Band, activity, location and license filters still apply.',wraplength=310).grid(row=5,column=0,columnspan=3,padx=12,pady=8)
-        ttk.Button(dialog,text='Close',command=dialog.destroy).grid(row=6,column=0,columnspan=3,pady=12)
+        ttk.Label(dialog,text='Saves immediately. Band, activity, location and license filters still apply.',wraplength=310).grid(row=2+(len(MODES)+2)//3,column=0,columnspan=3,padx=12,pady=8)
+        ttk.Button(dialog,text='Close',command=dialog.destroy).grid(row=3+(len(MODES)+2)//3,column=0,columnspan=3,pady=12)
 
     def choose(key,title,values):
         if key=='filter_modes':return choose_modes()
@@ -102,8 +102,24 @@ def build_filters(app,parent):
         staged[key].trace_add('write',update_label);update_label()
         ttk.Label(row,textvariable=label,wraplength=430).pack(side='left',padx=12)
     ttk.Label(filters,text='The same filters select displayed and announced spots. Mode comes from a reported tag or a single mode band segment. Include unknown admits uncertain modes within your other selections.',wraplength=620).pack(anchor='w',pady=8)
-    ttk.Checkbutton(filters,text='Use POTA / FOTA / SOTA wording during mixed listening',variable=staged['activity_announcements']).pack(anchor='w',pady=4)
+    ttk.Checkbutton(filters,text='Use activity wording during mixed listening',variable=staged['activity_announcements']).pack(anchor='w',pady=4)
     ttk.Label(filters,text='Activity-only selections use this wording automatically: activity, mode, frequency, callsign. Unknown modes are omitted. All listening filters still apply.',wraplength=620).pack(anchor='w',pady=4)
+    special=ttk.LabelFrame(frame,text='Special spotted calls',padding=12);special.pack(fill='x',pady=6)
+    ttk.Label(special,text='Spotted station callsigns, separated by commas, for example TZ4AM,W1AW. This matches the DX station, not the spotter.',wraplength=620).pack(anchor='w')
+    ttk.Entry(special,textvariable=staged['special_calls'],width=55).pack(fill='x',pady=6)
+    ttk.Checkbutton(special,text='Only these calls',variable=staged['special_calls_only']).pack(anchor='w')
+    ttk.Checkbutton(special,text='Include portable variants (W1AW also matches W1AW/3)',variable=staged['special_calls_portable']).pack(anchor='w')
+    ttk.Label(special,text='Special calls can match alongside selected activities. Only these calls replaces the activity choice. Band, mode, license and location filters still apply.',wraplength=620).pack(anchor='w',pady=4)
+    words=ttk.LabelFrame(frame,text='Special words in the brag box',padding=12);words.pack(fill='x',pady=6)
+    ttk.Label(words,text='Words or phrases separated by commas, for example Cobia,USS Cobia,mobile,county hunter',wraplength=620).pack(anchor='w')
+    ttk.Entry(words,textvariable=staged['special_keywords'],width=55).pack(fill='x',pady=6)
+    ttk.Checkbutton(words,text='Only these words',variable=staged['special_keywords_only']).pack(anchor='w')
+    ttk.Label(words,text='Matches whole words and phrases without case sensitivity. If both Only switches are selected, a listed call OR a listed phrase qualifies. Other filters still apply.',wraplength=620).pack(anchor='w',pady=4)
+    sounds=ttk.Frame(words);sounds.pack(fill='x',pady=6)
+    ttk.Label(sounds,text='Special match sound').pack(side='left',padx=(0,8))
+    ttk.Combobox(sounds,textvariable=staged['special_alert'],values=['Off','Double ding','Chime','Beep'],state='readonly',width=16).pack(side='left')
+    ttk.Button(sounds,text='Preview sound locally',command=app.guard(lambda:app._start_preview('alert'))).pack(side='left',padx=8)
+    ttk.Label(words,text='Sounds play before matching announcements on active outputs, including RF. Mute, Stop, age and repeat limits still apply. Choose All modes including unknown to watch untagged events across modes.',wraplength=620).pack(anchor='w',pady=4)
     license=ttk.LabelFrame(frame,text='My operating privileges (optional)',padding=12);license.pack(fill='x',pady=6)
     for row,(key,title,values) in enumerate((('license_class','FCC license class',CLASSES),('license_region','Operating region',REGIONS))):
         ttk.Label(license,text=title).grid(row=row,column=0,sticky='w',padx=(0,12),pady=3)
@@ -126,7 +142,7 @@ def build_filters(app,parent):
     def commit(key):
         pending.pop(key,None)
         if key not in dirty:return
-        keys=({'min_khz','max_khz'} & dirty) if key in ('min_khz','max_khz') else {key}
+        keys=({'min_khz','max_khz'} & dirty) if key in ('min_khz','max_khz') else ({'special_calls','special_calls_only','special_calls_portable','special_keywords','special_keywords_only'} & dirty) if key.startswith(('special_calls','special_keywords')) else {key}
         try:
             changes={k:type(getattr(Settings(),k))(staged[k].get()) for k in keys}
             updated=replace(app.settings,**changes).validate()
@@ -135,7 +151,7 @@ def build_filters(app,parent):
             status.set('Filters saved automatically.' if not dirty else 'Complete the unfinished fields. Other choices are saved.')
         except (ValueError,tk.TclError,OSError) as exc:status.set('Not saved: '+str(exc))
         describe()
-    immediate={'activity_announcements','filter_bands','filter_modes','filter_activities','license_class','license_region','license_unknown','geography_unknown','frequency_unit'}
+    immediate={'special_keywords_only','special_alert','special_calls_only','special_calls_portable','activity_announcements','filter_bands','filter_modes','filter_activities','license_class','license_region','license_unknown','geography_unknown','frequency_unit'}
     def changed(key,*args):
         if resetting[0]:return
         dirty.add(key)

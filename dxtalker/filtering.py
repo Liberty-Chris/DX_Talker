@@ -8,27 +8,17 @@ BANDS = {"160m": (1800, 2000), "80m": (3500, 4000), "60m": (5250, 5450),
          "10m": (28000, 29700), "6m": (50000, 54000), "4m": (70000, 70500),
          "2m": (144000, 148000), "1.25m": (222000, 225000), "70cm": (420000, 450000),
          "33cm": (902000, 928000), "23cm": (1240000, 1300000)}
-MODES = ("CW", "SSB", "FT8", "FT4", "RTTY", "PSK", "FM", "AM", "Unknown")
-ACTIVITIES = ("POTA", "SOTA", "FOTA", "General")
-MODE_WORD = re.compile(r"(?<![A-Z0-9])(?:CW|SSB|USB|LSB|FT8|FT4|RTTY|PSK(?:31|63|125)?|FM|AM)(?![A-Z0-9])", re.I)
+MODES = ("CW", "AM", "FM", "SSB", "RTTY", "FT4", "FT8", "10MRPT", "DOMINO", "HELL", "MFSK", "MT63", "OLIVIA", "THROB", "PSK", "MSK144", "FSK441", "JT6M", "JTSCALL", "WSPR", "DIGITAL", "Unknown")
+ACTIVITIES = ("POTA", "SOTA", "FOTA", "IOTA", "JOTA", "LLOTA", "General")
+MODE_PATTERN = r"(?<![A-Z0-9])(?:CW|AM|FM|SSB|USB|LSB|RTTY|FT4|FT8|10MRPT|DOMINO(?:EX)?|HELL(?:SCHREIBER)?|MFSK(?:\d+)?|MT63|OLIVIA|THROB|PSK(?:31|63|125)?|MSK144|FSK441|JT6M|JTSCALL|WSPR|DIGI(?:TAL)?)(?![A-Z0-9])"
+MODE_WORD = re.compile(MODE_PATTERN, re.I)
 # US operating practice inference, separate from FCC license privileges.
 # ARRL preferred ranges with documented digital overlaps left Unknown.
 # Lower inclusive, upper exclusive, in kHz. Sources and limits: docs/mode_inference.md.
-MODE_SEGMENTS = (
-    (1810, 1836, 'CW'),
-    (3500, 3570, 'CW'),
-    (7000, 7040, 'CW'),
-    (10100, 10130, 'CW'),
-    (14000, 14070, 'CW'),
-    (18068, 18095, 'CW'),
-    (21000, 21070, 'CW'),
-    (24890, 24915, 'CW'),
-    (28000, 28070, 'CW'),
-    (50000, 50100, 'CW'),
-    (144000, 144100, 'CW'),
-)
+from .band_table_data import INFERENCE
+MODE_SEGMENTS = tuple((Decimal(low), Decimal(high), mode) for low, high, mode in INFERENCE)
 # Recognize unsupported modes as evidence against guessing CW from frequency.
-OTHER_MODE_WORD = re.compile(r'(?<![A-Z0-9])(?:FT2|FT9|JT\d+[A-Z]*|JS8(?:CALL)?|WSPR|Q65|QRA64|MSK144|FSK441|OLIVIA|MFSK\d*|SSTV|FAX|DIGI(?:TAL)?|DATA|DMR|DSTAR|D-STAR|C4FM|FUSION|DV)(?![A-Z0-9])', re.I)
+OTHER_MODE_WORD = re.compile(r'(?<![A-Z0-9])(?:FT2|FT9|JT(?!6M(?![A-Z0-9]))\d+[A-Z]*|JS8(?:CALL)?|Q65|QRA64|SSTV|FAX|DATA|DMR|DSTAR|D-STAR|C4FM|FUSION|DV)(?![A-Z0-9])', re.I)
 
 
 def clean_comment(value):
@@ -38,7 +28,9 @@ def clean_comment(value):
 def mode_of(comment, explicit='', frequency_khz=None):
     def normalized(word):
         word = word.upper()
-        return 'SSB' if word in ('USB', 'LSB') else 'PSK' if word.startswith('PSK') else word
+        return ('SSB' if word in ('USB', 'LSB') else 'PSK' if word.startswith('PSK') else
+                'MFSK' if word.startswith('MFSK') else 'DOMINO' if word == 'DOMINOEX' else
+                'HELL' if word == 'HELLSCHREIBER' else 'DIGITAL' if word == 'DIGI' else word)
     if explicit:
         return normalized(explicit) if MODE_WORD.fullmatch(explicit) else 'Unknown'
     found = {normalized(m.group()) for m in MODE_WORD.finditer(comment)}
@@ -69,12 +61,12 @@ def choices(value, allowed):
 
 
 def activity_tags(comment):
-    return tuple(name for name in ("POTA", "FOTA", "SOTA") if name in activities_of(comment))
+    return tuple(name for name in ("POTA", "FOTA", "SOTA", "IOTA", "JOTA", "LLOTA") if name in activities_of(comment))
 
 
 def activity_style(settings):
     selected=choices(settings.filter_activities,ACTIVITIES)
-    return settings.activity_announcements or bool(selected) and selected <= {'POTA','FOTA','SOTA'}
+    return settings.activity_announcements or bool(selected) and selected <= set(ACTIVITIES)-{'General'}
 
 
 def rejection(spot, settings):
@@ -87,11 +79,23 @@ def rejection(spot, settings):
     mode=mode_of(spot.comment, spot.mode, spot.frequency_khz)
     if mode=='Unknown' and 'Unknown' not in modes:return 'Mode unknown'
     if modes and mode not in modes:return 'Mode unknown' if mode=='Unknown' else 'Mode'
-    if activities and not activities & activities_of(spot.comment):return 'Activity tag'
+    special = calls_selection(settings.special_calls)
+    call_match = call_matches(spot.dx_call, special, settings.special_calls_portable)
+    word_match = keyword_matches(spot.comment, keyword_selection(settings.special_keywords))
+    if settings.special_calls_only or settings.special_keywords_only:
+        if not (settings.special_calls_only and call_match or settings.special_keywords_only and word_match):
+            return 'Special calls or words' if settings.special_keywords_only else 'Special calls'
+    elif activities and not activities & activities_of(spot.comment) and not call_match and not word_match:
+        return 'Activity tag'
     from .privileges import eligibility
     eligible=eligibility(spot.frequency_khz,mode,settings.license_class,settings.license_region)
     if eligible=='outside':return 'Outside selected license segments'
     if eligible=='unknown' and not settings.license_unknown:return 'License eligibility unverified'
+    if settings.license_region == 'US Region 2' and settings.license_class != 'Off':
+        from .band_table import policy_eligibility
+        policy = policy_eligibility(spot.frequency_khz, mode, settings.license_class)
+        if policy == 'outside': return 'Outside selected band table'
+        if policy == 'unknown' and not settings.license_unknown: return 'License eligibility unverified'
     from .geography import rejection as location_rejection
     return location_rejection(spot,settings)
 
@@ -113,4 +117,36 @@ def summary(settings):
         parts.append(mode_summary(settings.filter_modes) if key=='filter_modes' else getattr(settings,key).replace('General','No activity tag') or default)
     for key,title in (('filter_spotter_countries','Reported from'),('filter_spotter_continents','Reporting continents'),('filter_spotter_regions','Reporting regions'),('filter_dx_countries','DX countries'),('filter_dx_continents','DX continents')):
         if getattr(settings,key):parts.append(title+': '+getattr(settings,key))
+    if settings.special_calls: parts.append(('Only calls: ' if settings.special_calls_only else 'Special calls: ') + settings.special_calls)
+    if settings.special_keywords: parts.append(('Only words: ' if settings.special_keywords_only else 'Special words: ') + settings.special_keywords)
     return ' · '.join(parts)
+
+
+def calls_selection(value):
+    from .models import valid_call
+    calls = [call.strip().upper() for call in value.split(',') if call.strip()]
+    if len(calls) > 50 or len(set(calls)) != len(calls) or any(not valid_call(call) for call in calls):
+        raise ValueError('Enter up to 50 distinct callsigns separated by commas')
+    return set(calls)
+
+
+def call_matches(call, selected, portable=True):
+    call = call.upper()
+    return call in selected or portable and any('/' not in wanted and wanted in call.split('/') for wanted in selected)
+
+
+def keyword_selection(value):
+    words = [' '.join(word.split()).upper() for word in value.split(',') if word.strip()]
+    if len(words) > 50 or len(set(words)) != len(words) or any(len(word) > 80 or not any(c.isalnum() for c in word) or any(ord(c) < 32 or ord(c) > 126 for c in word) for word in words):
+        raise ValueError('Enter up to 50 distinct words or phrases, up to 80 characters each, separated by commas')
+    return tuple(words)
+
+
+def keyword_matches(comment, words):
+    comment = ' '.join(comment.split()).upper()
+    return any(re.search(r'(?<![A-Z0-9])' + re.escape(word) + r'(?![A-Z0-9])', comment) for word in words)
+
+
+def special_match(spot, settings):
+    return (call_matches(spot.dx_call, calls_selection(settings.special_calls), settings.special_calls_portable) or
+            keyword_matches(spot.comment, keyword_selection(settings.special_keywords)))

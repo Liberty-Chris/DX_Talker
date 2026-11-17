@@ -12,6 +12,67 @@ from dxtalker.source import NoRedirect, SourceClient
 
 
 class SourceTests(unittest.TestCase):
+    def test_retry_backoff_is_bounded_and_success_resets_it(self):
+        observed, waits = [], []
+        client = SourceClient(Settings(), lambda *event: observed.append(event))
+        attempts = [0]
+        def cluster():
+            attempts[0] += 1
+            if attempts[0] == 9:
+                client.emit('source_ready', 'Receiving DX spots')
+            raise ConnectionError('private remote message')
+        def wait(delay):
+            waits.append(delay)
+            return len(waits) == 9
+        with patch.object(client, '_cluster', cluster), patch.object(client.cancel, 'wait', wait):
+            client._run()
+        self.assertEqual(waits, [2, 4, 8, 16, 32, 60, 60, 60, 2])
+        health = [v for k, v in observed if k == 'source_health']
+        self.assertEqual([h['attempt'] for h in health if h['code'] == 'attempt'], list(range(1, 10)))
+        self.assertNotIn('private remote message', str(observed))
+
+    def test_real_socket_reconnects_and_signs_in_again_without_replaying_commands(self):
+        events, received, failures = queue.Queue(), [], []
+        server = socket.socket(); server.bind(('127.0.0.1', 0)); server.listen(2); server.settimeout(6)
+        done = threading.Event()
+        def serve():
+            try:
+                for number in range(2):
+                    conn, _ = server.accept()
+                    with conn:
+                        conn.settimeout(3); conn.sendall(b'login:')
+                        line = b''
+                        while b'\r\n' not in line: line += conn.recv(4096)
+                        received.append(line)
+                        conn.sendall(f'\r\nDX de N0CALL: 14025 K{number+1}ABC CW {datetime.now(UTC):%H%M}Z\r\n'.encode())
+                        if number: done.wait(3)
+            except Exception as exc: failures.append(exc)
+            finally: server.close()
+        thread = threading.Thread(target=serve, daemon=True); thread.start()
+        client = SourceClient(Settings(host='127.0.0.1', port=server.getsockname()[1], login='KF4DBX'), lambda *e: events.put(e))
+        client.start(); observed = []
+        try:
+            deadline = time.monotonic() + 6
+            while time.monotonic() < deadline:
+                observed.append(events.get(timeout=6))
+                if sum(k == 'spot' for k, _ in observed) == 2: break
+            self.assertEqual([v.dx_call for k, v in observed if k == 'spot'], ['K1ABC', 'K2ABC'])
+            self.assertEqual(received, [b'KF4DBX\r\n', b'KF4DBX\r\n'])
+            self.assertEqual(sum(k == 'source_lost' for k, _ in observed), 1)
+            self.assertTrue(client.ready.is_set())
+        finally:
+            client.stop(); done.set(); client.thread.join(4); thread.join(4)
+        self.assertFalse(failures); self.assertFalse(client.thread.is_alive())
+
+    def test_close_error_cannot_kill_the_retry_worker(self):
+        class Socket:
+            def shutdown(self, how): raise OSError('device gone')
+            def close(self): raise OSError('already closed')
+        client = SourceClient(Settings(), lambda *event: None)
+        client.sock = Socket()
+        client._close_socket()
+        self.assertIsNone(client.sock)
+
     def test_real_local_socket_partial_prompts_negotiation_and_spots(self):
         events = queue.Queue()
         received = []

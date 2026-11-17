@@ -26,7 +26,7 @@ Do not mark a milestone complete because a design document exists. Record what w
 
 Feed text is untrusted input. Only validated spots can reach announcement generation. Login prompts, banners, chat and arbitrary remote commands must not be spoken or executed. Never store real credentials in examples, captures or diagnostics.
 
-All radio audio and PTT must go through one transmission coordinator. Startup and recovery must leave transmission disabled. Identification, spot audio and manual tests must not overlap. Implement a bounded transmit duration, immediate stop and guaranteed release attempts on cancellation and failures. Hardware behavior after process or cable failure must be tested and documented.
+All radio audio and PTT must go through one transmission coordinator. Startup and device/output fault recovery must leave transmission disabled. The operator may explicitly opt into source reconnect recovery in radio settings. That option may restore only a session that had RF enabled before source loss, after confirmed source readiness and receiver cleanup, with required identification first. Stop, manual disconnect, restart and output faults cancel that intent. Identification, spot audio and manual tests must not overlap. Implement a bounded transmit duration, immediate stop and guaranteed release attempts on cancellation and failures. Hardware behavior after process or cable failure must be tested and documented.
 
 Do not add a license or claim rights to archive contents without a project owner decision. Do not introduce a build command or supported platform claim until it has actually been established and checked.
 

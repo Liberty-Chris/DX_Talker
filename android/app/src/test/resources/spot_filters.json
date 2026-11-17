@@ -753,7 +753,7 @@
   },
   {
     "line": "DX de N0CALL: 14025 WB4IUY WSPR 1234Z",
-    "mode": "Unknown",
+    "mode": "WSPR",
     "activities": [
       "General"
     ],
@@ -764,14 +764,14 @@
   },
   {
     "line": "DX de N0CALL: 14025 WB4IUY WSPR 1234Z",
-    "mode": "Unknown",
+    "mode": "WSPR",
     "activities": [
       "General"
     ],
     "filters": {
       "filter_modes": "Unknown"
     },
-    "match": true
+    "match": false
   },
   {
     "line": "DX de N0CALL: 14025 WB4IUY JT65 1234Z",
@@ -1535,7 +1535,7 @@
       "license_class": "General",
       "license_region": "US Region 2"
     },
-    "match": true
+    "match": false
   },
   {
     "line": "DX de N0CALL: 3540 WB4IUY RTTY 1234Z",
@@ -1615,6 +1615,433 @@
       "license_class": "General",
       "license_region": "US Region 2",
       "license_unknown": true
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY CW 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "CW"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY AM 1234Z",
+    "mode": "AM",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "AM"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY FM 1234Z",
+    "mode": "FM",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "FM"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY SSB 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "SSB"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY RTTY 1234Z",
+    "mode": "RTTY",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "RTTY"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY FT4 1234Z",
+    "mode": "FT4",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "FT4"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY FT8 1234Z",
+    "mode": "FT8",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "FT8"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY 10MRPT 1234Z",
+    "mode": "10MRPT",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "10MRPT"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY DOMINO 1234Z",
+    "mode": "DOMINO",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "DOMINO"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY HELL 1234Z",
+    "mode": "HELL",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "HELL"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY MFSK 1234Z",
+    "mode": "MFSK",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "MFSK"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY MT63 1234Z",
+    "mode": "MT63",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "MT63"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY OLIVIA 1234Z",
+    "mode": "OLIVIA",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "OLIVIA"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY THROB 1234Z",
+    "mode": "THROB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "THROB"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY PSK 1234Z",
+    "mode": "PSK",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "PSK"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY MSK144 1234Z",
+    "mode": "MSK144",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "MSK144"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY FSK441 1234Z",
+    "mode": "FSK441",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "FSK441"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY JT6M 1234Z",
+    "mode": "JT6M",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "JT6M"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY JTSCALL 1234Z",
+    "mode": "JTSCALL",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "JTSCALL"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY WSPR 1234Z",
+    "mode": "WSPR",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "WSPR"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 WB4IUY DIGITAL 1234Z",
+    "mode": "DIGITAL",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "filter_modes": "DIGITAL"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 WB4IUY SSB IOTA 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "IOTA"
+    ],
+    "filters": {
+      "filter_activities": "IOTA"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 WB4IUY SSB JOTA 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "JOTA"
+    ],
+    "filters": {
+      "filter_activities": "JOTA"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 WB4IUY SSB LLOTA 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "LLOTA"
+    ],
+    "filters": {
+      "filter_activities": "LLOTA"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 W1AW/3 SSB 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "W1AW,TZ4AM",
+      "special_calls_only": true,
+      "special_calls_portable": true,
+      "filter_activities": "POTA",
+      "filter_bands": "20m"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 W1AW/3 SSB 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "W1AW,TZ4AM",
+      "special_calls_only": true,
+      "special_calls_portable": false,
+      "filter_activities": "POTA",
+      "filter_bands": "20m"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14225 W1AWX SSB 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "W1AW,TZ4AM",
+      "special_calls_only": true,
+      "special_calls_portable": true,
+      "filter_activities": "POTA",
+      "filter_bands": "20m"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14225 W1AW/3 SSB 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "W1AW,TZ4AM",
+      "special_calls_only": true,
+      "special_calls_portable": true,
+      "filter_activities": "POTA",
+      "filter_bands": "40m"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14225 TZ4AM SSB 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "W1AW,TZ4AM",
+      "special_calls_only": true,
+      "special_calls_portable": true,
+      "filter_activities": "POTA",
+      "filter_bands": "20m"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 K1ABC SSB USS Cobia 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_keywords": "Cobia",
+      "special_keywords_only": true
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 K1ABC SSB USS SCobias 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_keywords": "Cobia",
+      "special_keywords_only": true
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14225 K1ABC SSB COUNTY HUNTER 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_keywords": "county hunter",
+      "special_keywords_only": true
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 TZ4AM SSB DX 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "TZ4AM",
+      "special_calls_only": true,
+      "special_keywords": "Cobia",
+      "special_keywords_only": true
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 K1ABC SSB USS Cobia 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_keywords": "Cobia",
+      "special_keywords_only": true,
+      "filter_bands": "40m"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14225 K1ABC USS Cobia 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_keywords": "Cobia",
+      "special_keywords_only": true,
+      "filter_modes": "Unknown"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 K1ABC USS Cobia 1234Z",
+    "mode": "Unknown",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_keywords": "Cobia",
+      "special_keywords_only": true
     },
     "match": false
   }

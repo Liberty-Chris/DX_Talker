@@ -29,6 +29,8 @@ class SourceClient:
     def __init__(self, settings: Settings, emit, session_secret="", connector=socket.create_connection):
         settings.validate_connection()
         self.settings, self.secret = settings, session_secret
+        self.retry_delay = 2
+        self.attempt = 0
         self.ready = threading.Event()
         self.signed_in = threading.Event()
         self.connected = threading.Event()
@@ -38,10 +40,15 @@ class SourceClient:
                 self.connected.set()
             if kind == "source_ready" and not self.cancel.is_set():
                 self.ready.set()
+                self.retry_delay = 2
             elif kind == "source_lost" or (kind == "source_state" and value == "Disconnected"):
                 self.ready.clear()
                 self.signed_in.clear()
                 self.connected.clear()
+            if kind in ('source_connected', 'source_ready'):
+                emit('source_health', dict(code='receiving' if kind == 'source_ready' else 'connected', attempt=self.attempt))
+            elif kind == 'source_state' and value.startswith('Signed in'):
+                emit('source_health', dict(code='signed_in', attempt=self.attempt))
             emit(kind, value)
 
         self.emit = notify
@@ -76,7 +83,10 @@ class SourceClient:
             except OSError:
                 pass
             finally:
-                sock.close()
+                try:
+                    sock.close()
+                except OSError:
+                    pass
 
     def send(self, text):
         if self.cancel.is_set() or self.settings.source_type != "TCP/Telnet" or not self.sock:
@@ -114,15 +124,16 @@ class SourceClient:
         self.emit("raw", line)
 
     def _run(self):
-        delay = 2
         while not self.cancel.is_set():
             failure = None
+            self.attempt += 1
+            self.emit("source_health", dict(code="attempt", attempt=self.attempt))
             try:
                 if self.settings.source_type == "TCP/Telnet":
                     self._cluster()
                 else:
                     self._https()
-                delay = 2
+                self.retry_delay = 2
             except Exception as exc:
                 failure = exc
             finally:
@@ -155,10 +166,12 @@ class SourceClient:
                     detail = "Source sign in was rejected"
                 else:
                     detail = f"Source unavailable ({type(failure).__name__})"
+                delay = self.retry_delay
+                self.emit("source_health", dict(code="retry", attempt=self.attempt, delay_seconds=delay, error_type=type(failure).__name__))
                 self.emit("source_lost", f"{detail}. Retrying in {delay}s. RF is disabled.")
                 if self.cancel.wait(delay):
                     break
-                delay = min(delay * 2, 60)
+                self.retry_delay = min(delay * 2, 60)
         self.secret = ""
         self.connected.clear()
         self.emit("source_state", "Disconnected")
@@ -211,6 +224,8 @@ class SourceClient:
                     quiet_reported = True
                 continue
             last_data = time.monotonic()
+            if raw and quiet_reported:
+                self.emit("source_state", "Receiving cluster data" if receiving else "Connected. Cluster data resumed; waiting for sign in or a valid spot.")
             quiet_reported = False
             if not raw:
                 raise ConnectionError("Cluster disconnected")
@@ -265,6 +280,7 @@ class SourceClient:
                     if not complete:
                         self._raw(line)
                     self.signed_in.set()
+                    self.retry_delay = 2
                     self.emit("source_state", "Signed in to cluster. Waiting for the first valid DX spot.")
         # Do not carry manual responses across connection boundaries.
         while not self.commands.empty():

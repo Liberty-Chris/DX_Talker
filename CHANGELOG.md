@@ -1,5 +1,16 @@
 # Changelog
 
+
+## 1.0.0b3
+
+Fixed Android mode checklist instrumentation to scroll to adapter items. Authenticated the Ubuntu installed verification API probe with the temporary read only CI token and prohibited redirects for that probe. Removed duplicate desktop builds on PR branch pushes and cancel superseded PR builds.
+
+Added up to twenty scheduled voice IDs, calendar and interval recurrence, multiple times, bounded deferral and coordinator priority. Preserved existing station ID settings and offline operation.
+
+Hardened cluster retry cleanup, backoff reset and diagnostic attempt records. Preserved deliberate RF enable after source loss. Fixed stale radio save status, apply preservation and accent hover feedback.
+
+Imported WB4IUY's authoritative selection table with shared desktop and Android generation, twenty supported modes and explicit DIGITAL/Unknown behavior. Added IOTA, JOTA, LLOTA and special calls with portable matching and preset/transfer support. Added a compact offline getting started guide, connection and troubleshooting help and links to WB4IUY's additional guides at https://wb4iuy.net/dxtalker/. Android Open Help uses the same site. Added explicitly opted in source reconnect RF recovery for previously enabled sessions, literal special keyword filters and generated attention sounds for special calls/words across desktop and Android. Froze features for stable v1 acceptance.
+
 ## 0.2.0a19. Unreleased
 
 Add an Ubuntu amd64 desktop installer with native offline speech, protected keyring credentials, Linux serial paths, system CA verification and interactive package updates. Reuse the desktop core and retain its performance guards. Verify build and package installation on Ubuntu 22.04 and 24.04 and include the labelled Debian package alongside the existing release downloads. Physical radio and ARM acceptance remain open.

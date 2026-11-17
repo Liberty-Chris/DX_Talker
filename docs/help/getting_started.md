@@ -1,5 +1,7 @@
 # Getting started
 
+For a compact first run guide, open [Help and getting started](index.md). For additional guides, visit [DX Talker help](https://wb4iuy.net/dxtalker/). The bundled instructions below remain available offline.
+
 ## Launch
 
 The setup program targets Windows 10 22H2 and Windows 11 on x64 PCs. Run DXTalker-Setup-Windows-x64.exe to install for your Windows account. Python is included. Setup creates a Start menu entry and a desktop shortcut by default, using the DXt icon. You can clear the desktop shortcut option during setup. Close DX Talker before installing an update. Run the new setup program to update the existing installation. Remove DX Talker through Windows Settings. Settings and appearance preferences under %LOCALAPPDATA%\DXTalker are retained during updates and removal. The installer is unsigned, so Windows may show a publisher or SmartScreen warning. Actual Windows 10 and Windows 11 acceptance tests remain open.
@@ -30,7 +32,7 @@ Ordinary preferences save automatically. Apply radio changes when changing radio
 
 ## Stop and recover
 
-STOP ALL OUTPUT cancels current and queued output and requests PTT release. Wait for Idle before applying changes or previewing. Source loss or an output fault disables RF. Reconnect does not automatically enable it again.
+STOP ALL OUTPUT cancels current and queued output and requests PTT release. Wait for Idle before applying changes or previewing. Source loss or an output fault disables RF. Reconnect leaves RF off by default. The optional Resume RF after source reconnect setting can restore a previously enabled session after source readiness, starting with identification. Stop, disconnect, restart and output faults cancel recovery.
 
 Settings are saved locally. RF and local listening enable state are never saved. Radio drafts are retained separately and do not become active on restart. Passwords and tokens remain session only unless you explicitly remember one in a Windows protected cluster profile.
 

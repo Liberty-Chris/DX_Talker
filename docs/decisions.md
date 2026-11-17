@@ -276,3 +276,23 @@ Use clear action labels and inline outcomes instead of repeated confirmations. R
 ## November 10, 2026. Local monitoring alongside RF
 
 Allow local listening and RF simultaneously at the operator's request. The RF coordinator retains one synthesis and PTT sequence and mirrors that clip to a separate local output. Local mute must never cancel RF or discard its queue. Receive gating and RF cancellation apply to both streams. PTT release precedes local stream cleanup, and a failed local speaker mutes only the monitor. Require separate destinations to avoid doubled audio and ambiguous local volume control. Keep station submission buttons directly visible on Live spots. Advance to 1.0.0b2 because 1.0.0b1 is already published.
+
+## November 15, 2026. Final feature scope before stable v1
+
+The final beta adds twenty named scheduled voice messages beside the established required station ID policy. Preserve existing settings. Use local calendar time for calendar rules and monotonic completion intervals for repeating rules. Skip missed disabled time, expire deferred messages, suppress repeated local clock occurrences and keep every transmission in the existing coordinator. Required IDs precede scheduled messages and spots.
+
+An explicit Apply radio changes action may retain already enabled RF after valid configuration and cleanup. It must not resume after Stop, source loss or a new output fault. Startup and recovery remain disabled. A saved settings notice must not assert a permanent RF state. Receiver cleanup from source loss belongs on the output worker so cluster retries remain independent.
+
+Preserve the exact WB4IUY CSV as the authoritative application selection table. Its kHz boundaries drive generated desktop and Android policies. Keep license authorizations separate, retain the existing CW inference segments and treat DIGITAL as reported but unspecified digital evidence, distinct from Unknown. Do not infer a specific digital mode from the generic table category. Known calls may supplement activity choices or replace that condition through Only these calls; other selection checks remain in force.
+
+Keep essential help bundled and preserve supplied online references. Add expanded hosted help once the owner provides the destination. Freeze further features after this batch and complete beta acceptance before preparing stable v1.
+
+## November 16, 2026. Additional operator help
+
+Use https://wb4iuy.net/dxtalker/ for additional help maintained by WB4IUY. Keep a compact getting started guide on the first bundled Help page, with offline connection and troubleshooting topics retained. Desktop links and Android Open Help use the supplied destination. Opening the website is an explicit user action and needs internet access; launching Help does not fetch external content. Existing Help topic IDs are unchanged. This completes the help destination for the pending b3 batch without expanding the feature freeze.
+
+## November 16, 2026. Final requested additions to PR 43
+
+Add an explicit radio option for automatic source reconnect recovery. Keep it off by default and retain recovery intent only for an already enabled RF session in this running process. Require source sign in confirmation or valid feed reception, receiver cleanup, configuration validation and required ID before spots. Manual stops, source switching, restart and faults cancel recovery. Readiness is signalled in source event order, not reconstructed later from a delayed UI queue. This is the owner's requested exception to the prior no automatic source recovery policy. It does not authorize recovery from audio or hardware faults.
+
+Add literal, bounded, case insensitive special words/phrases in received comments, alongside existing spotted call watches. The two Only switches combine their enabled watch types with OR; other filters remain independent. Generate short attention sounds offline and serialize them with the accepted announcement rather than launching overlapping alerts. Sounds default Off, respect muting and queue rules and count in RF duration limits. Android uses generated WAV earcons in the same TTS queue and reports unavailable earcons without suppressing ordinary speech. Keep the resulting scope in the existing b3 PR and return to fixes and testing afterward.

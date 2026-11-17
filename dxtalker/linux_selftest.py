@@ -9,6 +9,23 @@ import threading
 import time
 import traceback
 
+def verify_release_https(context):
+    """Use the job's temporary token only for this fixed API verification URL."""
+    from urllib import request
+    class NoRedirect(request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            return None
+    headers = {'User-Agent': 'DXTalker-Ubuntu-build-verification'}
+    token = os.environ.get('DXTALKER_VERIFY_GITHUB_TOKEN')
+    if token:
+        headers['Authorization'] = 'Bearer ' + token
+    query = request.Request('https://api.github.com/repos/Liberty-Chris/DX_Talker/releases?per_page=1',
+                            headers=headers)
+    opener = request.build_opener(NoRedirect(), request.HTTPSHandler(context=context))
+    with opener.open(query, timeout=20) as response:
+        data = response.read(1024 * 1024 + 1)
+        assert len(data) <= 1024 * 1024 and isinstance(json.loads(data), list)
+
 def run(destination):
     report = {'ok': False}
     app = None
@@ -21,7 +38,7 @@ def run(destination):
         from .models import Settings, save_settings
         from .app import Application
         from .performance import measure, violations, BUDGETS
-        from .updates import INSTALLER, update_ssl_context, HTTPSRedirect
+        from .updates import INSTALLER, update_ssl_context
         speech = EspeakSpeech(); cancel = threading.Event()
         assert speech.voices(cancel)
         clip = speech.render('DX Talker. Kilo Foxtrot four Delta Bravo Xray.', '', 0, cancel)
@@ -42,13 +59,7 @@ def run(destination):
         report['desktop_keyring'] = True
         context = update_ssl_context()
         assert context.check_hostname and context.verify_mode == ssl.CERT_REQUIRED
-        from urllib import request
-        opener = request.build_opener(HTTPSRedirect(), request.HTTPSHandler(context=context))
-        query = request.Request('https://api.github.com/repos/Liberty-Chris/DX_Talker/releases?per_page=1',
-                                headers={'User-Agent': 'DXTalker-Ubuntu-build-verification'})
-        with opener.open(query, timeout=20) as response:
-            data = response.read(1024 * 1024 + 1)
-            assert len(data) <= 1024 * 1024 and isinstance(json.loads(data), list)
+        verify_release_https(context)
         report['verified_https'] = True
         assert INSTALLER == 'DXTalker-Ubuntu-amd64.deb'
         os.environ['LOCALAPPDATA'] = temporary.name

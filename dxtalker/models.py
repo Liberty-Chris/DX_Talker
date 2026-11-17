@@ -75,7 +75,7 @@ class Spot:
         if tags and activity_style(settings):
             mode=mode_of(self.comment,self.mode,self.frequency_khz)
             pronunciation={'POTA':'poughta','FOTA':'phota','SOTA':'sota'}
-            groups=[("intro",pronunciation[tag] if phonetic else tag) for tag in tags]
+            groups=[("intro",pronunciation.get(tag, tag) if phonetic else tag) for tag in tags]
             if mode!='Unknown':groups.append(("mode",mode))
             return groups+[("frequency",frequency),("callsign",call)]
         content = {"intro": settings.announcement_intro.strip(), "frequency": frequency, "callsign": call}
@@ -155,6 +155,7 @@ class Settings:
     feed_url: str = ""
     poll_seconds: int = 30
     radio_device: str = ""
+    rf_auto_reconnect: bool = False
     preview_device: str = ""
     receive_guard: bool = False
     receive_device: str = ""
@@ -177,12 +178,19 @@ class Settings:
     id_mode: str = "CW"
     id_minutes: int = 10
     voice_id_minutes: int = 30
+    voice_ids: str = "[]"
     max_age_seconds: int = 180
     repeat_seconds: int = 300
     spacing_seconds: int = 5
     filter_bands: str = ""
     filter_modes: str = ""
     filter_activities: str = ""
+    special_calls: str = ""
+    special_calls_only: bool = False
+    special_calls_portable: bool = True
+    special_keywords: str = ""
+    special_keywords_only: bool = False
+    special_alert: str = "Off"
     activity_announcements: bool = False
     license_class: str = "Off"
     license_region: str = "US Region 2"
@@ -237,7 +245,7 @@ class Settings:
                 if type(default) is float and type(value) in (float, int):
                     continue
                 raise ValueError(f"Invalid value for {f.name}")
-            if isinstance(value, str) and (len(value) > (32768 if f.name=="listening_presets" else 8192 if f.name=="location_overrides" else 2048) or any(ord(c) < 32 for c in value)):
+            if isinstance(value, str) and (len(value) > (65536 if f.name=="voice_ids" else 32768 if f.name=="listening_presets" else 8192 if f.name in ("location_overrides", "special_keywords") else 2048) or any(ord(c) < 32 for c in value)):
                 raise ValueError(f"Invalid text in {f.name}")
         bounds = {"port": (1, 65535), "poll_seconds": (15, 3600), "lead_ms": (0, 5000),
                   "tail_ms": (0, 5000), "max_tx_seconds": (5, 120), "speech_rate": (-10, 10),
@@ -274,6 +282,18 @@ class Settings:
         validate_geography(self)
         from .listening import validate_presets
         validate_presets(self.listening_presets)
+        from .id_schedule import entries
+        entries(self.voice_ids)
+        from .filtering import calls_selection
+        calls_selection(self.special_calls)
+        if self.special_calls_only and not self.special_calls.strip():
+            raise ValueError("Add at least one special callsign or turn off Only these calls")
+        from .filtering import keyword_selection
+        keyword_selection(self.special_keywords)
+        if self.special_keywords_only and not self.special_keywords.strip():
+            raise ValueError("Add at least one special word or turn off Only these words")
+        if self.special_alert not in ("Off", "Double ding", "Chime", "Beep"):
+            raise ValueError("Choose a valid special match sound")
         self.validate_format()
         if self.log_directory and not Path(self.log_directory).is_absolute():
             raise ValueError("Choose an absolute history folder path")
@@ -317,6 +337,13 @@ class Settings:
             windows_port = re.fullmatch(r"COM[1-9]\d{0,2}", self.serial_port, re.I)
             linux_port = sys.platform.startswith('linux') and re.fullmatch(r'/dev/(?:tty(?:USB|ACM|S)\d+|rfcomm\d+|serial/by-id/[A-Za-z0-9_.:+-]+)', self.serial_port)
             if not (windows_port or linux_port): raise ValueError("Choose a serial port for PTT")
+        from .id_schedule import entries
+        from .audio import wav_clip
+        for item in entries(self.voice_ids):
+            if item["enabled"] and item["source"] == "WAV":
+                clip = wav_clip(item["wav"])
+                if clip.duration + (self.lead_ms + self.tail_ms) / 1000 > self.max_tx_seconds:
+                    raise ValueError("Scheduled WAV ID exceeds maximum transmit duration: " + item["name"])
         if self.id_mode in ("CW", "Both", "Alternate", "Independent"):
             from .audio import validate_morse
             validate_morse(self.cw_text)

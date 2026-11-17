@@ -57,7 +57,7 @@ In this scope, CW means audio Morse sent through the radio audio path. Direct ha
 
 Only one coordinator may key the radio. It acquires the configured device, asserts PTT, waits a configurable lead time, plays one item, waits a configurable tail time and releases PTT. The maximum transmit duration must also cover a stalled playback. Long announcements cannot bypass identification deadlines.
 
-Preview uses an explicitly selected local device with no PTT. Startup, device change, reconnect and recovery leave RF disabled until the operator deliberately enables it. Emergency stop cancels queued RF work.
+Preview uses an explicitly selected local device with no PTT. Startup and output fault recovery leave RF disabled until the operator deliberately enables it. Source reconnect recovery is off by default. An explicit saved opt in may restore previously enabled RF after confirmed source readiness and cleanup, with required identification first. Stop, disconnect, restart and output faults cancel pending source recovery. An explicit valid radio apply preserves already enabled RF after cleanup unless Stop, source loss or an output fault intervenes. Emergency stop cancels queued RF work.
 
 Busy channel detection is unresolved because audio and PTT alone do not establish a reliable receive activity signal. Automatic operation on a shared channel must await a documented channel access policy and compatible hardware.
 
