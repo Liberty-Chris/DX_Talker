@@ -442,3 +442,7 @@ Local Linux verification passed 353 Python tests with one native Windows test sk
 Extended the default half duplex receive blanking after PTT release from 300 milliseconds to one second. The quiet timer starts from newly observed silence after that settling period; the displayed countdown does not itself indicate self reception. The receive status now explicitly describes the one second switching audio delay. Input fault checks remain active and full duplex behavior is unchanged.
 
 Verified with 353 Linux Python tests passing, with one native Windows test skipped. The receive test injects loud audio 900 milliseconds after release, confirms settling with no quiet credit, then requires the full seven second quiet interval starting at one second. Existing receiver fault, cancellation and coordinator tests pass. Documentation checks passed 106 links and 14 topics. Actual relay switching and receiver audio acceptance remain for the operator to test.
+
+## November 17, 2026: Beta 6 publication preparation
+
+The Unknown eligibility and one second relay settling fixes were merged as 5c8b22c274bb41a36d5a92123152c8d010a63224. Beta 5 was already published, so align desktop, installer, EXE metadata, bundled help, Android and release notes at 1.0.0b6 with Android version code 25. This metadata preparation does not alter runtime behavior. Version alignment, documentation and whitespace checks pass locally. Previous runtime verification remains recorded above. Publication and native packaging checks remain pending.

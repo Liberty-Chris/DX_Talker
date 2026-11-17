@@ -21,6 +21,8 @@ Work through the connection and local audio stages before enabling radio transmi
 
 ## Immediate next task
 
+Publish 1.0.0b6 with the Unknown eligibility and relay settling corrections, then retest returned untagged spots and actual radio PTT release. Feature scope remains frozen for stable v1.
+
 The 1.0.0b5 correction makes listed special calls bypass the band checklist on desktop and Android. Other filters remain active. Continue stable v1 testing and fixes.
 
 The 1.0.0b4 followup addresses the reported self receive interruption, makes raw cluster traffic independently scrollable and adds the requested optional saved cluster failover. Test these with the same stable v1 acceptance scope below. This is the remaining requested reconnect work; further changes return to fixes and testing.

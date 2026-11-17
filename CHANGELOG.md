@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.0b6
 
 Extend half duplex receive blanking after PTT release to one second for relay operated radios. Show that settling period separately from the following required quiet interval. Keep input fault detection active.
 
