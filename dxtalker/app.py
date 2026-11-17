@@ -731,7 +731,7 @@ class Application(Usability):
                       'starting':'Waiting for the first input samples','busy':'Audio above threshold. RF waiting.',
                       'waiting':f'Quiet delay. {remaining:.1f} seconds remaining.','clear':'Channel clear.',
                       'transmitting':'Own transmission. Busy audio ignored; input health monitored.',
-                      'settling':'PTT released. Waiting for receive audio to settle before a new quiet interval.'}
+                      'settling':'PTT released. Ignoring switching audio for one second before a new quiet interval.'}
         measured=f' Measured {level:.0f} dBFS.' if state not in ('off','starting','fault') and level is not None else ' No current measurement.' if state!='off' else ''
         self.render_cache.set(self.receive_status,descriptions[state]+measured)
         if state=='fault' and getattr(self,'last_receive_fault',None)!=monitor.fault_code:

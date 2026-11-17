@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+Extend half duplex receive blanking after PTT release to one second for relay operated radios. Show that settling period separately from the following required quiet interval. Keep input fault detection active.
+
 Fix desktop and Android rejection of Unknown modes by the separate mode specific band table after class frequency eligibility and the unverified opt in have already passed. Untagged 2m spots, including returned self submissions, now follow both Unknown options correctly. Preserve known mode table restrictions and frequencies outside the selected class.
 
 ## 1.0.0b5

@@ -33,7 +33,7 @@ class ReceiveMonitor:
     def transmit_ended(self):
         with self.lock:
             self.transmitting = False
-            self.settle_until = self.clock() + .3
+            self.settle_until = self.clock() + 1.0
             self.quiet_since = None
 
     @staticmethod
