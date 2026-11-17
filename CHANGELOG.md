@@ -3,6 +3,8 @@
 
 ## 1.0.0b3
 
+Fixed Android mode checklist instrumentation to scroll to adapter items. Authenticated the Ubuntu installed verification API probe with the temporary read only CI token and prohibited redirects for that probe. Removed duplicate desktop builds on PR branch pushes and cancel superseded PR builds.
+
 Added up to twenty scheduled voice IDs, calendar and interval recurrence, multiple times, bounded deferral and coordinator priority. Preserved existing station ID settings and offline operation.
 
 Hardened cluster retry cleanup, backoff reset and diagnostic attempt records. Preserved deliberate RF enable after source loss. Fixed stale radio save status, apply preservation and accent hover feedback.

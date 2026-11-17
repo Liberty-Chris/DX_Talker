@@ -48,6 +48,8 @@ jobs:
           path: dist
       - run: sudo apt-get update && sudo apt-get install -y xvfb dbus-x11 gnome-keyring desktop-file-utils
       - name: Install, launch, upgrade and remove without audio or PTT
+        env:
+          DXTALKER_VERIFY_GITHUB_TOKEN: ${{ github.token }}
         run: bash platforms/linux/check_install.sh
       - uses: actions/upload-artifact@v7.0.2
         if: always()
