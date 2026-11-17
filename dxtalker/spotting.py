@@ -30,6 +30,7 @@ def open_spot_dialog(app,myself=False):
     if source is None or source.settings.source_type!='TCP/Telnet' or not (source.ready.is_set() or source.signed_in.is_set()):
         app._show_notice('Sign in to a TCP/Telnet cluster before submitting a spot. HTTPS feeds are read only.');return
     window=tk.Toplevel(app.root);window.title('Spot myself' if myself else 'Spot a station');window.transient(app.root)
+    session_epoch = getattr(source, 'session_epoch', 0)
     frame=ttk.Frame(window,padding=16);frame.pack(fill='both',expand=True)
     call=tk.StringVar(value=source.settings.login if myself else '')
     frequency=tk.StringVar();unit=tk.StringVar(value=app.settings.frequency_unit);comment=tk.StringVar()
@@ -43,7 +44,7 @@ def open_spot_dialog(app,myself=False):
     ttk.Label(frame,textvariable=app.spot_status,wraplength=520).grid(row=5,column=0,columnspan=3,sticky='w',pady=8)
     send=ttk.Button(frame,text='Send spot')
     def submit():
-        if app.source is not source or not (source.ready.is_set() or source.signed_in.is_set()):
+        if app.source is not source or getattr(source, 'session_epoch', 0) != session_epoch or not (source.ready.is_set() or source.signed_in.is_set()):
             app.spot_status.set('Cluster changed or disconnected. Reopen this form for the current cluster.');return
         try:
             text=command(call.get(),frequency.get(),unit.get(),comment.get())

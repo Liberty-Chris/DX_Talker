@@ -154,10 +154,12 @@ class Settings:
     login: str = ""
     feed_url: str = ""
     poll_seconds: int = 30
+    cluster_failover: bool = False
     radio_device: str = ""
     rf_auto_reconnect: bool = False
     preview_device: str = ""
     receive_guard: bool = False
+    receive_half_duplex: bool = True
     receive_device: str = ""
     receive_threshold_db: int = -40
     receive_quiet_seconds: int = 7

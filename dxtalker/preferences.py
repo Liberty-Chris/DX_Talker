@@ -5,7 +5,7 @@ from .models import Settings, settings_path
 from .profiles import SOURCE_FIELDS
 
 RADIO_FIELDS = (
-    'radio_device', 'rf_auto_reconnect', 'receive_guard', 'receive_device', 'receive_threshold_db',
+    'radio_device', 'rf_auto_reconnect', 'receive_guard', 'receive_half_duplex', 'receive_device', 'receive_threshold_db',
     'receive_quiet_seconds', 'ptt_method', 'serial_port', 'active_high', 'lead_ms',
     'tail_ms', 'max_tx_seconds', 'voice_text', 'cw_text', 'voice_wav', 'voice_mode',
     'cw_wpm', 'cw_hz', 'id_mode', 'id_minutes', 'voice_id_minutes', 'voice_ids',

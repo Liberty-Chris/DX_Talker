@@ -22,6 +22,19 @@ class ReceiveMonitor:
         self.fault_code = None
         self.threshold = -40
         self.delay = 7
+        self.transmitting = False
+        self.settle_until = 0
+
+    def transmit_started(self):
+        with self.lock:
+            self.transmitting = True
+            self.quiet_since = None
+
+    def transmit_ended(self):
+        with self.lock:
+            self.transmitting = False
+            self.settle_until = self.clock() + .3
+            self.quiet_since = None
 
     @staticmethod
     def devices():
@@ -74,7 +87,7 @@ class ReceiveMonitor:
                 self.quiet_since = None
             if not samples:
                 self.level = None
-            if level >= self.threshold:
+            if self.transmitting or now < self.settle_until or level >= self.threshold:
                 self.quiet_since = None
             elif self.quiet_since is None:
                 self.quiet_since = now
@@ -96,6 +109,10 @@ class ReceiveMonitor:
                     self.fault_code = 'no_samples'
                     return 'fault', None, 0
                 return 'starting', self.level, self.delay
+            if self.transmitting:
+                return 'transmitting', self.level, self.delay
+            if self.clock() < self.settle_until:
+                return 'settling', self.level, self.delay
             remaining = self.delay if self.quiet_since is None else max(0, self.delay-(self.clock()-self.quiet_since))
             return ('busy' if self.level >= self.threshold else 'waiting' if remaining else 'clear'), self.level, remaining
 
@@ -123,6 +140,8 @@ class ReceiveMonitor:
     def close(self):
         with self.lock:
             stream, self.stream = self.stream, None
+            self.transmitting = False
+            self.settle_until = 0
         if stream is not None:
             try: stream.abort()
             finally: stream.close()
@@ -134,11 +153,13 @@ class ReceiveCancel:
         self.cancel, self.monitor = cancel, monitor
         self.interrupted = False
         self.fault = None
+        self.ignore_busy = False
 
     def is_set(self):
         if self.cancel.is_set(): return True
         try:
-            if not self.monitor.ready(check_stream=False): self.interrupted = True
+            ready = self.monitor.ready(check_stream=False)
+            if not ready and not self.ignore_busy: self.interrupted = True
         except ValueError as exc:
             self.fault = exc
             self.interrupted = True

@@ -6,7 +6,7 @@ Choose TCP/Telnet and enter a hostname and port separately. The supplied example
 
 The adapter recognizes common login, callsign, username and password prompts, including prompts received in several fragments or without a newline. It also handles basic Telnet option negotiation. The connection control shows Connected when the network socket is open. A recognized session prompt can show Signed in while a quiet cluster waits for its first spot. Receiving DX spots still requires a validated spot.
 
-If the cluster needs a different response, use Manual response or cluster command. Commands are always visible, send one line and clear after sending. Enter sends the command too. The field is also available on Live spots. Commands and authentication responses are not written to history. The Source console shows the latest 15 incoming lines with known secrets and command echoes redacted. It remains session only and is never announced.
+If the cluster needs a different response, use Manual response or cluster command. Commands are always visible, send one line and clear after sending. Enter sends the command too. The field is also available on Live spots. Commands and authentication responses are not written to history. The Source console is 25 text rows tall with its own vertical scrollbar and keeps the latest 500 incoming lines with known secrets and command echoes redacted. It follows new traffic only while scrolled to the bottom. It remains session only and is never announced. The Source page also scrolls on smaller screens.
 
 A network connection alone does not prove sign in succeeded. Waiting for a valid spot can also mean the cluster is quiet. W4MR's current prompts and access requirements have not been tested live in this project.
 
@@ -25,6 +25,12 @@ The response must be a JSON array of at most 2000 spot records within 1 MiB. Eac
 The timestamp must represent the actual spot time. The example above illustrates format only and will expire. Ordinary web pages and arbitrary provider JSON schemas are not supported.
 
 ## Disconnects
+
+Cycle saved clusters after two retries is optional and off by default. The choice saves automatically and applies on the next Connect. After a connection failure, DXt makes two reconnect attempts to that node. If both fail, it moves to the next saved TCP/Telnet profile. Each alternate gets its initial attempt plus two retries before moving on. It cycles back to the starting node after exhausting the saved list and keeps the bounded retry backoff rather than rapidly cycling. Successful sign in or valid data resets the retry count. A quiet but open connection is not an outage. HTTPS feeds are excluded and duplicate host/port entries are tried only once per cycle.
+
+Failover snapshots the saved profile order on Connect. Each node uses its own callsign and remembered password; the current node's password is never copied to another node. Profiles with credentials that cannot be unlocked are excluded with a notice. Save needed credentials before connecting. The active profile appears in Source status while the preferred connection editor is retained. Reconnect to refresh the list after editing saved profiles. Old commands, spot forms and queued packets cannot cross into a replacement session. Disconnect stops the retry cycle. Stop all output stops audio and cancels automatic RF resumption while the source may continue reconnecting.
+
+Cluster failover does not itself authorize RF. Resume RF after source reconnect remains a separate applied option. It can restore previously enabled RF after a successful alternate sign in, receiver cleanup and required identification. Startup, Stop, manual disconnect and output faults still prevent automatic RF resumption.
 
 Connection failures disable RF and clear queued output. The source retries with increasing delays up to 60 seconds. Reconnect leaves RF disabled by default. Verify the connection and deliberately enable output when ready, or explicitly configure Resume RF after source reconnect as described in [Radio audio and PTT](radio.md).
 
