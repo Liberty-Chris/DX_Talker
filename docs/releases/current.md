@@ -1,9 +1,7 @@
-DX Talker 1.0.0b5 corrects special call band selection.
+DX Talker 1.0.0b6 fixes Unknown spot filtering and allows more time for radio relay release.
 
-Special calls now accepts literal watch text rather than requiring a complete callsign. With partial matching enabled by default, 8P/ matches 8P/K1ABC, 8P matches 8P9AA and W1AW also matches W1AWX. Matching ignores case and duplicate entries. Turn Match partial calls and portable variants off for exact full callsign matching. Symbols are literal text rather than wildcard syntax.
+Returned spots without a mode tag, including your own submissions, now pass when Unknown modes and unverified license eligibility are included and the frequency fits your selected class. The separate mode specific band table no longer incorrectly rejects these spots. Desktop and Android use the same correction. Known mode restrictions and frequencies outside your selected class remain excluded.
 
-A listed special spotted callsign now matches on any band, even when another band or None is selected. This applies to ordinary supplementary watches and Only these calls on desktop and Android. Portable variants follow the existing checkbox. Short calls such as C8K and genuine 1x1 calls such as W1A were already valid; the band check was rejecting their spots before the special call match was considered.
+With half duplex receive hold enabled, DXt now ignores receiver activity for one second after PTT releases so relay switching and remaining transmitted audio can settle. The configured quiet interval follows that settling period. The status text explains the sequence. Input fault monitoring remains active.
 
-Mode selections, Include unknown, explicit minimum/maximum frequency, license and location filters still apply. So do age, duplicate, queue, mute, Stop, identification and receive hold. Special keyword matches alone continue to follow the band selection. The same acceptance decision controls display, speech and the optional attention sound.
-
-All beta 4 receiver, console and cluster failover behavior remains in place. This is a filter correction during stable v1 testing. Android version code is 24.
+This beta retains beta 5 special call watches, partial matching, special words, attention sounds, scheduled IDs and saved cluster failover. Android version code is 25. Continue testing before stable v1.
