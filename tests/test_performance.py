@@ -20,9 +20,17 @@ class PerformanceTests(unittest.TestCase):
             self.assertTrue(failures[0].startswith(key + ':'))
 
     def test_reproduced_a14_navigation_and_idle_regression_is_rejected(self):
-        metrics = dict(ui_startup_ms=1517, navigation_median_ms=173,
+        metrics = dict(ui_startup_ms=1517, ui_startup_cpu_ms=500, navigation_median_ms=173,
                        navigation_p95_ms=620, scroll_median_ms=0,
                        scroll_p95_ms=0, idle_cpu_ratio=0.385 / 3)
         failures = violations(metrics)
         self.assertTrue(any(value.startswith('navigation_median_ms:') for value in failures))
         self.assertTrue(any(value.startswith('idle_cpu_ratio:') for value in failures))
+
+    def test_cold_runner_wait_does_not_hide_cpu_work_or_a_startup_stall(self):
+        metrics = {key: 0 for key in BUDGETS}
+        metrics.update(ui_startup_ms=3468, ui_startup_cpu_ms=650)
+        self.assertEqual(violations(metrics), [])
+        self.assertEqual(len(violations(dict(metrics, ui_startup_cpu_ms=2100))), 1)
+        self.assertEqual(len(violations(dict(metrics, ui_startup_ms=5100))), 1)
+        self.assertTrue(violations(dict(metrics, ui_startup_cpu_ms=None)))

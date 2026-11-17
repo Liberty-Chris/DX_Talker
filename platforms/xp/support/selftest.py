@@ -52,8 +52,10 @@ def run(destination):
         os.environ['LOCALAPPDATA'] = folder
         save_settings(Settings(check_updates=False))
         started = time.monotonic()
+        cpu_started = time.process_time()
         root = tk.Tk(); app = Application.__new__(Application); app.__init__(root); root.update()
         report['ui_startup_ms'] = (time.monotonic() - started) * 1000
+        report['ui_startup_cpu_ms'] = (time.process_time() - cpu_started) * 1000
         assert not app.engine.enabled and not app.engine.local_enabled
         assert set(app.variables) == {field.name for field in fields(Settings)}
         app._samples(); assert len(app.spots) == 3
@@ -71,7 +73,7 @@ def run(destination):
         report['qr_png'] = True
         report['settings_fields'] = len(fields(Settings))
         from dxtalker.performance import measure, violations, BUDGETS
-        report['performance'] = measure(app, report['ui_startup_ms'])
+        report['performance'] = measure(app, report['ui_startup_ms'], startup_cpu_ms=report['ui_startup_cpu_ms'])
         report['performance_budgets'] = BUDGETS
         report['performance_failures'] = violations(report['performance'])
         assert not report['performance_failures'], 'XP UI performance budget failed'

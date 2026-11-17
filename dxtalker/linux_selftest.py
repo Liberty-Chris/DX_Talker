@@ -65,8 +65,10 @@ def run(destination):
         os.environ['LOCALAPPDATA'] = temporary.name
         save_settings(Settings(check_updates=False))
         start = time.perf_counter()
+        cpu_start = time.process_time()
         root = tk.Tk(className='DXTalker'); app = Application(root); root.update()
         startup = (time.perf_counter() - start) * 1000
+        startup_cpu = (time.process_time() - cpu_start) * 1000
         assert not app.engine.enabled and not app.engine.local_enabled
         app._samples(); assert len(app.spots) == 3
         for index in range(len(app.notebook.tabs())): app.notebook.select(index); root.update()
@@ -74,7 +76,7 @@ def run(destination):
         from qrcode.image.pure import PyPNGImage
         output = io.BytesIO(); qrcode.make('synthetic profile collection', image_factory=PyPNGImage).save(output)
         report['qr_png'] = output.getvalue().startswith(b'\x89PNG')
-        report['performance'] = measure(app, startup)
+        report['performance'] = measure(app, startup, startup_cpu_ms=startup_cpu)
         report['performance_budgets'] = BUDGETS
         report['performance_failures'] = violations(report['performance'])
         assert not report['performance_failures']
