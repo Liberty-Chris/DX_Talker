@@ -295,7 +295,7 @@ class AppTests(unittest.TestCase):
 
     def test_new_source_clears_old_spots_and_discards_late_events(self):
         class FakeSource:
-            def __init__(self, settings, emit, secret):
+            def __init__(self, settings, emit, secret, **kwargs):
                 self.emit = emit
                 self.ready = threading.Event()
             def start(self): pass
@@ -320,9 +320,12 @@ class AppTests(unittest.TestCase):
         for _ in range(70):
             self.app._add_spot(self.spot())
         self.assertEqual(len(self.app.spots), 50)
-        for i in range(30):
+        for i in range(530):
             self.app._append_raw(str(i))
-        self.assertEqual(self.app.raw_lines, [str(i) for i in range(15, 30)])
+        self.assertEqual(self.app.raw_lines, [str(i) for i in range(30, 530)])
+        self.assertEqual(self.app.raw_console.get('1.0','end-1c'), '\n'.join(self.app.raw_lines))
+        self.assertEqual(int(self.app.raw_console.cget('height')),25)
+        self.assertEqual(str(self.app.raw_scrollbar.cget('orient')),'vertical')
         self.app._history_spot(self.spot())
         self.app._clear_spots()
         path = Path(self.folder.name) / "DXTalker/logs/history.jsonl"
@@ -599,7 +602,7 @@ class AppTests(unittest.TestCase):
 
     def test_rf_stopping_state_and_source_loss_never_auto_rearm(self):
         class Source:
-            def __init__(self, settings, emit, secret):
+            def __init__(self, settings, emit, secret, **kwargs):
                 self.emit = emit
                 self.ready = threading.Event()
                 self.connected = threading.Event()
@@ -791,7 +794,7 @@ class AppTests(unittest.TestCase):
     def test_listening_is_armed_before_the_first_connection_packet(self):
         app=self.app
         class Source:
-            def __init__(self, settings, emit, secret):
+            def __init__(self, settings, emit, secret, **kwargs):
                 self.emit=emit;self.ready=threading.Event();self.connected=threading.Event()
             def start(self):
                 assert app.engine.local_enabled
@@ -814,7 +817,7 @@ class AppTests(unittest.TestCase):
     def test_muted_listening_is_restored_before_connect_starts_the_source(self):
         app=self.app
         class Source:
-            def __init__(self,settings,emit,secret):
+            def __init__(self,settings,emit,secret,**kwargs):
                 self.emit=emit;self.ready=threading.Event();self.connected=threading.Event()
             def start(self):
                 assert app.engine.local_enabled and app.engine.local_muted
@@ -944,9 +947,20 @@ class AppTests(unittest.TestCase):
 
     def test_raw_console_and_manual_samples_are_separate_from_live_receipts(self):
         self.assertFalse(self.app.console_visible.get())
-        self.assertEqual(self.app.raw_console.winfo_manager(),'')
+        self.assertEqual(self.app.raw_console_frame.winfo_manager(),'')
         self.app._append_raw('DX de TEST: raw unfiltered diagnostic')
         self.assertFalse(self.app.spots)
         window=self.app._sample_preview()
         self.assertFalse(self.app.spots)
         window.destroy()
+
+    def test_raw_console_scroll_review_does_not_jump_to_new_traffic(self):
+        app=self.app
+        for i in range(100):app._append_raw(str(i))
+        app.console_visible.set(True);app.raw_console_frame.grid()
+        app._select_page('Source');self.root.deiconify();self.root.update()
+        app.raw_console.yview_moveto(.2);self.root.update()
+        position=app.raw_console.yview()[0]
+        app._append_raw('new traffic');self.root.update()
+        self.assertLess(app.raw_console.yview()[1],.99)
+        self.assertAlmostEqual(app.raw_console.yview()[0],position,delta=.02)

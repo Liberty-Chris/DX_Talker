@@ -227,7 +227,7 @@ class RFRecoveryTests(unittest.TestCase):
             def close(self): self.stream=None
             def ready(self, check_stream=True): return self.stream is not None and self.clear
         monitor=Monitor();self.engine.monitor=monitor
-        self.engine.configure(replace(self.settings,rf_auto_reconnect=True,receive_guard=True,receive_device='input'))
+        self.engine.configure(replace(self.settings,rf_auto_reconnect=True,receive_guard=True,receive_half_duplex=False,receive_device='input'))
         self.engine.enable();monitor.clear=True;self.engine.wake.set()
         wait_for(lambda:len(self.audio.played)==1 and not self.engine.busy)
         self.lose();self.connected=True;self.engine.source_restored()

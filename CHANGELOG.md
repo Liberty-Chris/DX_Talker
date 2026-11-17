@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0b4
+
+Enlarged Source raw traffic to 25 rows with an independent scrollbar, bounded 500 line session history and scrolling that stays put while reviewing older traffic. Added default half duplex receive blanking during own transmissions, fault monitoring during blanking and a fresh quiet interval after release and settling. Full duplex interruption remains available by disabling the option.
+
+Added optional saved cluster failover after two failed reconnect attempts. Cycle TCP/Telnet profiles in saved order with separate credentials and bounded backoff. Discard old session packets, commands and open spot forms on transport changes. Keep automatic RF recovery separately controlled. Existing saved settings migrate through defaults.
+
 
 ## 1.0.0b3
 

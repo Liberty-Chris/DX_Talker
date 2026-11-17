@@ -119,7 +119,7 @@ class DualOutputTests(unittest.TestCase):
         from test_receiver import FakeMonitor
         self.engine.monitor=monitor=FakeMonitor()
         monitor.clear=True
-        self.engine.settings=replace(self.settings,receive_guard=True,receive_device='receiver')
+        self.engine.settings=replace(self.settings,receive_guard=True,receive_half_duplex=False,receive_device='receiver')
         self.arm()
         radio,local=ControlledAudio(),ControlledAudio()
         self.engine.audio,self.engine.local_audio=radio,local
@@ -170,7 +170,7 @@ class DualOutputTests(unittest.TestCase):
     def test_receive_hold_defers_local_monitor_until_actual_transmission(self):
         from test_receiver import FakeMonitor
         self.engine.monitor=monitor=FakeMonitor()
-        self.engine.settings=replace(self.settings,receive_guard=True,receive_device='receiver')
+        self.engine.settings=replace(self.settings,receive_guard=True,receive_half_duplex=False,receive_device='receiver')
         self.arm()
         self.assertTrue(self.engine.offer(self.spot()))
         threading.Event().wait(.15)

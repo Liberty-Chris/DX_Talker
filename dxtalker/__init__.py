@@ -1,3 +1,3 @@
 """DX Talker Windows pilot. Copyright Chris Hockaday. All rights reserved."""
 
-__version__ = "1.0.0b3"
+__version__ = "1.0.0b4"

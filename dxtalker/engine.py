@@ -419,6 +419,7 @@ class Engine:
         watchdog = None
         local_thread = None
         local_done = threading.Event()
+        receive_blanked = False
         try:
             ptt.open()
             if s.receive_guard and not self.monitor.ready():
@@ -439,9 +440,20 @@ class Engine:
             watchdog = threading.Timer(s.max_tx_seconds, release_on_timeout)
             watchdog.daemon = True
             watchdog.start()
+            if receive_cancel and s.receive_half_duplex and s.ptt_method != 'VOX':
+                self.monitor.transmit_started()
+                receive_blanked = True
+                receive_cancel.ignore_busy = True
             ptt.set(True)
             self.emit("activity", "Transmitting")
             if playback_cancel.wait(s.lead_ms / 1000): raise Cancelled()
+            # VOX does not key during lead time. Keep listening until audio is
+            # actually about to start, then blank its possible receive loopback.
+            if receive_cancel and s.receive_half_duplex and s.ptt_method == 'VOX':
+                if not self.monitor.ready(): raise ChannelBusy()
+                self.monitor.transmit_started()
+                receive_blanked = True
+                receive_cancel.ignore_busy = True
             if clip is None:
                 if playback_cancel.wait(2): raise Cancelled()
             else:
@@ -477,6 +489,8 @@ class Engine:
             try:
                 ptt.close()
             finally:
+                if receive_blanked:
+                    self.monitor.transmit_ended()
                 if watchdog:
                     watchdog.cancel()
                 # Release PTT before waiting for the independent speakers.

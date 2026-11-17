@@ -12,8 +12,39 @@ from dxtalker.models import load_settings, Settings
 
 @unittest.skipUnless(sys.platform=='win32' or os.environ.get('DISPLAY'),'Requires desktop display')
 class UsabilityTests(unittest.TestCase):
+    def test_failover_connect_snapshots_saved_nodes_without_cross_using_credentials(self):
+        app=self.app
+        app.profile_store.protector=lambda text,decrypt=False: text[7:] if decrypt else 'locked:'+text
+        app.profile_store.save('Backup',replace(app.settings,host='backup.invalid',login='K2BBB'),'backup-password',True)
+        app.variables['cluster_failover'].set(True)
+        app.secret.set('primary-password')
+        source=Mock();source.connected=threading.Event()
+        with patch('dxtalker.app.SourceClient',return_value=source) as constructor:app._connect()
+        self.assertTrue(constructor.call_args.args[0].cluster_failover)
+        self.assertEqual(constructor.call_args.args[2],'primary-password')
+        name,settings,secret=constructor.call_args.kwargs['alternates'][0]
+        self.assertEqual((name,settings.host,settings.login,secret),('Backup','backup.invalid','K2BBB','backup-password'))
+        self.assertFalse(app.engine.enabled)
+
+    def test_late_packets_are_bound_to_source_session(self):
+        from types import SimpleNamespace
+        app=self.app
+        app.source=SimpleNamespace(session_epoch=2,stop=lambda:None,connected=threading.Event(),ready=threading.Event(),signed_in=threading.Event(),settings=app.settings)
+        generation=app.source_generation
+        app.emit('source_event',(generation,'spot_session',(1,self.spot())))
+        app._poll()
+        self.assertFalse(app.spots)
+
+    def test_session_packet_events_stay_bounded_and_do_not_hide_control_events(self):
+        app=self.app;generation=app.source_generation
+        app.emit('source_event',(generation,'spot_session',(1,self.spot())))
+        app.emit('source_event',(generation,'raw_session',(1,'synthetic')))
+        self.assertEqual(app.events.get_nowait()[1][1],'spot_session')
+        self.assertEqual(app.raw_events.get_nowait()[1][1],'raw_session')
+
     setUp=_Fixtures.setUp
     tearDown=_Fixtures.tearDown
+    spot=_Fixtures.spot
 
     def test_words_and_attention_sound_autosave_without_applying_rf_option(self):
         app = self.app
@@ -36,7 +67,7 @@ class UsabilityTests(unittest.TestCase):
     def test_source_readiness_is_ordered_before_loss_without_waiting_for_ui_poll(self):
         app = self.app
         class Source:
-            def __init__(self, settings, emit, secret): self.emit=emit; self.connected=threading.Event()
+            def __init__(self, settings, emit, secret, **kwargs): self.emit=emit; self.connected=threading.Event()
             def start(self): pass
             def stop(self): pass
         with patch('dxtalker.app.SourceClient', Source): app._connect()
@@ -262,7 +293,7 @@ class UsabilityTests(unittest.TestCase):
     def test_source_loss_invalidates_pending_rf_enable(self):
         app=self.app
         class Source:
-            def __init__(self,settings,emit,secret):self.emit=emit;self.connected=threading.Event()
+            def __init__(self,settings,emit,secret,**kwargs):self.emit=emit;self.connected=threading.Event()
             def start(self):pass
             def stop(self):pass
         with patch('dxtalker.app.SourceClient',Source):app._connect()
@@ -302,7 +333,7 @@ class UsabilityTests(unittest.TestCase):
     def test_switch_cluster_uses_one_action_without_applying_radio_draft(self):
         app=self.app
         class Source:
-            def __init__(self,settings,emit,secret):self.settings=settings;self.connected=threading.Event();self.connected.set();self.stop=Mock()
+            def __init__(self,settings,emit,secret,**kwargs):self.settings=settings;self.connected=threading.Event();self.connected.set();self.stop=Mock()
             def start(self):pass
         with patch('dxtalker.app.SourceClient',Source):
             app._connect()

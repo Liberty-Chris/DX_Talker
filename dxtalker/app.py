@@ -312,6 +312,8 @@ class Application(Usability):
             self.root.bind_class(tag, "<MouseWheel>", wheel)
 
             def bind_children(widget):
+                if widget is self.raw_console or widget is self.raw_scrollbar:
+                    return
                 widget.bindtags((tag,) + widget.bindtags())
                 for child in widget.winfo_children():
                     bind_children(child)
@@ -615,14 +617,22 @@ class Application(Usability):
                   wraplength=610).grid(row=5, column=0, columnspan=3, sticky="w", pady=(4, 8))
         self.source_hint = tk.StringVar()
         ttk.Label(details, textvariable=self.source_hint, wraplength=610).grid(row=6, column=0, columnspan=3, sticky="w")
+        self._field(details, 7, 'Cycle saved clusters after two retries', 'cluster_failover', compact=True)
+        ttk.Label(details, text='Optional. Applies on Connect. Uses saved TCP/Telnet profiles in list order and each profile’s own saved credentials. RF recovery is a separate Audio / PTT setting.', wraplength=610).grid(row=8,column=0,columnspan=3,sticky='w',pady=6)
         self._command_bar(frame, 2)
         console = ttk.LabelFrame(frame, text="Unfiltered diagnostic console", padding=8)
         console.grid(row=3, column=0, sticky="w", pady=8)
         self.console_visible=tk.BooleanVar(value=False)
-        ttk.Checkbutton(console,text='Show raw cluster traffic. Bypasses listening filters; not an announcement list.',variable=self.console_visible,command=lambda:self.raw_console.grid() if self.console_visible.get() else self.raw_console.grid_remove()).grid(row=0,column=0,sticky='w')
-        self.raw_console = tk.Text(console, height=5, width=76, wrap="word", state="disabled", font=("Consolas", 10))
-        self.raw_console.grid(row=1, column=0, pady=(6, 0))
-        self.raw_console.grid_remove()
+        self.raw_console_frame = ttk.Frame(console)
+        self.raw_console_frame.grid(row=1,column=0,sticky='ew',pady=(6,0))
+        self.raw_console_frame.columnconfigure(0,weight=1)
+        ttk.Checkbutton(console,text='Show raw cluster traffic. Bypasses listening filters; not an announcement list.',variable=self.console_visible,command=lambda:self.raw_console_frame.grid() if self.console_visible.get() else self.raw_console_frame.grid_remove()).grid(row=0,column=0,sticky='w')
+        self.raw_console = tk.Text(self.raw_console_frame, height=25, width=76, wrap="word", state="disabled", font=("Consolas", 10))
+        self.raw_console.grid(row=0, column=0, sticky='ew')
+        self.raw_scrollbar=ttk.Scrollbar(self.raw_console_frame,orient='vertical',command=self.raw_console.yview)
+        self.raw_scrollbar.grid(row=0,column=1,sticky='ns')
+        self.raw_console.configure(yscrollcommand=self.raw_scrollbar.set)
+        self.raw_console_frame.grid_remove()
         self.raw_lines = []
         self._refresh_profiles()
         self.combos["source_type"].bind("<<ComboboxSelected>>", lambda event: self._source_type_changed(clear_secret=True))
@@ -679,6 +689,8 @@ class Application(Usability):
         self.field_widgets['receive_device'].configure(width=48)
         self._field(receive, 2, "Audio threshold (dBFS)", "receive_threshold_db", note="Minus 60 to minus 5. Lower detects quieter audio.", compact=True)
         self._field(receive, 3, "Quiet delay (s)", "receive_quiet_seconds", note="5 to 10 seconds after received audio ends", compact=True)
+        self._field(receive, 7, 'Half duplex: ignore audio during own transmit', 'receive_half_duplex', compact=True)
+        ttk.Label(receive,text='Enabled by default for HTs and transmit audio loopback. Input faults still stop RF. After release, allow 300 ms to settle and require a new quiet interval. Disable only with an independent receiver that can detect other stations during transmission.',wraplength=610).grid(row=8,column=0,columnspan=3,sticky='w',pady=6)
         self.receive_status = tk.StringVar(value='Receive monitor off')
         ttk.Label(receive, textvariable=self.receive_status, wraplength=610).grid(row=4, column=0, columnspan=3, sticky='w', pady=8)
         self.receive_test_button = ttk.Button(receive, text='Test receive input', command=self.guard(self._test_receive))
@@ -694,7 +706,7 @@ class Application(Usability):
             ttk.Label(power, text='Applies while listening, RF or a preview is active. Does not change Num Lock, screensaver or lock settings. Save and apply.', wraplength=610).grid(row=1,column=0,columnspan=3,sticky='w',pady=(8,0))
 
     def _test_ptt(self):
-        keys=('ptt_method','serial_port','active_high','receive_guard','receive_device','receive_threshold_db','receive_quiet_seconds','max_tx_seconds')
+        keys=('ptt_method','serial_port','active_high','receive_guard','receive_half_duplex','receive_device','receive_threshold_db','receive_quiet_seconds','max_tx_seconds')
         values={}
         for key in keys:
             try:values[key]=type(getattr(Settings(),key))(self.variables[key].get())
@@ -717,7 +729,9 @@ class Application(Usability):
         state,level,remaining=monitor.snapshot()
         descriptions={'off':'Receive monitor off','fault':'Input unavailable. '+monitor.fault_message(),
                       'starting':'Waiting for the first input samples','busy':'Audio above threshold. RF waiting.',
-                      'waiting':f'Quiet delay. {remaining:.1f} seconds remaining.','clear':'Channel clear.'}
+                      'waiting':f'Quiet delay. {remaining:.1f} seconds remaining.','clear':'Channel clear.',
+                      'transmitting':'Own transmission. Busy audio ignored; input health monitored.',
+                      'settling':'PTT released. Waiting for receive audio to settle before a new quiet interval.'}
         measured=f' Measured {level:.0f} dBFS.' if state not in ('off','starting','fault') and level is not None else ' No current measurement.' if state!='off' else ''
         self.render_cache.set(self.receive_status,descriptions[state]+measured)
         if state=='fault' and getattr(self,'last_receive_fault',None)!=monitor.fault_code:
@@ -1088,11 +1102,14 @@ class Application(Usability):
         self.raw_console.configure(state="disabled")
 
     def _append_raw(self, value):
-        self.raw_lines = (self.raw_lines + [value])[-15:]
+        follow = not self.console_visible.get() or self.raw_console.yview()[1] >= .999
+        previous = len(self.raw_lines)
+        self.raw_lines = (self.raw_lines + [value])[-500:]
         self.raw_console.configure(state="normal")
-        self.raw_console.delete("1.0", "end")
-        self.raw_console.insert("end", "\n".join(self.raw_lines))
-        self.raw_console.see("end")
+        self.raw_console.insert("end", ('\n' if previous else '') + value)
+        if previous >= 500:
+            self.raw_console.delete('1.0','2.0')
+        if follow: self.raw_console.see("end")
         self.raw_console.configure(state="disabled")
 
     def _clear_spots(self):
@@ -1573,6 +1590,7 @@ class Application(Usability):
         self._when_idle(apply_radio, stop=True)
 
     def _connect(self):
+        self._flush_preferences(('cluster_failover',))
         updated = read_group(self.settings, self.variables, SOURCE_FIELDS)
         updated.validate_connection()
         secret = self.secret.get()
@@ -1601,6 +1619,15 @@ class Application(Usability):
         self.connected_profile = self.profile_name.get().strip() or "Unsaved source"
         self._history_record("connection", profile=self.connected_profile, source_type=self.settings.source_type)
         generation = self.source_generation
+        alternates = []
+        if self.settings.cluster_failover and self.profile_store:
+            for item in sorted(self.profile_store.profiles, key=lambda item: item['name'].casefold()):
+                if item['connection']['source_type'] != 'TCP/Telnet': continue
+                try:
+                    alternate, credential = self.profile_store.load(item['id'], self.settings)
+                    alternates.append((item['name'], alternate, credential))
+                except Exception:
+                    self._show_notice('A saved cluster could not be unlocked and was excluded from automatic failover. Reenter and save its credentials.')
 
         def source_event(kind, value):
             if generation != self.source_generation:
@@ -1610,10 +1637,14 @@ class Application(Usability):
                 self.engine.stop("Source lost. RF disabled.", defer_cleanup=True)
             elif kind == "source_ready" or kind == "source_state" and value.startswith("Signed in"):
                 self.engine.source_restored()
+            if kind in ('spot', 'raw'):
+                value = (getattr(client, 'session_epoch', 0), value)
+                kind += '_session'
             self.emit("source_event", (generation, kind, value))
 
         self.active_secret=secret
-        self.source = SourceClient(self.settings, source_event, secret)
+        client = SourceClient(self.settings, source_event, secret, alternates=alternates, profile_name=self.connected_profile)
+        self.source = client
         self.connection_phase = "connecting"
         if keep_listening:
             self.engine.listen_locally(muted=keep_muted)
@@ -1772,9 +1803,9 @@ class Application(Usability):
         # spot queue, so a burst of spots cannot hide a disconnect or output fault.
         target = self.control_events
         if kind == "source_event":
-            if value[1] == "raw":
+            if value[1] in ("raw", "raw_session"):
                 target = self.raw_events
-            elif value[1] == "spot":
+            elif value[1] in ("spot", "spot_session"):
                 target = self.events
         try:
             target.put_nowait((kind, value))
@@ -1794,6 +1825,18 @@ class Application(Usability):
                 if kind == "source_event":
                     generation, kind, value = value
                     if generation != self.source_generation:
+                        continue
+                    if kind in ('spot_session', 'raw_session'):
+                        epoch, value = value
+                        if self.source is None or epoch != getattr(self.source, 'session_epoch', 0): continue
+                        kind = kind.split('_', 1)[0]
+                    if kind == 'source_switch':
+                        self.connected_profile = value['name']
+                        self.connected_identity = tuple(value['connection'][key] for key in SOURCE_FIELDS)
+                        self._clear_spots()
+                        self._clear_console()
+                        self.source_status.set('Source: switching to saved cluster ' + value['name'])
+                        self._journal('Switching to saved cluster ' + value['name'])
                         continue
                     if kind == "source_health":
                         self.diagnostics.record("source_health", **value)
@@ -1819,7 +1862,7 @@ class Application(Usability):
                     elif kind == "source_lost":
                         self.source_ready = False
                         self.connection_phase = "retrying"
-                    self.source_status.set("Source: " + value)
+                    self.source_status.set("Source: " + value + (' [' + self.connected_profile + ']' if self.settings.cluster_failover else ''))
                 elif kind == "schedule_event":
                     self.diagnostics.record("voice_schedule", **value)
                     from .id_schedule import entries

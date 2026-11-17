@@ -1,5 +1,9 @@
 # Troubleshooting
 
+## Receive detector hears DXt itself
+
+Keep receiver audio at a useful level and enable Half duplex: ignore audio during own transmit in Audio / PTT, then Apply radio changes. The receiver still gates the next transmission and input failures still stop RF. The detector ignores busy audio during the app's own transmission and starts a new quiet interval after release and a 300 ms settling period. With an independent receiver, disabling this option restores interruption by incoming activity during transmission. A simplex HT cannot monitor another caller while keyed. Check that the chosen recording input is the receiver rather than Stereo Mix or a room microphone and disable unintended microphone playback in Windows.
+
 ## No audio devices or COM ports
 
 Connect the interface and choose Refresh audio and serial devices. If running from source, install requirements.txt into the same Python environment used to launch the app. Use a uniquely named output if duplicate device names are reported.

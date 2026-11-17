@@ -12,6 +12,50 @@ from dxtalker.source import NoRedirect, SourceClient
 
 
 class SourceTests(unittest.TestCase):
+    def test_failover_retries_twice_then_cycles_with_profile_credentials_and_backoff(self):
+        observed, tried, waits = [], [], []
+        first=Settings(host='one.invalid',login='K1AAA',cluster_failover=True)
+        second=replace(first,host='two.invalid',login='K2BBB')
+        client=SourceClient(first,lambda *e:observed.append(e),'secret-one',alternates=[('Two',second,'secret-two'),('Duplicate',second,'wrong-secret')])
+        def cluster():
+            tried.append((client.settings.host,client.settings.login,client.secret))
+            client._raw(client.secret)
+            client.commands.put('discard-this-command')
+            raise ConnectionRefusedError()
+        def wait(delay):
+            waits.append(delay);self.assertTrue(client.commands.empty())
+            return len(tried)>=7
+        with patch.object(client,'_cluster',cluster),patch.object(client.cancel,'wait',wait):client._run()
+        self.assertEqual([t[0] for t in tried],['one.invalid']*3+['two.invalid']*3+['one.invalid'])
+        self.assertEqual(tried[3],('two.invalid','K2BBB','secret-two'))
+        self.assertEqual(waits,[2,4,8,16,32,60,60])
+        self.assertNotIn('secret-one',str(observed));self.assertNotIn('secret-two',str(observed))
+        self.assertEqual(client.secret,'');self.assertEqual(client.nodes,[])
+
+    def test_disabled_failover_and_stop_do_not_switch_profiles(self):
+        for enabled in (False,True):
+            events=[];tried=[]
+            client=SourceClient(Settings(cluster_failover=enabled),lambda *e:events.append(e),alternates=[('Other',Settings(host='other.invalid'),'')])
+            def cluster():tried.append(client.settings.host);raise OSError()
+            def wait(delay):
+                if len(tried)==3:client.stop();return True
+                return False
+            with patch.object(client,'_cluster',cluster),patch.object(client.cancel,'wait',wait):client._run()
+            self.assertEqual(len(set(tried)),1)
+            self.assertFalse(any(k=='source_switch' for k,v in events))
+
+    def test_failover_retry_count_resets_only_on_ready_or_confirmed_signin(self):
+        tried=[];events=[]
+        client=SourceClient(Settings(cluster_failover=True),lambda *e:events.append(e),alternates=[('Other',Settings(host='other.invalid'),'')])
+        def cluster():
+            tried.append(client.settings.host)
+            if len(tried)==3:client.emit('source_ready','Receiving DX spots')
+            raise OSError()
+        def wait(delay):return len(tried)>=6
+        with patch.object(client,'_cluster',cluster),patch.object(client.cancel,'wait',wait):client._run()
+        self.assertEqual(tried[:5],['w4mr.ddns.net']*5)
+        self.assertEqual(tried[5],'other.invalid')
+
     def test_retry_backoff_is_bounded_and_success_resets_it(self):
         observed, waits = [], []
         client = SourceClient(Settings(), lambda *event: observed.append(event))

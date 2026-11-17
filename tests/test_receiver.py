@@ -12,6 +12,23 @@ from dxtalker.audio import Cancelled
 
 
 class DetectorTests(unittest.TestCase):
+    def test_own_transmit_audio_is_blanked_but_faults_and_new_quiet_delay_remain(self):
+        from dxtalker.receiver import ReceiveCancel
+        tick=[10.0];monitor=ReceiveMonitor(clock=lambda:tick[0])
+        monitor.stream=SimpleNamespace(active=True);monitor._started_at=0
+        monitor.feed(array('h',[0]*1024).tobytes());monitor.quiet_since=0
+        self.assertTrue(monitor.ready())
+        cancel=ReceiveCancel(threading.Event(),monitor);cancel.ignore_busy=True
+        monitor.transmit_started();monitor.feed(array('h',[6000]*1024).tobytes())
+        self.assertEqual(monitor.snapshot()[0],'transmitting');self.assertFalse(cancel.is_set())
+        monitor.transmit_ended();tick[0]=10.2;monitor.feed(array('h',[0]*1024).tobytes())
+        self.assertEqual(monitor.snapshot()[0],'settling');self.assertFalse(monitor.ready())
+        tick[0]=10.4;monitor.feed(array('h',[0]*1024).tobytes())
+        tick[0]=17.3;monitor.feed(array('h',[0]*1024).tobytes());self.assertFalse(monitor.ready())
+        tick[0]=17.5;monitor.feed(array('h',[0]*1024).tobytes());self.assertTrue(monitor.ready())
+        monitor.transmit_started();monitor.feed(b'\0\0',fault=True)
+        self.assertTrue(cancel.is_set());self.assertIsNotNone(cancel.fault)
+
     def test_quiet_delay_resets_and_faults_close_the_gate(self):
         tick=[0]
         monitor=ReceiveMonitor(clock=lambda:tick[0])
@@ -51,6 +68,8 @@ class FakeMonitor:
     def ready(self, **kwargs):
         if self.failed:raise ValueError('Receive audio monitoring failed')
         return self.clear
+    def transmit_started(self):self.blanked=True
+    def transmit_ended(self):self.blanked=False;self.clear=False
 
 
 class ReceiverEngineTests(unittest.TestCase):
@@ -59,7 +78,7 @@ class ReceiverEngineTests(unittest.TestCase):
     spot = _EngineTests.spot
     def guarded(self):
         self.monitor=FakeMonitor();self.engine.monitor=self.monitor
-        self.engine.configure(replace(self.settings,receive_guard=True,receive_device='receiver'))
+        self.engine.configure(replace(self.settings,receive_guard=True,receive_half_duplex=False,receive_device='receiver'))
 
     def test_busy_defers_initial_id_and_spots_without_losing_queue(self):
         self.guarded();self.engine.enable();self.engine.offer(self.spot())
@@ -123,5 +142,40 @@ class ReceiverEngineTests(unittest.TestCase):
         self.guarded();self.engine.listen_locally();self.engine.offer(self.spot())
         wait_for(lambda:len(self.audio.played)==1 and not self.engine.busy)
         self.assertFalse(self.monitor.started);self.assertEqual(self.ptts,[])
+
+    def test_half_duplex_own_audio_does_not_cancel_id_and_next_item_waits(self):
+        self.guarded();self.monitor.clear=True
+        self.engine.configure(replace(self.engine.settings,receive_half_duplex=True))
+        monitor=self.monitor
+        class Loopback(FakeAudio):
+            def play(this,clip,device,volume,cancel,deadline):
+                this.assert_blanked=getattr(monitor,'blanked',False)
+                monitor.clear=False
+                self.assertFalse(cancel.wait(.02))
+                super().play(clip,device,volume,cancel,deadline)
+        self.engine.audio=Loopback()
+        with self.engine.lock:
+            self.engine.enable();self.engine.offer(self.spot())
+        wait_for(lambda:len(self.engine.audio.played)==1 and not self.engine.busy)
+        self.assertTrue(self.engine.audio.assert_blanked)
+        self.assertFalse(monitor.blanked);self.assertTrue(self.engine.enabled)
+        self.assertEqual(self.engine.alternate,1)
+        self.assertEqual(len(self.engine.items),1)
+        time.sleep(.1);self.assertEqual(len(self.ptts),1)
+        self.assertEqual(self.ptts[0].calls[-2:],[False,'close'])
+
+    def test_half_duplex_input_fault_still_releases_ptt_and_disarms(self):
+        self.guarded();self.monitor.clear=True
+        self.engine.configure(replace(self.engine.settings,receive_half_duplex=True,ptt_method='RTS',serial_port='COM99'))
+        monitor=self.monitor
+        class InputFailure(FakeAudio):
+            def play(this,clip,device,volume,cancel,deadline):
+                monitor.failed=True
+                self.assertTrue(cancel.is_set())
+                raise Cancelled()
+        self.engine.audio=InputFailure();self.engine.enable()
+        wait_for(lambda:bool(self.ptts) and not self.engine.enabled and not self.engine.busy)
+        self.assertFalse(monitor.blanked)
+        self.assertEqual(self.ptts[0].calls[-2:],[False,'close'])
 
 del _EngineTests

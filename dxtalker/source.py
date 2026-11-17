@@ -26,11 +26,23 @@ class ClusterLoginError(PermissionError):
 
 
 class SourceClient:
-    def __init__(self, settings: Settings, emit, session_secret="", connector=socket.create_connection):
+    def __init__(self, settings: Settings, emit, session_secret="", connector=socket.create_connection, alternates=(), profile_name="Current cluster"):
         settings.validate_connection()
         self.settings, self.secret = settings, session_secret
         self.retry_delay = 2
         self.attempt = 0
+        self.session_epoch = 0
+        self.node_index = 0
+        self.node_failures = 0
+        self.nodes = [(profile_name, settings, session_secret)]
+        if settings.cluster_failover and settings.source_type == 'TCP/Telnet':
+            seen = {(settings.host.lower(), settings.port)}
+            for name, alternate, secret in alternates:
+                alternate.validate_connection()
+                identity = (alternate.host.lower(), alternate.port)
+                if alternate.source_type == 'TCP/Telnet' and identity not in seen:
+                    self.nodes.append((name, alternate, secret))
+                    seen.add(identity)
         self.ready = threading.Event()
         self.signed_in = threading.Event()
         self.connected = threading.Event()
@@ -41,6 +53,7 @@ class SourceClient:
             if kind == "source_ready" and not self.cancel.is_set():
                 self.ready.set()
                 self.retry_delay = 2
+                self.node_failures = 0
             elif kind == "source_lost" or (kind == "source_state" and value == "Disconnected"):
                 self.ready.clear()
                 self.signed_in.clear()
@@ -48,6 +61,7 @@ class SourceClient:
             if kind in ('source_connected', 'source_ready'):
                 emit('source_health', dict(code='receiving' if kind == 'source_ready' else 'connected', attempt=self.attempt))
             elif kind == 'source_state' and value.startswith('Signed in'):
+                self.node_failures = 0
                 emit('source_health', dict(code='signed_in', attempt=self.attempt))
             emit(kind, value)
 
@@ -56,7 +70,7 @@ class SourceClient:
         self.cancel = threading.Event()
         self.commands = queue.Queue(maxsize=8)
         self.redaction_lock = threading.Lock()
-        self.redactions = [session_secret] if session_secret else []
+        self.redactions = list(dict.fromkeys(secret for _, _, secret in self.nodes if secret))
         self.last_spot_sent = None
         self.sock = None
         self.socket_lock = threading.Lock()
@@ -117,7 +131,7 @@ class SourceClient:
     def _raw(self, line):
         # Console is session only. Scrub known credentials and all manual echoes.
         with self.redaction_lock:
-            for value in sorted(self.redactions, key=len, reverse=True):
+            for value in sorted(set(self.redactions + ([self.secret] if self.secret else [])), key=len, reverse=True):
                 line = line.replace(value, "[redacted]")
         line = re.sub(r"(?i)(password|token|secret)\s*[:=]\s*\S+", r"\1: [redacted]", line)
         line = "".join(c for c in line if c.isprintable())[:1024]
@@ -127,6 +141,7 @@ class SourceClient:
         while not self.cancel.is_set():
             failure = None
             self.attempt += 1
+            self.session_epoch += 1
             self.emit("source_health", dict(code="attempt", attempt=self.attempt))
             try:
                 if self.settings.source_type == "TCP/Telnet":
@@ -169,10 +184,20 @@ class SourceClient:
                 delay = self.retry_delay
                 self.emit("source_health", dict(code="retry", attempt=self.attempt, delay_seconds=delay, error_type=type(failure).__name__))
                 self.emit("source_lost", f"{detail}. Retrying in {delay}s. RF is disabled.")
+                self.node_failures += 1
                 if self.cancel.wait(delay):
                     break
                 self.retry_delay = min(delay * 2, 60)
+                if self.node_failures >= 3 and len(self.nodes) > 1 and not self.cancel.is_set():
+                    self.node_index = (self.node_index + 1) % len(self.nodes)
+                    name, self.settings, self.secret = self.nodes[self.node_index]
+                    self.node_failures = 0
+                    self.last_spot_sent = None
+                    self.emit('source_health', dict(code='failover', node_index=self.node_index, attempt=self.attempt))
+                    self.emit('source_switch', {'name': name, 'connection': {k: getattr(self.settings, k) for k in ('source_type', 'host', 'port', 'login', 'feed_url', 'poll_seconds')}})
         self.secret = ""
+        self.nodes.clear()
+        self.redactions.clear()
         self.connected.clear()
         self.emit("source_state", "Disconnected")
 
@@ -257,6 +282,8 @@ class SourceClient:
                             framer.buffer.clear()
                         self.emit("source_state", "Callsign sent. Waiting for sign in confirmation or a valid spot.")
                     else:
+                        if self.node_index:
+                            raise ClusterLoginError('Saved cluster needs a login callsign for automatic failover')
                         self.emit("source_state", "Sign in requested. Enter a callsign or use the manual response field.")
                 elif password and not sent_password:
                     if not complete:
@@ -268,6 +295,8 @@ class SourceClient:
                             framer.buffer.clear()
                         self.emit("source_state", "Password sent. Waiting for sign in confirmation or a valid spot.")
                     else:
+                        if self.node_index:
+                            raise ClusterLoginError('Saved cluster needs a remembered password for automatic failover')
                         self.emit("source_state", "Password requested. Enter it in the password field and reconnect, or send a visible manual response.")
                 spot = parse_line(line, "cluster") if complete else None
                 if spot:

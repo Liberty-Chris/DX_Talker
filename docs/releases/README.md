@@ -1,6 +1,6 @@
 # Pilot downloads
 
-Current source version: 1.0.0b3. Downloads become available after publication.
+Current source version: 1.0.0b4. Downloads become available after publication.
 
 [1.0.0b1](https://github.com/Liberty-Chris/DX_Talker/releases/tag/v1.0.0b1)
 
