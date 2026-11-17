@@ -60,7 +60,7 @@ class BandTableTests(unittest.TestCase):
         self.assertFalse(matches(spot, replace(s, special_calls_portable=False)))
         self.assertFalse(matches(replace(spot, dx_call='W1AWX'), s))
         self.assertFalse(matches(spot, replace(s, filter_modes='CW')))
-        self.assertFalse(matches(spot, replace(s, filter_bands='40m')))
+        self.assertTrue(matches(spot, replace(s, filter_bands='40m')))
         self.assertFalse(matches(spot, replace(s, filter_dx_countries='JP')))
         self.assertTrue(matches(spot, replace(s, special_calls_only=False)))
         self.assertFalse(matches(replace(spot, dx_call='K1ABC'), replace(s, special_calls_only=False)))

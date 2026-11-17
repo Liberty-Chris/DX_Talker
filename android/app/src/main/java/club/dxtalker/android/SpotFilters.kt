@@ -55,13 +55,13 @@ object SpotFilters {
         val selectedModes=selection(get("filter_modes"),modes)
         val selectedActivities=selection(get("filter_activities"),activities)
         val band=bands.entries.firstOrNull { spot.frequency>=it.value.first.toBigDecimal() && spot.frequency<it.value.second.toBigDecimal() }?.key ?: "Other"
-        if(selectedBands.isNotEmpty() && band !in selectedBands)return "Band"
-        val mode=mode(spot.comment,spot.mode,spot.frequency)
-        if(mode=="Unknown" && "Unknown" !in selectedModes)return "Mode unknown"
-        if(selectedModes.isNotEmpty() && mode !in selectedModes)return if(mode=="Unknown")"Mode unknown"else "Mode"
         val calls=callsSelection(get("special_calls"))
         val portable=get("special_calls_portable")!="false"
         val callMatch=spot.call.uppercase() in calls || portable && calls.any { '/' !in it && it in spot.call.uppercase().split('/') }
+        if(selectedBands.isNotEmpty() && band !in selectedBands && !callMatch)return "Band"
+        val mode=mode(spot.comment,spot.mode,spot.frequency)
+        if(mode=="Unknown" && "Unknown" !in selectedModes)return "Mode unknown"
+        if(selectedModes.isNotEmpty() && mode !in selectedModes)return if(mode=="Unknown")"Mode unknown"else "Mode"
         val wordMatch=keywordMatches(spot.comment,keywordSelection(get("special_keywords")))
         if(get("special_calls_only")=="true" || get("special_keywords_only")=="true") {
             if(!(get("special_calls_only")=="true" && callMatch || get("special_keywords_only")=="true" && wordMatch))return if(get("special_keywords_only")=="true")"Special calls or words" else "Special calls"

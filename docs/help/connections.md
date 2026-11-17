@@ -40,7 +40,7 @@ A quiet feed is different from a lost connection. No recent cluster data means t
 
 ## Quick connection guide
 
-On Source, choose a saved profile or open Cluster directory to select an installed node. Check the hostname, port and login callsign, then choose Connect. On Live spots, watch Source status and expand Source activity if you need to inspect a banner or prompt. A connected socket can still be awaiting sign in. Matching spots populate the list with both audio routes off. Choose Listen locally for spoken announcements or configure Audio / PTT and IDs before deliberately enabling RF.
+On Source, choose a saved profile or open Cluster directory to select an installed node. Check the hostname, port and login callsign, then choose Connect. On Live spots, watch Source status and expand Source activity if you need to inspect a banner or prompt. A connected socket can still be awaiting sign in. Matching spots populate the list with both audio routes off. Listed special calls match across selected bands; other filters still apply. Choose Listen locally for spoken announcements or configure Audio / PTT and IDs before deliberately enabling RF.
 
 Most listening choices are local to DXt. Set bands, modes, activities and locations on Filters. Cluster account filters can remove reports before DXt receives them. Changing DXt filters cannot restore reports withheld by the server. Different nodes may carry different traffic or have different access and command policies. Save more than one profile so another node is available during an outage.
 

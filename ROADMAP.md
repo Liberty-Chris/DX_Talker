@@ -21,6 +21,8 @@ Work through the connection and local audio stages before enabling radio transmi
 
 ## Immediate next task
 
+The 1.0.0b5 correction makes listed special calls bypass the band checklist on desktop and Android. Other filters remain active. Continue stable v1 testing and fixes.
+
 The 1.0.0b4 followup addresses the reported self receive interruption, makes raw cluster traffic independently scrollable and adds the requested optional saved cluster failover. Test these with the same stable v1 acceptance scope below. This is the remaining requested reconnect work; further changes return to fixes and testing.
 
 The 1.0.0b3 batch is the final feature update before stable v1. Test and fix this scope: cluster recovery and output state, radio apply behavior, the supplied mode table, expanded activities and special calls, scheduled voice IDs and essential offline help. The final requested additions are opted in source RF recovery, special keyword watches and attention sounds on desktop and Android. Essential help stays bundled. Additional guides link to [WB4IUY’s DX Talker help](https://wb4iuy.net/dxtalker/).

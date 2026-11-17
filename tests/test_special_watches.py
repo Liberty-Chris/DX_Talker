@@ -22,6 +22,20 @@ def spot(call='W1AW/3', comment='SSB USS Cobia', frequency='14225', reporter='N0
 
 
 class KeywordTests(unittest.TestCase):
+    def test_short_special_calls_bypass_band_selection_but_not_other_limits(self):
+        from dxtalker.models import parse_line, valid_call
+        from dxtalker.filtering import calls_selection, rejection
+        for call in ('C8K','K1A','W1A'):
+            self.assertTrue(valid_call(call))
+            self.assertEqual(calls_selection(call.lower()),{call})
+            now=datetime.now(UTC)
+            parsed=parse_line(f'DX de W3LPL: 14025 {call} CW {now:%H%M}Z','fixture',now)
+            self.assertEqual(parsed.dx_call,call)
+            s=Settings(special_calls=call.lower(),filter_bands='40m')
+            self.assertTrue(matches(parsed,s))
+            self.assertEqual(rejection(parsed,replace(s,filter_modes='SSB')),'Mode')
+            self.assertEqual(rejection(parsed,replace(s,min_khz=7000,max_khz=7300)),'Frequency range')
+
     def test_literal_words_phrases_boundaries_and_case(self):
         words = keyword_selection('Cobia, county hunter, USS   Test')
         for text in ('USS COBIA submarine', 'county   hunter calling', 'uss test today'):

@@ -1940,7 +1940,7 @@
       "filter_activities": "POTA",
       "filter_bands": "40m"
     },
-    "match": false
+    "match": true
   },
   {
     "line": "DX de N0CALL: 14225 TZ4AM SSB 1234Z",
@@ -2042,6 +2042,120 @@
     "filters": {
       "special_keywords": "Cobia",
       "special_keywords_only": true
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14025 C8K CW 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "c8k",
+      "filter_bands": "40m"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 W1A CW 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "w1a",
+      "special_calls_only": true,
+      "filter_bands": "40m"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 C8K/P CW 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "C8K",
+      "filter_bands": "None"
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14025 C8K/P CW 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "C8K",
+      "special_calls_portable": false,
+      "filter_bands": "40m"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14025 K1ABC CW 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "C8K",
+      "filter_bands": "40m"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14025 C8K CW 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "C8K",
+      "filter_bands": "40m",
+      "filter_modes": "SSB"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14025 C8K CW 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "C8K",
+      "filter_bands": "40m",
+      "license_class": "Technician",
+      "license_region": "US Region 2"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14025 C8K CW 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_calls": "C8K",
+      "filter_bands": "40m",
+      "filter_dx_countries": "JP"
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14025 K1ABC CW Cobia 1234Z",
+    "mode": "CW",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_keywords": "Cobia",
+      "filter_bands": "40m"
     },
     "match": false
   }

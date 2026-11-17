@@ -109,7 +109,7 @@ def build_filters(app,parent):
     ttk.Entry(special,textvariable=staged['special_calls'],width=55).pack(fill='x',pady=6)
     ttk.Checkbutton(special,text='Only these calls',variable=staged['special_calls_only']).pack(anchor='w')
     ttk.Checkbutton(special,text='Include portable variants (W1AW also matches W1AW/3)',variable=staged['special_calls_portable']).pack(anchor='w')
-    ttk.Label(special,text='Special calls can match alongside selected activities. Only these calls replaces the activity choice. Band, mode, license and location filters still apply.',wraplength=620).pack(anchor='w',pady=4)
+    ttk.Label(special,text='Listed calls match on any band, even with other bands selected. Only these calls requires a listed call instead of an activity tag. Mode, frequency range, license and location filters still apply.',wraplength=620).pack(anchor='w',pady=4)
     words=ttk.LabelFrame(frame,text='Special words in the brag box',padding=12);words.pack(fill='x',pady=6)
     ttk.Label(words,text='Words or phrases separated by commas, for example Cobia,USS Cobia,mobile,county hunter',wraplength=620).pack(anchor='w')
     ttk.Entry(words,textvariable=staged['special_keywords'],width=55).pack(fill='x',pady=6)

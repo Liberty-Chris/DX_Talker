@@ -74,13 +74,13 @@ def rejection(spot, settings):
     modes = choices(settings.filter_modes, MODES)
     activities = choices(settings.filter_activities, ACTIVITIES)
     band = next((name for name, (low, high) in BANDS.items() if low <= spot.frequency_khz < high), 'Other')
+    special = calls_selection(settings.special_calls)
+    call_match = call_matches(spot.dx_call, special, settings.special_calls_portable)
     if not settings.min_khz <= spot.frequency_khz <= settings.max_khz:return 'Frequency range'
-    if bands and band not in bands:return 'Band'
+    if bands and band not in bands and not call_match:return 'Band'
     mode=mode_of(spot.comment, spot.mode, spot.frequency_khz)
     if mode=='Unknown' and 'Unknown' not in modes:return 'Mode unknown'
     if modes and mode not in modes:return 'Mode unknown' if mode=='Unknown' else 'Mode'
-    special = calls_selection(settings.special_calls)
-    call_match = call_matches(spot.dx_call, special, settings.special_calls_portable)
     word_match = keyword_matches(spot.comment, keyword_selection(settings.special_keywords))
     if settings.special_calls_only or settings.special_keywords_only:
         if not (settings.special_calls_only and call_match or settings.special_keywords_only and word_match):
