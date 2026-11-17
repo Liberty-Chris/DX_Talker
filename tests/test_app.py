@@ -415,7 +415,8 @@ class AppTests(unittest.TestCase):
         selected=self.app.notebook.select()
         positions=[canvas.yview()[0] for _,canvas in self.app.scroll_tabs]
         generation=self.app.source_generation
-        metrics=measure(self.app,10,rounds=1,idle_seconds=0.1)
+        metrics=measure(self.app,10,rounds=1,idle_seconds=0.1,startup_cpu_ms=5)
+        self.assertEqual(metrics['ui_startup_cpu_ms'],5)
         self.assertEqual(metrics['navigation_samples'],len(self.app.notebook.tabs()))
         self.assertEqual(metrics['scroll_samples'],len(self.app.scroll_tabs)*3)
         self.assertGreater(metrics['idle_wall_seconds'],0)

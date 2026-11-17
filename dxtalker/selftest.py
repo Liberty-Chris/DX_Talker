@@ -74,10 +74,12 @@ def run(report_path):
             try:
                 save_settings(Settings(check_updates=False))
                 ui_started = time.perf_counter()
+                ui_cpu_started = time.process_time()
                 root = tk.Tk()
                 app = Application(root)
                 root.update()
                 ui_startup_ms = (time.perf_counter() - ui_started) * 1000
+                ui_startup_cpu_ms = (time.process_time() - ui_cpu_started) * 1000
                 assert app.save_button.winfo_rooty() + app.save_button.winfo_height() <= root.winfo_rooty() + root.winfo_height()
                 assert set(app.variables) == {f.name for f in fields(Settings)}
                 assert not app.engine.enabled
@@ -119,7 +121,7 @@ def run(report_path):
                 app.notebook.select(0)
                 root.update()
                 from .performance import BUDGETS, measure, violations
-                report['performance'] = measure(app, ui_startup_ms)
+                report['performance'] = measure(app, ui_startup_ms, startup_cpu_ms=ui_startup_cpu_ms)
                 report['performance_budgets'] = BUDGETS
                 report['performance_failures'] = violations(report['performance'])
                 assert not report['performance_failures'], 'Desktop performance budget exceeded'
