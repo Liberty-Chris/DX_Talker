@@ -2,6 +2,8 @@
 
 ## 1.0.0b5
 
+Authenticate the separate XP build HTTPS probe with the temporary read only job token, refusing redirects. This avoids shared runner anonymous API limits without weakening TLS or bundling credentials.
+
 Listed special spotted calls now bypass the band checklist on desktop and Android. Short calls such as C8K and W1A already parse correctly. Preserve mode, explicit frequency range, license, location and output gates. Keyword matches alone still follow selected bands. Add shared cases for short and portable calls, unrelated stations and the remaining filter limits.
 
 ## 1.0.0b4
