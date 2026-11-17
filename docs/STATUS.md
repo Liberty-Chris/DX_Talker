@@ -419,3 +419,14 @@ Main run 44010575184 passed desktop tests, Windows x86/x64 installers, Ubuntu 22
 Pass the temporary read only job token only to the XP HTTPS verification step, at its fixed release API endpoint. Reject redirects so credentials cannot follow another URL. Keep certificate, hostname, TLS version and release JSON checks required. HTTP failures still fail the job. The token is not written to the verification report or included in the installer. Beta 5 is not published yet, so its version remains unchanged.
 
 Verification: two focused probe tests and five XP build tests passed. Cases check scoped authorization, redirect refusal, no token in the report and continued failure on HTTP errors. The probe parses as Python 3.4 and release version alignment, documentation and whitespace checks passed. Native bundled interpreter verification will run on the repair PR. The failed main job was not rerun unchanged.
+
+
+## November 16, 2026. Literal special call watch entries
+
+Confirmed that 8P/ was accepted as an entry but matched only the exact string, so it did not find 8P/K1ABC. Replace complete callsign validation in the watch field with bounded literal text and case insensitive deduplication. Actual incoming spot and source login callsign validation is unchanged. Accept up to 50 distinct entries of up to 80 printable characters, separated by commas.
+
+Expand the existing special_calls_portable option and label it Match partial calls and portable variants on both platforms. Enabled, its existing default, means an entry can occur anywhere within the spotted callsign: 8P/ finds 8P/K1ABC, 8P finds 8P9AA and W1AW also finds W1AWX. Disabled means an exact complete match. Symbols are literal, with no wildcard or regex execution. One helper per platform governs both filtering and attention alerts. The special call band checklist exception and all remaining filters/output gates remain in force. Blank separators alone do not satisfy Only these calls. Existing presets and transfer keys remain compatible, with duplicates ignored rather than rejected.
+
+Verification: 350 tests completed on a Linux dummy X display in 47.8 seconds with one native Windows API skip. All Android main and unit test Kotlin sources compiled using temporary resource IDs and the existing annotation compatibility flag; all 33 JUnit tests passed. Shared fixtures cover partial prefixes, slash fragments, exact mode, duplicate entries and literal symbols. All 118 generated XP files passed Python 3.4 syntax parsing. Documentation, release alignment and whitespace checks passed. Native package and emulator checks remain pending; no actual RF was exercised.
+
+PR 47 was merged during this work. The watch correction is a separate followup based on that merge. Beta 5 remains unpublished and retains its version. No additional feature scope is included.

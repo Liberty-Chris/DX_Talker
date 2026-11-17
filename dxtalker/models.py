@@ -287,9 +287,9 @@ class Settings:
         from .id_schedule import entries
         entries(self.voice_ids)
         from .filtering import calls_selection
-        calls_selection(self.special_calls)
-        if self.special_calls_only and not self.special_calls.strip():
-            raise ValueError("Add at least one special callsign or turn off Only these calls")
+        watched_calls = calls_selection(self.special_calls)
+        if self.special_calls_only and not watched_calls:
+            raise ValueError("Add at least one special call watch entry or turn off Only these calls")
         from .filtering import keyword_selection
         keyword_selection(self.special_keywords)
         if self.special_keywords_only and not self.special_keywords.strip():

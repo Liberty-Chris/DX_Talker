@@ -57,7 +57,7 @@ object SpotFilters {
         val band=bands.entries.firstOrNull { spot.frequency>=it.value.first.toBigDecimal() && spot.frequency<it.value.second.toBigDecimal() }?.key ?: "Other"
         val calls=callsSelection(get("special_calls"))
         val portable=get("special_calls_portable")!="false"
-        val callMatch=spot.call.uppercase() in calls || portable && calls.any { '/' !in it && it in spot.call.uppercase().split('/') }
+        val callMatch=callMatches(spot.call,calls,portable)
         if(selectedBands.isNotEmpty() && band !in selectedBands && !callMatch)return "Band"
         val mode=mode(spot.comment,spot.mode,spot.frequency)
         if(mode=="Unknown" && "Unknown" !in selectedModes)return "Mode unknown"
@@ -77,9 +77,13 @@ object SpotFilters {
         return SpotLocations.rejection(spot,get)
     }
     fun callsSelection(value:String):Set<String> {
-        val calls=value.split(',').map { it.trim().uppercase(java.util.Locale.US) }.filter { it.isNotEmpty() }
-        require(calls.size<=50 && calls.size==calls.toSet().size && calls.all { Regex("[A-Z0-9][A-Z0-9/\\-]{1,19}").matches(it) && it.any(Char::isDigit) && it.any(Char::isLetter) }) { "Enter up to 50 distinct callsigns separated by commas" }
-        return calls.toSet()
+        val calls=value.split(',').map { it.trim().uppercase(java.util.Locale.US) }.filter { it.isNotEmpty() }.toSet()
+        require(calls.size<=50 && calls.all { it.length<=80 && it.all { c -> c.code in 32..126 } }) { "Enter up to 50 comma separated watch entries, up to 80 printable characters each" }
+        return calls
+    }
+    fun callMatches(call:String,selected:Set<String>,partial:Boolean=true):Boolean {
+        val normalized=call.uppercase(java.util.Locale.US)
+        return selected.any { if(partial)it in normalized else it==normalized }
     }
     fun keywordSelection(value:String):List<String> {
         val words=value.split(',').filter { it.isNotBlank() }.map { it.trim().replace(Regex("\\s+")," ").uppercase(java.util.Locale.US) }
@@ -92,7 +96,7 @@ object SpotFilters {
     }
     fun specialMatch(spot:DxSpot,get:(String)->String):Boolean {
         val calls=callsSelection(get("special_calls"));val call=spot.call.uppercase(java.util.Locale.US)
-        return call in calls || get("special_calls_portable")!="false" && calls.any { '/' !in it && it in call.split('/') } || keywordMatches(spot.comment,keywordSelection(get("special_keywords")))
+        return callMatches(call,calls,get("special_calls_portable")!="false") || keywordMatches(spot.comment,keywordSelection(get("special_keywords")))
     }
     private data class PolicyRule(val low:java.math.BigDecimal,val high:java.math.BigDecimal,val point:Boolean,val result:String)
     private val policyIndex by lazy { BandTableData.rules.groupBy { it[0] to it[1] }.mapValues { (_, rows)->rows.map { r-> PolicyRule(r[2].toBigDecimal(),r[3].toBigDecimal(),r[4]=="point",r[5]) } } }

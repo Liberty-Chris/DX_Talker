@@ -40,6 +40,6 @@ class BandTableUpdateTests {
         assertEquals("W1AW,TZ4AM",TransferCodec.decode(data.toString()).getJSONObject("filters").getString("special_calls"))
         data.getJSONObject("filters").put("special_calls", "")
         assertThrows(Exception::class.java) { TransferCodec.decode(data.toString()) }
-        assertThrows(Exception::class.java) { SpotFilters.callsSelection("W1AW,w1aw") }
+        assertEquals(setOf("W1AW"),SpotFilters.callsSelection("W1AW,w1aw"))
     }
 }

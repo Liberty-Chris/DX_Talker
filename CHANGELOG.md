@@ -2,6 +2,8 @@
 
 ## 1.0.0b5
 
+Accept literal special call watch text, including prefixes and incomplete calls. The renamed partial matching option defaults on and finds an entry anywhere in the spotted callsign; turn it off for exact matches. Ignore case and duplicate entries. Keep symbols literal and use the same matcher for filtering and attention sounds on both platforms.
+
 Authenticate the separate XP build HTTPS probe with the temporary read only job token, refusing redirects. This avoids shared runner anonymous API limits without weakening TLS or bundling credentials.
 
 Listed special spotted calls now bypass the band checklist on desktop and Android. Short calls such as C8K and W1A already parse correctly. Preserve mode, explicit frequency range, license, location and output gates. Keyword matches alone still follow selected bands. Add shared cases for short and portable calls, unrelated stations and the remaining filter limits.

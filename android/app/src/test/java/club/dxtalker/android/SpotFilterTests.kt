@@ -7,6 +7,16 @@ import org.junit.Assert.*
 import java.time.Instant
 
 class SpotFilterTests {
+    @Test fun literalCallFragmentsAreValidAndUseTheSameAlertMatch() {
+        assertEquals(setOf("8P/","ZZZ","/P","*"),SpotFilters.callsSelection(" 8p/ , ZZZ, 8P/ , /P, * "))
+        val spot=SpotPolicy.parse("DX de N0CALL: 14225 8P/K1ABC SSB 1234Z",Instant.parse("2026-11-06T12:34:00Z"))!!
+        val values=mapOf("special_calls" to "8p/","special_calls_only" to "true","filter_bands" to "40m")
+        assertTrue(SpotFilters.matches(spot) { values[it].orEmpty() })
+        assertTrue(SpotFilters.specialMatch(spot) { values[it].orEmpty() })
+        assertFalse(SpotFilters.callMatches(spot.call,setOf("8P/"),false))
+        assertFalse(SpotFilters.callMatches(spot.call,setOf("*")))
+        assertThrows(Exception::class.java) { SpotFilters.callsSelection("A".repeat(81)) }
+    }
     @Test fun usesTheSameFixturesAsDesktop() {
         val cases=JSONArray(javaClass.getResource("/spot_filters.json")!!.readText())
         for(i in 0 until cases.length()) {

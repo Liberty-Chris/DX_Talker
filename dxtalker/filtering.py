@@ -123,16 +123,15 @@ def summary(settings):
 
 
 def calls_selection(value):
-    from .models import valid_call
-    calls = [call.strip().upper() for call in value.split(',') if call.strip()]
-    if len(calls) > 50 or len(set(calls)) != len(calls) or any(not valid_call(call) for call in calls):
-        raise ValueError('Enter up to 50 distinct callsigns separated by commas')
-    return set(calls)
+    calls = {call.strip().upper() for call in value.split(',') if call.strip()}
+    if len(calls) > 50 or any(len(call) > 80 or any(ord(c) < 32 or ord(c) > 126 for c in call) for call in calls):
+        raise ValueError('Enter up to 50 comma separated watch entries, up to 80 printable characters each')
+    return calls
 
 
 def call_matches(call, selected, portable=True):
     call = call.upper()
-    return call in selected or portable and any('/' not in wanted and wanted in call.split('/') for wanted in selected)
+    return any(wanted in call if portable else wanted == call for wanted in selected)
 
 
 def keyword_selection(value):

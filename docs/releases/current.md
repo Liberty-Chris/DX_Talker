@@ -1,5 +1,7 @@
 DX Talker 1.0.0b5 corrects special call band selection.
 
+Special calls now accepts literal watch text rather than requiring a complete callsign. With partial matching enabled by default, 8P/ matches 8P/K1ABC, 8P matches 8P9AA and W1AW also matches W1AWX. Matching ignores case and duplicate entries. Turn Match partial calls and portable variants off for exact full callsign matching. Symbols are literal text rather than wildcard syntax.
+
 A listed special spotted callsign now matches on any band, even when another band or None is selected. This applies to ordinary supplementary watches and Only these calls on desktop and Android. Portable variants follow the existing checkbox. Short calls such as C8K and genuine 1x1 calls such as W1A were already valid; the band check was rejecting their spots before the special call match was considered.
 
 Mode selections, Include unknown, explicit minimum/maximum frequency, license and location filters still apply. So do age, duplicate, queue, mute, Stop, identification and receive hold. Special keyword matches alone continue to follow the band selection. The same acceptance decision controls display, speech and the optional attention sound.
