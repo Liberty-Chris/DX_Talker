@@ -21,6 +21,8 @@ Work through the connection and local audio stages before enabling radio transmi
 
 ## Immediate next task
 
+Retest beta 7 receive hold: silent startup and own transmissions must not create a countdown. Preserve one second of relay settling. Actual received audio requires five seconds of silence afterward. Verify with the named radio and input routing, including renewed activity and input failure.
+
 Publish 1.0.0b6 with the Unknown eligibility and relay settling corrections, then retest returned untagged spots and actual radio PTT release. Feature scope remains frozen for stable v1.
 
 The 1.0.0b5 correction makes listed special calls bypass the band checklist on desktop and Android. Other filters remain active. Continue stable v1 testing and fixes.

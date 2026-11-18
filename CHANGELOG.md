@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.0b7
+
+Start receive hold only on detected receive audio and release it five seconds after that audio ends. Remove startup and post transmission quiet countdowns when no traffic was heard. Preserve the one second half duplex relay settling period, fresh input checks, full duplex interruption and fault handling. Migrate existing receive quiet preferences to five seconds and correct the receive labels.
+
 ## 1.0.0b6
 
 Extend half duplex receive blanking after PTT release to one second for relay operated radios. Show that settling period separately from the following required quiet interval. Keep input fault detection active.

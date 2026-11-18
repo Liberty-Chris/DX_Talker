@@ -357,7 +357,7 @@ class Application(Usability):
         elif type(value) is int:
             limits = {"port": (1, 65535), "poll_seconds": (15, 3600), "lead_ms": (0, 5000), "tail_ms": (0, 5000), "max_tx_seconds": (5, 120), "cw_wpm": (5, 50), "cw_hz": (300, 1500), "id_minutes": (1, 30), "voice_id_minutes": (1,120), "speech_rate": (-10, 10), "character_pause_ms": (0, 1000), "group_pause_ms": (0, 3000),
                       "volume_percent": (0, 100), "cw_volume_percent": (0, 100), "voice_id_volume_percent": (0, 100),
-                      "local_volume_percent": (0, 100), "text_size": (10, 18), "receive_threshold_db": (-60, -5), "receive_quiet_seconds": (5, 10)}
+                      "local_volume_percent": (0, 100), "text_size": (10, 18), "receive_threshold_db": (-60, -5), "receive_quiet_seconds": (5, 5)}
             low, high = limits.get(name, (0, 10000000))
             widget = ttk.Spinbox(parent, textvariable=var, from_=low, to=high, width=12)
         else:
@@ -688,9 +688,9 @@ class Application(Usability):
         self._field(receive, 1, "Receive input", "receive_device", [], compact=True)
         self.field_widgets['receive_device'].configure(width=48)
         self._field(receive, 2, "Audio threshold (dBFS)", "receive_threshold_db", note="Minus 60 to minus 5. Lower detects quieter audio.", compact=True)
-        self._field(receive, 3, "Quiet delay (s)", "receive_quiet_seconds", note="5 to 10 seconds after received audio ends", compact=True)
+        self._field(receive, 3, "Received traffic hold (s)", "receive_quiet_seconds", [5], note="Five seconds after detected receive audio ends. No startup countdown.", compact=True)
         self._field(receive, 7, 'Half duplex: ignore audio during own transmit', 'receive_half_duplex', compact=True)
-        ttk.Label(receive,text='Enabled by default for HTs and transmit audio loopback. Input faults still stop RF. After release, allow 300 ms to settle and require a new quiet interval. Disable only with an independent receiver that can detect other stations during transmission.',wraplength=610).grid(row=8,column=0,columnspan=3,sticky='w',pady=6)
+        ttk.Label(receive,text='Enabled by default for HTs and transmit audio loopback. Ignore own transmit audio and one second of relay settling after release. Then listen again. Only detected receive audio starts the five second hold. Input faults still stop RF. Disable only with an independent receiver.',wraplength=610).grid(row=8,column=0,columnspan=3,sticky='w',pady=6)
         self.receive_status = tk.StringVar(value='Receive monitor off')
         ttk.Label(receive, textvariable=self.receive_status, wraplength=610).grid(row=4, column=0, columnspan=3, sticky='w', pady=8)
         self.receive_test_button = ttk.Button(receive, text='Test receive input', command=self.guard(self._test_receive))
@@ -729,9 +729,9 @@ class Application(Usability):
         state,level,remaining=monitor.snapshot()
         descriptions={'off':'Receive monitor off','fault':'Input unavailable. '+monitor.fault_message(),
                       'starting':'Waiting for the first input samples','busy':'Audio above threshold. RF waiting.',
-                      'waiting':f'Quiet delay. {remaining:.1f} seconds remaining.','clear':'Channel clear.',
+                      'waiting':f'Received traffic ended. {remaining:.1f} seconds of the five second hold remaining.','clear':'Channel clear.',
                       'transmitting':'Own transmission. Busy audio ignored; input health monitored.',
-                      'settling':'PTT released. Ignoring switching audio for one second before a new quiet interval.'}
+                      'settling':'PTT released. Ignoring switching audio for one second, then listening again.'}
         measured=f' Measured {level:.0f} dBFS.' if state not in ('off','starting','fault') and level is not None else ' No current measurement.' if state!='off' else ''
         self.render_cache.set(self.receive_status,descriptions[state]+measured)
         if state=='fault' and getattr(self,'last_receive_fault',None)!=monitor.fault_code:

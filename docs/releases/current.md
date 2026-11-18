@@ -1,7 +1,7 @@
-DX Talker 1.0.0b6 fixes Unknown spot filtering and allows more time for radio relay release.
+DX Talker 1.0.0b7 removes unnecessary receive countdowns.
 
-Returned spots without a mode tag, including your own submissions, now pass when Unknown modes and unverified license eligibility are included and the frequency fits your selected class. The separate mode specific band table no longer incorrectly rejects these spots. Desktop and Android use the same correction. Known mode restrictions and frequencies outside your selected class remain excluded.
+Receive hold now starts only after audio is detected above the configured threshold during normal receiving. It lasts five seconds after that audio ends and restarts if more receive audio arrives. Startup needs fresh receiver samples, but silence no longer starts a countdown.
 
-With half duplex receive hold enabled, DXt now ignores receiver activity for one second after PTT releases so relay switching and remaining transmitted audio can settle. The configured quiet interval follows that settling period. The status text explains the sequence. Input fault monitoring remains active.
+In default half duplex mode, our own transmitted audio and one second of relay settling are ignored. Once settling ends and fresh quiet receiver audio arrives, the next transmission is eligible without another five or seven second hold. Real audio after settling triggers the five second hold. Input faults still stop RF. Existing saved quiet delay settings migrate to five seconds.
 
-This beta retains beta 5 special call watches, partial matching, special words, attention sounds, scheduled IDs and saved cluster failover. Android version code is 25. Continue testing before stable v1.
+The receive labels and operator help describe these states. Announcement spacing, PTT lead and tail settings and required identification remain separate. Beta 6 filtering fixes remain included. Android version code is 26; Android remains a listener with no radio PTT.

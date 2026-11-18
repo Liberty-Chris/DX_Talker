@@ -1,7 +1,7 @@
 """Validated settings, DX records and speech formatting. No hardware dependencies."""
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, fields
+from dataclasses import asdict, dataclass, fields, replace
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 import json
@@ -162,7 +162,7 @@ class Settings:
     receive_half_duplex: bool = True
     receive_device: str = ""
     receive_threshold_db: int = -40
-    receive_quiet_seconds: int = 7
+    receive_quiet_seconds: int = 5  # Legacy settings key; receiver hold is fixed at five seconds.
     ptt_method: str = "VOX"
     serial_port: str = ""
     active_high: bool = True
@@ -372,7 +372,10 @@ def load_settings(path: Path | None = None) -> Settings:
     names = {f.name for f in fields(Settings)}
     values = {k: v for k, v in data.items() if k in names}
     if sys.platform.startswith('linux') and values.get('speech_provider') == 'Windows': values['speech_provider'] = 'eSpeak NG'
-    return Settings(**values).validate()
+    settings = Settings(**values).validate()
+    # Keep existing settings readable while replacing the old 5 to 10 second
+    # preference with the fixed received-traffic hold.
+    return replace(settings, receive_quiet_seconds=5)
 
 
 def save_settings(settings: Settings, path: Path | None = None):
