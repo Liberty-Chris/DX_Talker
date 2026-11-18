@@ -21,19 +21,22 @@ class ReceiveMonitor:
         self.fault = False
         self.fault_code = None
         self.threshold = -40
-        self.delay = 7
+        self.delay = 5
+        self.traffic_pending = False
         self.transmitting = False
         self.settle_until = 0
 
     def transmit_started(self):
         with self.lock:
             self.transmitting = True
+            self.traffic_pending = False
             self.quiet_since = None
 
     def transmit_ended(self):
         with self.lock:
             self.transmitting = False
             self.settle_until = self.clock() + 1.0
+            self.traffic_pending = False
             self.quiet_since = None
 
     @staticmethod
@@ -52,7 +55,8 @@ class ReceiveMonitor:
             raise ValueError('Receive input is missing or ambiguous. Refresh devices and choose a unique input.')
         with self.lock:
             self._started_at = self.clock()
-            self.threshold, self.delay = settings.receive_threshold_db, settings.receive_quiet_seconds
+            self.threshold, self.delay = settings.receive_threshold_db, 5
+            self.traffic_pending = False
             self.level, self.last_frame, self.quiet_since, self.fault = None, None, None, False
             self.fault_code = None
         index, device = matches[0]
@@ -66,7 +70,8 @@ class ReceiveMonitor:
 
     def _callback(self, data, frames, timing, status):
         # An input overflow means missed samples, not a dead device. Restart the
-        # complete quiet interval; persistent/unrecognized status remains a fault.
+        # active traffic quiet interval; a gap alone does not invent traffic.
+        # Persistent/unrecognized status remains a fault.
         overflow=bool(getattr(status, 'input_overflow', False))
         other=bool(status) and (not overflow or any(bool(getattr(status,k,False)) for k in ('input_underflow','output_underflow','output_overflow','priming_output')))
         self.feed(bytes(data), fault=other, discontinuity=overflow)
@@ -87,10 +92,18 @@ class ReceiveMonitor:
                 self.quiet_since = None
             if not samples:
                 self.level = None
-            if self.transmitting or now < self.settle_until or level >= self.threshold:
+            # Blanked audio updates device health and the meter only. It must
+            # not create a traffic hold or accumulate quiet credit.
+            if self.transmitting or now < self.settle_until:
+                return
+            if level >= self.threshold:
+                self.traffic_pending = True
                 self.quiet_since = None
-            elif self.quiet_since is None:
-                self.quiet_since = now
+            elif self.traffic_pending:
+                if self.quiet_since is None:
+                    self.quiet_since = now
+                elif now - self.quiet_since >= self.delay:
+                    self.traffic_pending = False
 
     def snapshot(self, check_stream=True):
         with self.lock:
@@ -111,8 +124,10 @@ class ReceiveMonitor:
                 return 'starting', self.level, self.delay
             if self.transmitting:
                 return 'transmitting', self.level, self.delay
-            if self.clock() < self.settle_until:
-                return 'settling', self.level, self.delay
+            if self.clock() < self.settle_until or self.last_frame < self.settle_until:
+                return 'settling', self.level, 0
+            if not self.traffic_pending:
+                return 'clear', self.level, 0
             remaining = self.delay if self.quiet_since is None else max(0, self.delay-(self.clock()-self.quiet_since))
             return ('busy' if self.level >= self.threshold else 'waiting' if remaining else 'clear'), self.level, remaining
 
@@ -142,6 +157,8 @@ class ReceiveMonitor:
             stream, self.stream = self.stream, None
             self.transmitting = False
             self.settle_until = 0
+            self.traffic_pending = False
+            self.quiet_since = None
         if stream is not None:
             try: stream.abort()
             finally: stream.close()

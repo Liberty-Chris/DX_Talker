@@ -12,46 +12,70 @@ from dxtalker.audio import Cancelled
 
 
 class DetectorTests(unittest.TestCase):
-    def test_own_transmit_audio_is_blanked_but_faults_and_new_quiet_delay_remain(self):
+    def test_own_transmit_and_switching_audio_do_not_create_a_traffic_hold(self):
         from dxtalker.receiver import ReceiveCancel
         tick=[10.0];monitor=ReceiveMonitor(clock=lambda:tick[0])
         monitor.stream=SimpleNamespace(active=True);monitor._started_at=0
-        monitor.feed(array('h',[0]*1024).tobytes());monitor.quiet_since=0
-        self.assertTrue(monitor.ready())
+        quiet=array('h',[0]*1024).tobytes();loud=array('h',[6000]*1024).tobytes()
+        monitor.feed(quiet);self.assertTrue(monitor.ready())
         cancel=ReceiveCancel(threading.Event(),monitor);cancel.ignore_busy=True
-        monitor.transmit_started();monitor.feed(array('h',[6000]*1024).tobytes())
+        monitor.transmit_started();monitor.feed(loud)
         self.assertEqual(monitor.snapshot()[0],'transmitting');self.assertFalse(cancel.is_set())
-        monitor.transmit_ended();tick[0]=10.2;monitor.feed(array('h',[0]*1024).tobytes())
-        self.assertEqual(monitor.snapshot()[0],'settling');self.assertFalse(monitor.ready())
-        tick[0]=10.9;monitor.feed(array('h',[6000]*1024).tobytes())
-        self.assertEqual(monitor.snapshot()[0],'settling');self.assertIsNone(monitor.quiet_since)
-        tick[0]=11.0;monitor.feed(array('h',[0]*1024).tobytes())
-        tick[0]=17.9;monitor.feed(array('h',[0]*1024).tobytes());self.assertFalse(monitor.ready())
-        tick[0]=18.0;monitor.feed(array('h',[0]*1024).tobytes());self.assertTrue(monitor.ready())
+        monitor.transmit_ended()
+        for instant in (10.2,10.9):
+            tick[0]=instant;monitor.feed(loud,discontinuity=True)
+            self.assertEqual(monitor.snapshot()[0],'settling');self.assertFalse(monitor.ready())
+            self.assertFalse(monitor.traffic_pending)
+        tick[0]=11.0
+        self.assertEqual(monitor.snapshot()[0],'settling')  # A fresh receive frame is required.
+        monitor.feed(quiet)
+        self.assertEqual(monitor.snapshot(),('clear',monitor.level,0));self.assertTrue(monitor.ready())
         monitor.transmit_started();monitor.feed(b'\0\0',fault=True)
         self.assertTrue(cancel.is_set());self.assertIsNotNone(cancel.fault)
 
-    def test_quiet_delay_resets_and_faults_close_the_gate(self):
-        tick=[0]
-        monitor=ReceiveMonitor(clock=lambda:tick[0])
-        monitor.stream=SimpleNamespace(active=True)
-        monitor._started_at=0
-        monitor.delay=7
+    def test_startup_is_clear_on_first_quiet_frame_and_real_traffic_requires_five_seconds(self):
+        tick=[0.0];monitor=ReceiveMonitor(clock=lambda:tick[0])
+        monitor.stream=SimpleNamespace(active=True);monitor._started_at=0
         def feed(level):monitor.feed(array('h',[level]*1024).tobytes())
-        self.assertFalse(monitor.ready())
-        feed(0)
+        self.assertFalse(monitor.ready());self.assertEqual(monitor.snapshot()[0],'starting')
+        feed(0);self.assertTrue(monitor.ready())
+        tick[0]=1;feed(6000);self.assertEqual(monitor.snapshot()[0],'busy')
+        tick[0]=2;feed(0);self.assertEqual(monitor.snapshot()[2],5)
         tick[0]=6.9;feed(0);self.assertFalse(monitor.ready())
         tick[0]=7;feed(0);self.assertTrue(monitor.ready())
         tick[0]=8;feed(6000);self.assertFalse(monitor.ready())
         tick[0]=9;feed(0)
-        tick[0]=15;feed(0);self.assertFalse(monitor.ready())
-        tick[0]=16;feed(0);self.assertTrue(monitor.ready())
-        tick[0]=18
+        tick[0]=13.9;feed(0);self.assertFalse(monitor.ready())
+        tick[0]=14;feed(0);self.assertTrue(monitor.ready())
+        tick[0]=16
         with self.assertRaisesRegex(ValueError,'monitoring failed'):monitor.ready()
         feed(0);monitor.feed(b'\0\0',fault=True)
         with self.assertRaises(ValueError):monitor.ready()
         monitor.fault=False;monitor.stream.active=False
         with self.assertRaises(ValueError):monitor.ready()
+
+    def test_real_audio_after_settling_starts_hold_and_new_traffic_restarts_it(self):
+        tick=[10.0];monitor=ReceiveMonitor(clock=lambda:tick[0])
+        monitor.stream=SimpleNamespace(active=True);monitor._started_at=0
+        def feed(level):monitor.feed(array('h',[level]*1024).tobytes())
+        feed(0);monitor.transmit_started();feed(6000);monitor.transmit_ended()
+        tick[0]=11;feed(6000);self.assertEqual(monitor.snapshot()[0],'busy')
+        tick[0]=12;feed(0);self.assertEqual(monitor.snapshot()[2],5)
+        tick[0]=15;feed(6000);self.assertEqual(monitor.snapshot()[0],'busy')
+        tick[0]=16;feed(0)
+        tick[0]=20.9;feed(0);self.assertFalse(monitor.ready())
+        tick[0]=21;feed(0);self.assertTrue(monitor.ready())
+
+    def test_existing_seven_second_setting_migrates_to_five(self):
+        import tempfile
+        from pathlib import Path
+        from dxtalker.models import load_settings,save_settings
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'settings.json'
+            save_settings(Settings(receive_quiet_seconds=7),path)
+            loaded=load_settings(path)
+            self.assertEqual(loaded.receive_quiet_seconds,5)
+            self.assertEqual(Settings().receive_quiet_seconds,5)
 
     def test_missing_callbacks_and_invalid_settings(self):
         tick=[0];monitor=ReceiveMonitor(clock=lambda:tick[0]);monitor.stream=SimpleNamespace(active=True);monitor._started_at=0
@@ -165,6 +189,33 @@ class ReceiverEngineTests(unittest.TestCase):
         self.assertEqual(len(self.engine.items),1)
         time.sleep(.1);self.assertEqual(len(self.ptts),1)
         self.assertEqual(self.ptts[0].calls[-2:],[False,'close'])
+
+    def test_half_duplex_next_spot_needs_only_settling_when_receiver_is_quiet(self):
+        tick=[10.0]
+        monitor=ReceiveMonitor(clock=lambda:tick[0])
+        quiet=array('h',[0]*1024).tobytes();loud=array('h',[6000]*1024).tobytes()
+        def start(settings):
+            monitor._started_at=tick[0]
+            monitor.stream=SimpleNamespace(active=True,abort=lambda:None,close=lambda:None)
+            monitor.feed(quiet)
+        with patch.object(monitor,'start',side_effect=start):
+            self.engine.monitor=monitor
+            self.engine.configure(replace(self.settings,receive_guard=True,receive_half_duplex=True,receive_device='receiver'))
+            class Loopback(FakeAudio):
+                def play(this,clip,device,volume,cancel,deadline):
+                    monitor.feed(loud)
+                    self.assertFalse(cancel.is_set())
+                    super().play(clip,device,volume,cancel,deadline)
+            self.engine.audio=Loopback()
+            with self.engine.lock:
+                self.engine.enable();self.engine.offer(self.spot())
+            wait_for(lambda:len(self.engine.audio.played)==1 and not self.engine.busy)
+            self.assertEqual(len(self.ptts),1);self.assertEqual(len(self.engine.items),1)
+            tick[0]=10.9;monitor.feed(loud);self.assertFalse(monitor.ready())
+            tick[0]=11;monitor.feed(quiet);self.assertTrue(monitor.ready())
+            self.engine.wake.set()
+            wait_for(lambda:len(self.engine.audio.played)==2 and not self.engine.busy)
+            self.assertEqual(len(self.ptts),2);self.assertFalse(self.engine.items)
 
     def test_half_duplex_input_fault_still_releases_ptt_and_disarms(self):
         self.guarded();self.monitor.clear=True

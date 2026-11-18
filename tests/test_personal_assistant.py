@@ -151,11 +151,16 @@ class ReceiveHealthTests(unittest.TestCase):
         tick=[0];m=ReceiveMonitor(clock=lambda:tick[0]);m.stream=SimpleNamespace(active=True);m._started_at=0
         self.assertIsNone(m.snapshot()[1]);tick[0]=2
         self.assertEqual(m.snapshot()[0],'fault');self.assertEqual(m.fault_code,'no_samples')
-        m.fault_code=None;m.feed(array('h',[0]*100).tobytes());tick[0]=9;m.feed(array('h',[0]*100).tobytes());self.assertTrue(m.ready())
+        m.fault_code=None;m.feed(array('h',[0]*100).tobytes());self.assertTrue(m.ready())
+        # A gap alone does not invent traffic or a countdown.
+        m.feed(array('h',[0]*100).tobytes(),discontinuity=True);self.assertTrue(m.ready())
+        m.feed(array('h',[6000]*100).tobytes());m.feed(array('h',[0]*100).tobytes())
+        tick[0]=6;m.feed(array('h',[0]*100).tobytes());self.assertFalse(m.ready())
         status=SimpleNamespace(input_overflow=True)
         m._callback(array('h',[0]*100).tobytes(),100,None,status)
         self.assertFalse(m.ready());self.assertFalse(m.fault)
-        tick[0]=16;m.feed(array('h',[0]*100).tobytes());self.assertTrue(m.ready())
+        tick[0]=10.9;m.feed(array('h',[0]*100).tobytes());self.assertFalse(m.ready())
+        tick[0]=11;m.feed(array('h',[0]*100).tobytes());self.assertTrue(m.ready())
 
 
 class AssistantEngineTests(unittest.TestCase):
