@@ -78,6 +78,8 @@ For a genuine device failure, check the selected output, USB connection and Wind
 
 A receive level below the threshold means the measured samples were quiet. It does not mean the input stream is healthy. No current measurement, no samples, inactive device and stale samples are separate states. Use Test receive input to inspect the input health explanation. Check the exact selected device, permissions and other audio apps, then reopen the test. See [Radio audio and PTT](radio.md). Do not lower the threshold to repair a device fault.
 
+If Receive recoveries increases, export diagnostics and look for `receive_gap` records. A gap ID ties the start to its recovery, failure or stream closure. Each event includes the observed UTC time, elapsed time since the last good sample block, capture API, sample rate, block size and receive gate context. The start can include the reported stream state, and the recovery reports whether the returning callback signaled overflow. Use the observed UTC time when comparing with Windows events, since the UI may write the record later. These records contain no device names or audio.
+
 ## Output errors and delays
 
 Runtime output faults now appear in a dismissible in app notice and Activity, preserving the UI event loop instead of blocking it behind an error dialog. Output still stops and must be deliberately restarted. Export the local diagnostic ZIP from History / Updates if a fault recurs. It includes fixed receive input fault codes and speech preparation/audio duration measurements without synthesis text, provider credentials or spot comments. There is no automatic upload.

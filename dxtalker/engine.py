@@ -55,7 +55,7 @@ class Engine:
         self.local_audio = local_audio or AudioOutput()
         self.local_generation = 0
         self.ptt_factory, self.clock = ptt_factory, clock
-        self.monitor = monitor or ReceiveMonitor(clock)
+        self.monitor = monitor or ReceiveMonitor(clock, emit)
         self.gate_state = None
         self.lock = threading.RLock()
         self.wake, self.cancel, self.quit = threading.Event(), threading.Event(), threading.Event()
@@ -266,9 +266,12 @@ class Engine:
                     self.emit("schedule_event", dict(code=outcome, id=item["id"]))
             if self.enabled and self.settings.receive_guard:
                 ready = self.monitor.ready()
-                if ready != self.gate_state:
-                    self.gate_state = ready
-                    self.emit('activity', 'Idle' if ready else 'RF waiting for receive audio to clear')
+                activity = 'Idle' if ready else 'RF waiting for receive audio to clear'
+                if getattr(self.monitor, 'gap_pending', False):
+                    activity = 'RF waiting for fresh receive audio'
+                if activity != self.gate_state:
+                    self.gate_state = activity
+                    self.emit('activity', activity)
                 if not ready:
                     return None
             if self.enabled and now >= self.next_id:
