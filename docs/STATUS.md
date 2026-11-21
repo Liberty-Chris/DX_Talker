@@ -464,3 +464,7 @@ An established receive stream now pauses RF after more than one second without f
 The first hosted run showed that a separate recovery counter row pushed Catch Up below the compact Live spots panel on Windows and Linux. Putting the count in the existing Audio Output heading preserves the status area height.
 
 The graphical Linux run completed 361 Python cases with one native Windows test skipped. Synthetic tests verified quiet recovery, renewed quiet timing after detected traffic, the persistent gap cutoff, an inactive stream, PTT release and ID retry, and the counter and diagnostic record without an error notice. Documentation and version checks passed. All 118 generated XP Python files parsed with Python 3.4 syntax. Recovery on the affected Windows 10 computer and physical PTT behavior still need bench verification.
+
+## November 21, 2026. Beta 8 publication preparation
+
+The publication preflight rejected the PR 52 merge because the Beta 7 tag points to the previous build. Beta 8 aligns the app, Windows metadata, bundled help and release notes, and advances the Android version code to 27. Version, documentation and publication target checks passed locally.
