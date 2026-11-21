@@ -1,7 +1,7 @@
-DX Talker 1.0.0b7 removes unnecessary receive countdowns.
+DX Talker 1.0.0b8 improves recovery when receive audio briefly stops.
 
-Receive hold now starts only after audio is detected above the configured threshold during normal receiving. It lasts five seconds after that audio ends and restarts if more receive audio arrives. Startup needs fresh receiver samples, but silence no longer starts a countdown.
+After one second without fresh samples, DX Talker pauses RF and releases PTT if keyed. When valid samples return before 60 seconds have elapsed since the last good sample, the radio session can resume. If the gap reaches 60 seconds or the device reports a capture fault, RF disables and must be reenabled manually.
 
-In default half duplex mode, our own transmitted audio and one second of relay settling are ignored. Once settling ends and fresh quiet receiver audio arrives, the next transmission is eligible without another five or seven second hold. Real audio after settling triggers the five second hold. Input faults still stop RF. Existing saved quiet delay settings migrate to five seconds.
+The Audio Output heading shows how many times receive audio has recovered in the current session. Exported diagnostics describe the length and outcome of each interruption.
 
-The receive labels and operator help describe these states. Announcement spacing, PTT lead and tail settings and required identification remain separate. Beta 6 filtering fixes remain included. Android version code is 26; Android remains a listener with no radio PTT.
+The five second quiet period still applies after detected traffic. Android remains a listener and uses version code 27.
