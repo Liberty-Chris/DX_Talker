@@ -246,7 +246,7 @@ class Application(Usability):
         status.pack(fill="x")
         self.source_status = tk.StringVar(value="Source: disconnected")
         self.output_status = tk.StringVar(value="RF disabled")
-        self.receive_recoveries = tk.StringVar(value="Receive recoveries: 0")
+        self.audio_output_heading = tk.StringVar(value="AUDIO OUTPUT · RX RECOVERIES: 0")
         self.activity = tk.StringVar(value="Idle")
         for column, (title, variable) in enumerate((("CONNECTION", self.source_status),
                                                   ("AUDIO OUTPUT", self.output_status),
@@ -254,10 +254,10 @@ class Application(Usability):
             status.columnconfigure(column, weight=1, uniform="status")
             card = ttk.Frame(status, style="Status.TFrame", padding=(0, 8))
             card.grid(row=0, column=column, sticky="nsew", padx=(0 if column == 0 else 4, 0))
-            ttk.Label(card, text=title, style="Eyebrow.TLabel", padding=(14, 0)).pack(anchor="w")
+            heading = self.audio_output_heading if variable is self.output_status else ""
+            ttk.Label(card, text=title, textvariable=heading, style="Eyebrow.TLabel",
+                      padding=(14, 0)).pack(anchor="w")
             ttk.Label(card, textvariable=variable, style="Status.TLabel", wraplength=280).pack(anchor="w")
-            if variable is self.output_status:
-                ttk.Label(card, textvariable=self.receive_recoveries, padding=(14, 0)).pack(anchor="w")
         self.error_notice=tk.StringVar()
         self.error_frame=ttk.Frame(self.root,padding=(18,6))
         ttk.Label(self.error_frame,textvariable=self.error_notice,wraplength=850).pack(side='left')
@@ -1885,7 +1885,7 @@ class Application(Usability):
                 elif kind == 'receive_gap':
                     self.diagnostics.record('receive_gap', **value)
                     if value['code'] == 'recovered':
-                        self.receive_recoveries.set(f"Receive recoveries: {value['recovery_count']}")
+                        self.audio_output_heading.set(f"AUDIO OUTPUT · RX RECOVERIES: {value['recovery_count']}")
                         self._journal(f"Receive audio recovered after {value['gap_ms'] / 1000:.1f} seconds.")
                     continue
                 elif kind == 'power_event':

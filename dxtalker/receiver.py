@@ -7,7 +7,7 @@ import threading
 import time
 
 STALE_AFTER = 1.0
-STOP_AFTER = 10.0
+STOP_AFTER = 60.0
 CAPTURE_APIS = frozenset(('Windows WASAPI', 'MME', 'Windows MME', 'Windows DirectSound',
                           'Windows WDM-KS', 'ALSA', 'OSS', 'JACK', 'Core Audio'))
 

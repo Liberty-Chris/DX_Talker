@@ -53,7 +53,7 @@ class DetectorTests(unittest.TestCase):
             feed(0)
         tick[0]=13.9;feed(0);self.assertFalse(monitor.ready())
         tick[0]=14;feed(0);self.assertTrue(monitor.ready())
-        tick[0]=24
+        tick[0]=74
         with self.assertRaisesRegex(ValueError,'monitoring failed'):monitor.ready()
         feed(0);monitor.feed(b'\0\0',fault=True)
         with self.assertRaises(ValueError):monitor.ready()
@@ -75,7 +75,7 @@ class DetectorTests(unittest.TestCase):
         tick[0]=20.9;feed(0);self.assertFalse(monitor.ready())
         tick[0]=21;feed(0);self.assertTrue(monitor.ready())
 
-    def test_brief_gap_recovers_into_quiet_and_counts_once(self):
+    def test_gap_can_recover_just_before_sixty_seconds_and_counts_once(self):
         tick = [0.0]
         events = []
         monitor = ReceiveMonitor(lambda: tick[0], lambda kind, data: events.append(data))
@@ -84,12 +84,13 @@ class DetectorTests(unittest.TestCase):
         tick[0] = 2.0
         self.assertEqual(monitor.snapshot(), ('recovering', None, 0))
         self.assertFalse(monitor.ready())
-        tick[0] = 4.0
+        tick[0] = 59.9
+        self.assertFalse(monitor.ready())
         monitor.feed(b'\0\0')
         self.assertTrue(monitor.ready())
         self.assertEqual(monitor.recoveries, 1)
         self.assertEqual([event['code'] for event in events], ['started', 'recovered'])
-        self.assertEqual(events[1]['gap_ms'], 4000)
+        self.assertEqual(events[1]['gap_ms'], 59900)
         self.assertEqual(events[0]['gap_id'], events[1]['gap_id'])
 
     def test_recovery_does_not_count_missing_audio_toward_traffic_hold(self):
@@ -119,7 +120,7 @@ class DetectorTests(unittest.TestCase):
                     self.assertEqual(monitor.snapshot()[0], 'fault')
                     monitor.stream.active = True
                 else:
-                    tick[0] = 10.0
+                    tick[0] = 60.0
                 monitor.feed(b'\0\0')
                 with self.assertRaises(ValueError):
                     monitor.ready()

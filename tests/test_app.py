@@ -86,7 +86,7 @@ class AppTests(unittest.TestCase):
         monitor.feed(b'\0\0')
         self.app._poll()
 
-        self.assertEqual(self.app.receive_recoveries.get(), 'Receive recoveries: 1')
+        self.assertEqual(self.app.audio_output_heading.get(), 'AUDIO OUTPUT · RX RECOVERIES: 1')
         self.assertEqual(self.app.error_notice.get(), '')
         log = self.app.diagnostics.directory / 'diagnostics.jsonl'
         events = [json.loads(line) for line in log.read_text(encoding='utf-8').splitlines()]

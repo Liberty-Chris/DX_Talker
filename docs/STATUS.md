@@ -459,6 +459,8 @@ Verification on Linux exercised 356 Python cases, including the graphical deskto
 
 ## November 21, 2026. Receive audio gap recovery
 
-An established receive stream now pauses RF after more than one second without fresh samples. Playback interruption releases PTT even during half duplex blanking. Fresh valid samples before the ten second cutoff recover the existing session. A persistent gap or capture fault disables RF. The Audio Output card counts recoveries for the app session. The diagnostic export records each gap with its timing, result and capture context.
+An established receive stream now pauses RF after more than one second without fresh samples. Playback interruption releases PTT even during half duplex blanking. Fresh valid samples before the 60 second cutoff recover the existing session. A persistent gap or capture fault disables RF. The Audio Output heading counts recoveries for the app session. The diagnostic export records each gap with its timing, result and capture context.
+
+The first hosted run showed that a separate recovery counter row pushed Catch Up below the compact Live spots panel on Windows and Linux. Putting the count in the existing Audio Output heading preserves the status area height.
 
 The graphical Linux run completed 361 Python cases with one native Windows test skipped. Synthetic tests verified quiet recovery, renewed quiet timing after detected traffic, the persistent gap cutoff, an inactive stream, PTT release and ID retry, and the counter and diagnostic record without an error notice. Documentation and version checks passed. All 118 generated XP Python files parsed with Python 3.4 syntax. Recovery on the affected Windows 10 computer and physical PTT behavior still need bench verification.
