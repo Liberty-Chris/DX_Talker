@@ -41,13 +41,19 @@ class DetectorTests(unittest.TestCase):
         feed(0);self.assertTrue(monitor.ready())
         tick[0]=1;feed(6000);self.assertEqual(monitor.snapshot()[0],'busy')
         tick[0]=2;feed(0);self.assertEqual(monitor.snapshot()[2],5)
+        for instant in range(3, 7):
+            tick[0] = instant
+            feed(0)
         tick[0]=6.9;feed(0);self.assertFalse(monitor.ready())
         tick[0]=7;feed(0);self.assertTrue(monitor.ready())
         tick[0]=8;feed(6000);self.assertFalse(monitor.ready())
         tick[0]=9;feed(0)
+        for instant in range(10, 14):
+            tick[0] = instant
+            feed(0)
         tick[0]=13.9;feed(0);self.assertFalse(monitor.ready())
         tick[0]=14;feed(0);self.assertTrue(monitor.ready())
-        tick[0]=16
+        tick[0]=74
         with self.assertRaisesRegex(ValueError,'monitoring failed'):monitor.ready()
         feed(0);monitor.feed(b'\0\0',fault=True)
         with self.assertRaises(ValueError):monitor.ready()
@@ -63,8 +69,63 @@ class DetectorTests(unittest.TestCase):
         tick[0]=12;feed(0);self.assertEqual(monitor.snapshot()[2],5)
         tick[0]=15;feed(6000);self.assertEqual(monitor.snapshot()[0],'busy')
         tick[0]=16;feed(0)
+        for instant in range(17, 21):
+            tick[0] = instant
+            feed(0)
         tick[0]=20.9;feed(0);self.assertFalse(monitor.ready())
         tick[0]=21;feed(0);self.assertTrue(monitor.ready())
+
+    def test_gap_can_recover_just_before_sixty_seconds_and_counts_once(self):
+        tick = [0.0]
+        events = []
+        monitor = ReceiveMonitor(lambda: tick[0], lambda kind, data: events.append(data))
+        monitor.stream = SimpleNamespace(active=True)
+        monitor.feed(b'\0\0')
+        tick[0] = 2.0
+        self.assertEqual(monitor.snapshot(), ('recovering', None, 0))
+        self.assertFalse(monitor.ready())
+        tick[0] = 59.9
+        self.assertFalse(monitor.ready())
+        monitor.feed(b'\0\0')
+        self.assertTrue(monitor.ready())
+        self.assertEqual(monitor.recoveries, 1)
+        self.assertEqual([event['code'] for event in events], ['started', 'recovered'])
+        self.assertEqual(events[1]['gap_ms'], 59900)
+        self.assertEqual(events[0]['gap_id'], events[1]['gap_id'])
+
+    def test_recovery_does_not_count_missing_audio_toward_traffic_hold(self):
+        tick = [0.0]
+        monitor = ReceiveMonitor(lambda: tick[0])
+        monitor.stream = SimpleNamespace(active=True)
+        monitor.feed(array('h', [6000]).tobytes())
+        tick[0] = 0.5
+        monitor.feed(b'\0\0')
+        tick[0] = 6.0
+        monitor.feed(b'\0\0')
+        self.assertEqual(monitor.snapshot()[2], 5)
+        self.assertEqual(monitor.recoveries, 1)
+
+    def test_late_callback_cannot_clear_an_expired_or_inactive_stream(self):
+        for inactive in (False, True):
+            with self.subTest(inactive=inactive):
+                tick = [0.0]
+                events = []
+                monitor = ReceiveMonitor(lambda: tick[0], lambda kind, data: events.append(data))
+                monitor.stream = SimpleNamespace(active=True)
+                monitor.feed(b'\0\0')
+                tick[0] = 2.0
+                self.assertFalse(monitor.ready())
+                if inactive:
+                    monitor.stream.active = False
+                    self.assertEqual(monitor.snapshot()[0], 'fault')
+                    monitor.stream.active = True
+                else:
+                    tick[0] = 60.0
+                monitor.feed(b'\0\0')
+                with self.assertRaises(ValueError):
+                    monitor.ready()
+                self.assertEqual(monitor.recoveries, 0)
+                self.assertEqual([event['code'] for event in events], ['started', 'failed'])
 
     def test_existing_seven_second_setting_migrates_to_five(self):
         import tempfile
@@ -230,5 +291,42 @@ class ReceiverEngineTests(unittest.TestCase):
         wait_for(lambda:bool(self.ptts) and not self.engine.enabled and not self.engine.busy)
         self.assertFalse(monitor.blanked)
         self.assertEqual(self.ptts[0].calls[-2:],[False,'close'])
+
+    def test_receive_gap_releases_half_duplex_ptt_and_retries_id_after_recovery(self):
+        tick = [0.0]
+        entered = threading.Event()
+        self.guarded()
+        self.engine.configure(replace(self.engine.settings, receive_half_duplex=True,
+                                      ptt_method='RTS', serial_port='COM99'))
+        monitor = ReceiveMonitor(clock=lambda: tick[0])
+
+        def start(settings):
+            monitor.stream = SimpleNamespace(active=True, abort=lambda: None, close=lambda: None)
+            monitor.feed(b'\0\0')
+
+        class GapDuringPlayback(FakeAudio):
+            def play(this, clip, device, volume, cancel, deadline):
+                super().play(clip, device, volume, cancel, deadline)
+                if len(this.played) == 1:
+                    entered.set()
+                    if cancel.wait(2):
+                        raise Cancelled()
+
+        self.engine.monitor = monitor
+        self.engine.audio = GapDuringPlayback()
+        with patch.object(monitor, 'start', side_effect=start):
+            self.engine.enable()
+            self.assertTrue(entered.wait(2))
+            tick[0] = 2.0
+            wait_for(lambda: not self.engine.busy)
+            self.assertEqual(self.ptts[0].calls[-2:], [False, 'close'])
+            self.assertTrue(self.engine.enabled)
+            self.assertEqual(self.engine.alternate, 0)
+            self.assertEqual(monitor.snapshot()[0], 'recovering')
+            tick[0] = 4.0
+            monitor.feed(b'\0\0')
+            self.engine.wake.set()
+            wait_for(lambda: self.engine.alternate == 1 and not self.engine.busy)
+            self.assertEqual(monitor.recoveries, 1)
 
 del _EngineTests

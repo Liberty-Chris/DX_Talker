@@ -73,6 +73,26 @@ class AppTests(unittest.TestCase):
         self.assertEqual(set(self.root.winfo_children()),before)
         self.assertTrue(self.app.filter_editor.frame.winfo_ismapped())
 
+    def test_receive_recovery_updates_counter_and_exports_diagnostic(self):
+        import json
+        from types import SimpleNamespace
+
+        tick = [0.0]
+        monitor = self.app.engine.monitor
+        monitor.clock = lambda: tick[0]
+        monitor.stream = SimpleNamespace(active=True, abort=lambda: None, close=lambda: None)
+        monitor.feed(b'\0\0')
+        tick[0] = 3.0
+        monitor.feed(b'\0\0')
+        self.app._poll()
+
+        self.assertEqual(self.app.audio_output_heading.get(), 'AUDIO OUTPUT · RX RECOVERIES: 1')
+        self.assertEqual(self.app.error_notice.get(), '')
+        log = self.app.diagnostics.directory / 'diagnostics.jsonl'
+        events = [json.loads(line) for line in log.read_text(encoding='utf-8').splitlines()]
+        gaps = [event for event in events if event['event'] == 'receive_gap']
+        self.assertEqual([event['code'] for event in gaps], ['started', 'recovered'])
+        self.assertEqual(gaps[-1]['gap_ms'], 3000)
 
     def test_inline_filters_autosave_and_presets_without_reconnecting(self):
         from types import SimpleNamespace
