@@ -468,3 +468,7 @@ The graphical Linux run completed 361 Python cases with one native Windows test 
 ## November 21, 2026. Beta 8 publication preparation
 
 The publication preflight rejected the PR 52 merge because the Beta 7 tag points to the previous build. Beta 8 aligns the app, Windows metadata, bundled help and release notes, and advances the Android version code to 27. Version, documentation and publication target checks passed locally.
+
+## November 22, 2026. Beta 9 publication preparation
+
+Run 45069983628 stopped at publication preflight because the Beta 8 tag points to the previous release commit. Beta 9 aligns the app, Windows metadata, bundled help and release notes for the DigiRig Lite update. Android advances to version code 28. Local version, documentation and publication target checks passed. Physical DigiRig Lite keying and release still need a bench test.
