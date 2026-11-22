@@ -24,7 +24,7 @@ VOX sends audio without controlling a PTT line. Your radio or interface must alr
 
 RTS, DTR and RTS+DTR control compatible serial PTT wiring. Select the COM port and PTT active high setting. Unchecking active high reverses the selected line's polarity. Unused lines stay low. Serial flow control is not used.
 
-A USB audio device does not necessarily supply PTT. CM108 HID interfaces, including RIM devices, are not controlled by these serial modes. CAT and vendor specific interfaces are also not included yet. Exact hardware compatibility needs a bench test.
+On modern Windows, CM108 HID controls the DigiRig Lite's USB PTT on GPIO3. Select its USB PTT device separately from its audio input and output. CAT and vendor specific interfaces still need separate adapters.
 
 ## Traditional PC serial ports and DB9 wiring
 
@@ -81,7 +81,7 @@ Without a source, RF can still send initial, periodic and manually requested IDs
 
 ## Compact Audio / PTT controls
 
-Audio outputs, Push to talk, Transmit timing and Audio levels are separate compact groups. Device selectors have bounded widths and numeric fields show their units and ranges. Refresh devices updates both audio and serial choices and stops output as before. VOX hides serial port and polarity fields; choosing a serial PTT method shows them again with their saved values. Changing the visible method does not change the configured hardware until settings are saved and applied. CM108 HID and CAT remain outside this pilot.
+Audio outputs, Push to talk, Transmit timing and Audio levels are separate compact groups. Device selectors have bounded widths and numeric fields show their units and ranges. Refresh devices updates audio, serial and USB PTT choices. Each PTT method shows only its relevant fields and retains the other methods’ saved selections. Use Apply radio changes to activate edits for normal output.
 
 ## Radio setup recipes
 
@@ -91,7 +91,7 @@ For an HF transceiver with built in USB audio, select its USB audio device and s
 
 For an FM mobile such as a Kenwood TM-V71A or TM-281, use an interface matched to that radio's audio input, ground and PTT connections. Some data connectors provide different receive audio pins and levels; transmission needs the transmit audio path and optional receive monitoring needs a separate receive audio path. Do not infer a pinout or level from another Kenwood model. Use the exact radio and interface manuals before making a cable. Select VOX only if the radio/interface actually keys from the provided audio. Otherwise use a compatible RTS/DTR interface with verified polarity.
 
-For a RIM/CM108 interface, Windows may expose usable audio but the app does not drive its HID PTT. Use a separately supported PTT path or an already configured VOX interface. A repeater controller's COS/COR, CTCSS and flat/deemphasized audio paths need a controller-specific integration; choosing an audio device does not implement those functions.
+For a DigiRig Lite on modern Windows, connect the Lite and click Refresh devices. Choose CM108 HID and select the Lite under USB PTT device. Its descriptor may read USB Audio Device with a reference in brackets. If multiple entries have the same name, refresh with the Lite disconnected and again with it connected to identify the matching reference. Moving the Lite to a different USB port may require selecting it again. Set Radio output and, when receive monitoring is enabled, Receive input to the Lite’s Windows sound devices. With output stopped, use Test PTT for 2 seconds and confirm the radio keys and returns to receive. Apply radio changes for IDs and announcements. Physical acceptance of other CM108 interfaces is still pending. Repeater controller integration also needs its own audio and receive signaling support.
 
 Preview CW and voice locally first. With the test radio path ready, enable RF to send the initial ID and verify keying, lead/tail timing, volume and release. Stop RF while an item is playing and verify unkeying. Test device unplug and source failure before normal operation. Check FM deviation with appropriate equipment; this app has no deviation measurement or hardware carrier detector. Audio Morse IDs are transmitted audio, not direct hardware CW keying.
 
@@ -112,7 +112,7 @@ Use a squelched receive output that goes quiet when the channel clears. Continuo
 
 ## Test PTT
 
-With output stopped, choose the serial method, COM port and polarity, then Test PTT for 2 seconds. The test uses the visible settings without applying unrelated source or ID edits. It needs no cluster, spoken ID or audio output. It asserts the configured RTS/DTR line for two seconds and releases it through the same coordinator, cancellation path and watchdog used by normal radio output. Stop All Output or Escape cancels it immediately. RF remains disabled afterward. No separate test path bypasses serialization.
+With output stopped, choose the serial method, port and polarity or choose CM108 HID and its USB device. Click Test PTT for 2 seconds. The test uses the visible settings without applying unrelated source or ID edits. It needs no cluster, spoken ID or audio output. It asserts the selected PTT for two seconds and releases it through the same coordinator, cancellation path and watchdog used by normal radio output. Stop All Output or Escape cancels it immediately. RF remains disabled afterward. No separate test path bypasses serialization.
 
 When receive monitoring is selected, the test first opens that input and requires fresh receiver samples. Quiet input is immediately clear; detected receive audio requires five seconds of silence afterward. In full duplex mode, incoming audio interrupts keying and releases PTT. In half duplex mode, busy audio is ignored while keyed and during one second of settling after release. A fresh quiet sample after settling permits the next item; only actual detected receive activity creates the five second hold. Input failure stops the test in either mode. VOX cannot be tested by toggling a serial line; use an appropriately monitored audio/ID test after setting up the radio path. VOX lead time remains receive guarded because audio has not yet keyed the radio.
 

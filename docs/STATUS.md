@@ -14,7 +14,7 @@ TCP/Telnet connections support incremental lines, option negotiation, common cal
 
 Audio output is selected explicitly for preview and radio use. Windows System.Speech renders audio before PTT is asserted. CW is audio Morse. Voice IDs use generated speech or validated PCM16 WAV audio. ID policy can be CW, Voice, Alternate or Both.
 
-PTT adapters support serial RTS, DTR, both lines and an explicit VOX mode. CM108 HID, CAT and vendor specific controls remain open. Compatibility with physical interfaces is not yet claimed.
+PTT adapters support serial RTS, DTR, both lines, VOX and DigiRig Lite USB PTT on modern Windows. Simulated DigiRig tests cover exact device selection, GPIO3 keying and release, short writes and the manual PTT test through the transmission coordinator. Windows package verification and physical DigiRig Lite acceptance are pending. CAT and vendor specific controls remain open.
 
 One coordinator prioritizes IDs, serializes audio, limits the queue, expires spots and attempts PTT release on completion, cancellation and errors. Source loss disables RF. Startup and recovery require deliberate RF enable. Explicit valid radio Apply preserves already enabled RF after cleanup unless Stop, source loss or a new output fault intervenes. Passwords and tokens are never journaled. A source profile can optionally remember its secret using Windows account DPAPI protection. Ordinary settings exclude credentials.
 

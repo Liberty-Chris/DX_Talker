@@ -42,7 +42,10 @@ def run(report_path):
         from .profiles import protect_secret
         from datetime import datetime
         from .appearance import load_appearance
-        from .ptt import serial_ports
+        from .ptt import cm108_devices, cm108_supported, serial_ports
+
+        if cm108_supported():
+            report["cm108_usb_discovery"] = len(cm108_devices())
 
         speech = WindowsSpeech()
         voices = speech.voices(threading.Event())

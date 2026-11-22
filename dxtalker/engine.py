@@ -702,12 +702,11 @@ class Engine:
                     self.emit("activity", "Idle")
 
     def test_ptt(self, settings=None):
-        import re
         from dataclasses import replace
         s=replace(settings or self.settings,lead_ms=0,tail_ms=0)
         s.validate()
         if s.ptt_method=='VOX':raise ValueError('VOX needs an audio test. Use a monitored radio ID test after setup.')
-        if not re.fullmatch(r'COM[1-9]\d{0,2}',s.serial_port,re.I):raise ValueError('Choose the serial COM port to test')
+        s.validate_ptt()
         with self.lock:
             if self.enabled or self.local_enabled or self.busy or self.items:raise ValueError('Stop output and wait for Idle before testing PTT')
             self.monitor.close()

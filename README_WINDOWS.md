@@ -44,7 +44,7 @@ For a compatible HTTPS feed, choose HTTPS JSON and enter a URL that follows the 
 
 ## Prepare radio output
 
-Choose the radio's exact audio device. Select VOX only for an interface or radio configured to key from audio. Otherwise choose serial RTS, DTR or RTS+DTR and the correct COM port and polarity. These methods require compatible wiring. CM108 HID interfaces such as RIM devices need a future HID adapter and are not controlled by the current serial PTT implementation.
+Choose the radio's exact audio device. For DigiRig Lite, choose CM108 HID and select its USB PTT device. For DigiRig Mobile, choose RTS and its COM port. Other serial interfaces use RTS, DTR or RTS+DTR with compatible wiring and polarity. Choose VOX for an interface or radio configured to key from audio. See [radio setup](docs/help/radio.md).
 
 Set lead time, tail time and the maximum transmit duration. Save and apply. Configure CW and voice text and the ID policy. Supervise operation on a clear or coordinated channel. Busy channel detection is not implemented.
 

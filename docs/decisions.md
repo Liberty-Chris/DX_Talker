@@ -42,6 +42,12 @@ This keeps the parsing, connection and transmission policies testable on other s
 
 Audio selection uses an exact host API and device name and rejects ambiguous matches. Device indexes are resolved again before playback. Serial PTT supports RTS, DTR or both, with explicit active polarity. VOX is an operator selected alternative. CM108 HID, CAT and vendor specific PTT remain future adapters.
 
+## DigiRig Lite USB PTT, November 22, 2026
+
+Use HIDAPI in the modern Windows build to select the DigiRig Lite's CM108B USB interface and control GPIO3. The known USB identity is 0D8C:0012. Because the codec can lack a serial number, select the exact Windows device path through a short reference shown in the dropdown and require reselection when that path changes. Keep USB PTT and sound device selection independent. The existing coordinator owns the two second test and all transmission timing and release attempts.
+
+[Digirig Lite setup manual](https://digirig.net/digirig-lite-setup-manual/)
+
 ## D007 Separate rights for new and original work
 
 Decided October 17, 2026.

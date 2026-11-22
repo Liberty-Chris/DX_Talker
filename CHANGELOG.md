@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+Add DigiRig Lite USB PTT on modern Windows. Select its CM108 HID device for the two second PTT test, station IDs and spot announcements.
+
 ## 1.0.0b8
 
 Pause RF through brief receive callback gaps, release PTT if keyed and continue after fresh input returns. Stop RF on a gap of 60 seconds or a capture fault. Show a session recovery count and log the timing and capture context of each gap.

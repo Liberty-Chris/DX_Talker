@@ -173,6 +173,19 @@ class AssistantEngineTests(unittest.TestCase):
     setUp=_EngineTests.setUp
     tearDown=_EngineTests.tearDown
     spot=_EngineTests.spot
+    def test_cm108_ptt_test_works_without_serial_or_audio(self):
+        from dxtalker.ptt import CM108_METHOD
+        settings = replace(self.settings, ptt_method=CM108_METHOD, hid_ptt_device="DigiRig",
+                           serial_port="", radio_device="", cw_text="")
+        with patch("dxtalker.ptt.cm108_supported", return_value=True):
+            self.engine.test_ptt(settings)
+        wait_for(lambda: bool(self.ptts) and True in self.ptts[0].calls)
+        self.engine.stop()
+        wait_for(lambda: not self.engine.busy)
+        self.assertEqual(self.ptts[0].calls, ["open", True, False, "close"])
+        self.assertFalse(self.engine.enabled)
+        self.assertFalse(self.audio.played)
+
     def test_ptt_test_uses_coordinator_and_stop_releases_without_speech_or_audio(self):
         self.engine.test_ptt(replace(self.settings,ptt_method='RTS',serial_port='COM8',cw_text=''))
         wait_for(lambda:bool(self.ptts) and True in self.ptts[0].calls)
