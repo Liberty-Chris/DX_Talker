@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.0b9
 
 Add DigiRig Lite USB PTT on modern Windows. Select its CM108 HID device for the two second PTT test, station IDs and spot announcements.
 

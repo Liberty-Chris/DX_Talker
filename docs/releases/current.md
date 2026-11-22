@@ -1,7 +1,5 @@
-DX Talker 1.0.0b8 improves recovery when receive audio briefly stops.
+DX Talker 1.0.0b9 adds USB PTT for the DigiRig Lite on modern Windows.
 
-After one second without fresh samples, DX Talker pauses RF and releases PTT if keyed. When valid samples return before 60 seconds have elapsed since the last good sample, the radio session can resume. If the gap reaches 60 seconds or the device reports a capture fault, RF disables and must be reenabled manually.
+In Audio / PTT, click Refresh devices, select CM108 HID and choose the Lite as the USB PTT device. Select its audio devices separately. Test PTT for 2 seconds lets you verify that the radio keys and returns to receive before you enable RF. The same PTT method handles station IDs and spot announcements.
 
-The Audio Output heading shows how many times receive audio has recovered in the current session. Exported diagnostics describe the length and outcome of each interruption.
-
-The five second quiet period still applies after detected traffic. Android remains a listener and uses version code 27.
+Android listening behavior is unchanged. The APK uses version code 28.
