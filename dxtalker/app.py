@@ -21,7 +21,7 @@ from .audio import AudioOutput, WindowsSpeech
 from .linux_speech import EspeakSpeech
 from .engine import Engine
 from .models import UTC, Settings, load_settings, parse_line, save_settings, settings_path
-from .ptt import serial_ports
+from .ptt import CM108_METHOD, cm108_devices, cm108_supported, serial_ports
 from .source import SourceClient
 from .profiles import ProfileStore, SOURCE_FIELDS
 from .history import History
@@ -662,12 +662,19 @@ class Application(Usability):
         ptt.grid(row=1, column=0, sticky="w", pady=(0, 12))
         ptt.columnconfigure(0, minsize=120)
         ptt.columnconfigure(2, weight=1)
-        self._field(ptt, 0, "Method", "ptt_method", ["VOX", "RTS", "DTR", "RTS+DTR"], compact=True)
+        methods = ["VOX", "RTS", "DTR", "RTS+DTR"]
+        if cm108_supported():
+            methods.append(CM108_METHOD)
+        self._field(ptt, 0, "Method", "ptt_method", methods, compact=True)
         self.serial_ptt_fields = ttk.Frame(ptt)
         self.serial_ptt_fields.grid(row=1, column=0, columnspan=3, sticky="w")
         self.serial_ptt_fields.columnconfigure(0, minsize=120)
         self._field(self.serial_ptt_fields, 0, "Serial port", "serial_port", [], compact=True)
         self._field(self.serial_ptt_fields, 1, "Active high", "active_high", note="Unchecked means active low", compact=True)
+        self.usb_ptt_fields = ttk.Frame(ptt)
+        self.usb_ptt_fields.grid(row=1, column=0, columnspan=3, sticky="w")
+        self._field(self.usb_ptt_fields, 0, "USB PTT device", "hid_ptt_device", [], compact=True)
+        self.combos["hid_ptt_device"].configure(width=42)
         self.ptt_hint = tk.StringVar()
         ttk.Label(ptt, textvariable=self.ptt_hint, wraplength=610).grid(row=2, column=0, columnspan=3, sticky="w", pady=(8, 0))
         ttk.Button(ptt,text='Test PTT for 2 seconds',command=self.guard(self._test_ptt)).grid(row=3,column=0,columnspan=2,sticky='w',pady=8)
@@ -709,7 +716,7 @@ class Application(Usability):
             ttk.Label(power, text='Applies while listening, RF or a preview is active. Does not change Num Lock, screensaver or lock settings. Save and apply.', wraplength=610).grid(row=1,column=0,columnspan=3,sticky='w',pady=(8,0))
 
     def _test_ptt(self):
-        keys=('ptt_method','serial_port','active_high','receive_guard','receive_half_duplex','receive_device','receive_threshold_db','receive_quiet_seconds','max_tx_seconds')
+        keys=('ptt_method','serial_port','hid_ptt_device','active_high','receive_guard','receive_half_duplex','receive_device','receive_threshold_db','receive_quiet_seconds','max_tx_seconds')
         values={}
         for key in keys:
             try:values[key]=type(getattr(Settings(),key))(self.variables[key].get())
@@ -744,10 +751,18 @@ class Application(Usability):
         self.render_cache.configure(self.receive_test_button,state='disabled' if self.engine.enabled or self.engine.local_enabled or self.engine.busy else 'normal',text='Stop receive test' if state!='off' else 'Test receive input')
 
     def _ptt_method_changed(self):
-        vox = self.variables["ptt_method"].get() == "VOX"
-        self.serial_ptt_fields.grid_remove() if vox else self.serial_ptt_fields.grid()
-        self.ptt_hint.set("VOX needs a radio or interface already set up for VOX; the app sends audio without controlling a PTT line." if vox else
-                          "RTS/DTR control lines do not send CAT commands. No baud setting is needed for this method. Choose the compatible interface and polarity.")
+        method = self.variables["ptt_method"].get()
+        self.serial_ptt_fields.grid_remove()
+        self.usb_ptt_fields.grid_remove()
+        if method == "VOX":
+            hint = "VOX needs a radio or interface already set up for VOX. The app sends audio without controlling a PTT line."
+        elif method == CM108_METHOD:
+            self.usb_ptt_fields.grid()
+            hint = "Choose the DigiRig Lite USB PTT device. Set its speakers and receive input separately."
+        else:
+            self.serial_ptt_fields.grid()
+            hint = "RTS/DTR control lines do not send CAT commands. No baud setting is needed. Choose the compatible interface and polarity."
+        self.ptt_hint.set(hint)
 
     def _id_tab(self):
         frame = self.tabs["Identification"]
@@ -1793,6 +1808,12 @@ class Application(Usability):
             self.emit("journal", f"Found {len(devices)} audio output names")
         except Exception as exc:
             self.emit("journal", f"Device discovery unavailable ({type(exc).__name__}). Check the installed audio and serial dependencies.")
+        try:
+            devices = tuple(sorted(cm108_devices()))
+        except ValueError as exc:
+            devices = ()
+            self.emit("journal", str(exc))
+        self.combos["hid_ptt_device"].configure(values=devices)
 
     def _load_voices(self):
         def task():

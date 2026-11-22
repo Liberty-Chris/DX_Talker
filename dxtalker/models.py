@@ -165,6 +165,7 @@ class Settings:
     receive_quiet_seconds: int = 5  # Legacy settings key; receiver hold is fixed at five seconds.
     ptt_method: str = "VOX"
     serial_port: str = ""
+    hid_ptt_device: str = ""
     active_high: bool = True
     lead_ms: int = 300
     tail_ms: int = 200
@@ -240,6 +241,8 @@ class Settings:
     text_size: int = 10
 
     def validate(self) -> Settings:
+        from .ptt import CM108_METHOD
+
         for f in fields(self):
             value, default = getattr(self, f.name), getattr(Settings(), f.name)
             if type(value) is not type(default):
@@ -262,7 +265,7 @@ class Settings:
             if not low <= getattr(self, name) <= high:
                 raise ValueError(f"{name.replace('_', ' ')} must be between {low} and {high}")
         for name, options in {"source_type": ("TCP/Telnet", "HTTPS JSON"),
-                              "ptt_method": ("VOX", "RTS", "DTR", "RTS+DTR"),
+                              "ptt_method": ("VOX", "RTS", "DTR", "RTS+DTR", CM108_METHOD),
                               "voice_mode": ("Speech", "WAV"),
                               "speech_provider": ("Windows", "eSpeak NG", "Piper", "Recorded", "ElevenLabs"),
                               "frequency_unit": ("kHz", "MHz"),
@@ -329,16 +332,26 @@ class Settings:
             if url.scheme != "https" or not url.hostname or url.username or url.password or url.fragment:
                 raise ValueError("Enter an HTTPS feed URL without embedded credentials or a fragment")
 
+    def validate_ptt(self):
+        from .ptt import CM108_METHOD, cm108_supported
+
+        if self.ptt_method == CM108_METHOD:
+            if not cm108_supported():
+                raise ValueError("CM108 USB PTT is available in the modern Windows build")
+            if not self.hid_ptt_device:
+                raise ValueError("Choose the DigiRig Lite in USB PTT device")
+        elif self.ptt_method != "VOX":
+            windows_port = re.fullmatch(r"COM[1-9]\d{0,2}", self.serial_port, re.I)
+            linux_port = sys.platform.startswith('linux') and re.fullmatch(r'/dev/(?:tty(?:USB|ACM|S)\d+|rfcomm\d+|serial/by-id/[A-Za-z0-9_.:+-]+)', self.serial_port)
+            if not (windows_port or linux_port): raise ValueError("Choose a serial port for PTT")
+
     def validate_rf(self):
         self.validate()
         if self.receive_guard and not self.receive_device:
             raise ValueError("Choose a receive audio input or turn off receive monitoring")
         if not self.radio_device:
             raise ValueError("Choose a radio audio device")
-        if self.ptt_method != "VOX":
-            windows_port = re.fullmatch(r"COM[1-9]\d{0,2}", self.serial_port, re.I)
-            linux_port = sys.platform.startswith('linux') and re.fullmatch(r'/dev/(?:tty(?:USB|ACM|S)\d+|rfcomm\d+|serial/by-id/[A-Za-z0-9_.:+-]+)', self.serial_port)
-            if not (windows_port or linux_port): raise ValueError("Choose a serial port for PTT")
+        self.validate_ptt()
         from .id_schedule import entries
         from .audio import wav_clip
         for item in entries(self.voice_ids):

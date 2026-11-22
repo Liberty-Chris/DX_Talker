@@ -18,9 +18,9 @@ A successful workflow is evidence for that commit and runner only. It is not a W
 
 ## Operator acceptance still open
 
-Listen to sample callsigns and frequencies and both IDs on Windows 11. Test live cluster sign in and reconnect. Verify the selected radio output, audio format, gain and serial or VOX behavior. Confirm PTT polarity and lead and tail timing using the actual interface.
+Listen to sample callsigns and frequencies and both IDs on Windows 11. Test live cluster sign in and reconnect. Verify the selected radio output, audio format, gain and the selected serial, USB HID or VOX behavior. Confirm PTT polarity and lead and tail timing using the actual interface.
 
-Verify stop, timeout, device removal, source loss and application exit. Record radio model, interface, driver, Windows version, observed behavior and any hardware timeout. Busy channel detection, CM108 HID and CAT support are outside this pilot.
+Verify stop, timeout, device removal, source loss and application exit. Record radio model, interface, driver, Windows version, observed behavior and any hardware timeout. For the DigiRig Lite, check its PTT LED and radio TX indicator during the two second test, a voice ID and a spot announcement. Verify that Stop releases PTT. CAT and hardware carrier detection remain outside this pilot.
 
 ## Preservation
 

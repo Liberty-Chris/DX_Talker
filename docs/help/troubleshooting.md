@@ -34,7 +34,7 @@ Check Local preview output and Radio audio output separately. The app never inte
 
 ## No PTT
 
-VOX does not drive a PTT line. Configure radio or interface VOX separately or use supported serial wiring with RTS or DTR. Check COM port and polarity. CM108 HID and CAT require future support.
+For a DigiRig Lite on modern Windows, choose CM108 HID and select the Lite as the USB PTT device. Refresh devices if the selection disappears after reconnecting. Use Test PTT for 2 seconds and watch both the Lite’s red light and the radio’s TX indicator. For a DigiRig Mobile, use RTS and check its COM port and polarity. VOX requires audio operated keying on the radio or interface.
 
 ## Output does not stop
 
