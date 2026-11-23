@@ -16,5 +16,5 @@ object ListeningSettings {
         }
         return result
     }
-    fun validate(filters: JSONObject) = TransferCodec.validateFilters(filters, allowPresets = false)
+    fun validate(filters: JSONObject) = TransferCodec.validateFilters(filters)
 }

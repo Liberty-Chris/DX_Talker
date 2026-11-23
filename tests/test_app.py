@@ -856,25 +856,30 @@ class AppTests(unittest.TestCase):
         self.assertEqual(app.spot_states[next(iter(app.spots))][0],'muted')
         self.assertFalse(app.engine.items)
 
-    def test_collection_qr_starts_with_all_profiles_and_paginates(self):
+    def test_listening_qr_opens_from_filters_without_cluster_profiles(self):
         from tkinter import ttk
         import tkinter as tk
-        self.app.profile_store.save('Home',Settings(),'secret',False)
-        self.app.profile_store.save('Travel',Settings(),'secret',False)
-        self.app._profile_qr()
-        dialog=next(w for w in self.root.winfo_children() if isinstance(w,tk.Toplevel))
+
         def descendants(widget):
             for child in widget.winfo_children():
                 yield child
                 yield from descendants(child)
-        picker=next(w for w in descendants(dialog) if isinstance(w,tk.Listbox))
-        self.assertEqual(picker.curselection(),(0,1))
-        generate=next(w for w in descendants(dialog) if isinstance(w,ttk.Button) and w.cget('text')=='Generate QR codes')
-        with patch("dxtalker.app.messagebox.showerror", side_effect=AssertionError("QR generation failed")):
-            generate.invoke()
-        self.root.update()
-        self.assertTrue(any(isinstance(w,ttk.Label) and str(w.cget('textvariable')) for w in descendants(dialog)))
-        dialog.destroy()
+
+        self.assertFalse(self.app.profile_store.profiles)
+        buttons = descendants(self.app.filter_editor.frame)
+        share = next(w for w in buttons if isinstance(w, ttk.Button) and w.cget('text') == 'Send to phone')
+        with patch("dxtalker.transfer.qr_sequence", return_value=["Page one", "Page two"]) as sequence:
+            share.invoke()
+        self.assertEqual(set(sequence.call_args[0][0]), {"schema", "version", "filters"})
+        dialog = next(w for w in self.root.winfo_children() if isinstance(w, tk.Toplevel))
+        try:
+            controls = {w.cget('text'): w for w in descendants(dialog) if isinstance(w, ttk.Button)}
+            self.assertTrue(controls["Previous"].instate(["disabled"]))
+            controls["Next"].invoke()
+            self.assertTrue(controls["Next"].instate(["disabled"]))
+            self.assertTrue(controls["Previous"].instate(["!disabled"]))
+        finally:
+            dialog.destroy()
 
     def test_elevenlabs_window_requires_no_key_and_does_not_generate_on_open(self):
         from dxtalker.elevenlabs_ui import ElevenLabsDialog
