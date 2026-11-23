@@ -5,8 +5,28 @@ from pathlib import Path
 import unittest
 import zlib
 from dxtalker import transfer
+from dxtalker.models import Settings
 
 class CollectionQrTests(unittest.TestCase):
+    def test_listening_qr_exports_active_filters_and_presets_without_cluster_data(self):
+        settings = Settings(host='private.example', login='KF4DBX', special_keywords='US-',
+                            special_calls='W1AW', filter_bands='20m',
+                            listening_presets='{"CW":{"filter_modes":"CW","special_keywords":"US-"}}')
+        data = transfer.listening_document(settings)
+        pages = transfer.qr_sequence(data)
+        self.assertEqual(len(pages), 1)
+        self.assertEqual(transfer.decode(pages[0]), data)
+        self.assertEqual(data['version'], 4)
+        self.assertEqual(set(data), {'schema', 'version', 'filters'})
+        raw = transfer.encode(data)
+        self.assertNotIn(b'private.example', raw)
+        self.assertNotIn(b'KF4DBX', raw)
+        self.assertEqual(data['filters']['special_calls'], 'W1AW')
+        self.assertEqual(data['filters']['filter_bands'], '20m')
+        self.assertEqual(json.loads(data['filters']['listening_presets'])['CW']['special_keywords'], 'US-')
+        with self.assertRaises(ValueError):
+            transfer.validate(dict(data, profiles=[]))
+
     def test_desktop_fixture_contains_every_selected_profile_and_filters(self):
         fixture=json.loads((Path(__file__).resolve().parents[1]/'android/app/src/test/resources/desktop_collection.json').read_text())
         data,pages=fixture['data'],fixture['pages']

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.0b10
+
+Send active listening filters and saved presets to Android from Filters, independently of cluster connections. Android preloads the bundled active cluster recommendations when no saved profile list exists. Entries such as US- now match US-1366 in the brag box.
+
 ## 1.0.0b9
 
 Add DigiRig Lite USB PTT on modern Windows. Select its CM108 HID device for the two second PTT test, station IDs and spot announcements.

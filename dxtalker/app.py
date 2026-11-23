@@ -506,10 +506,6 @@ class Application(Usability):
         self.log = tk.Text(frame, height=3, wrap="word", state="disabled", font=("Consolas", 9), relief="flat")
         self.log.grid(row=7, column=0, sticky="ew")
 
-    def _profile_qr(self):
-        from .sharing_ui import show_profile_qr
-        show_profile_qr(self)
-
     def _export_profiles(self):
         if not self.profile_store or not self.profile_store.profiles:
             raise ValueError('Save a cluster profile first')
@@ -579,7 +575,7 @@ class Application(Usability):
         self._connection_control(buttons).pack(side="left")
         sharing = ttk.Frame(profiles)
         sharing.grid(row=4, column=0, columnspan=2, sticky="w", pady=(8,0))
-        for label, action in (("QR to phone", self._profile_qr), ("Export profiles", self._export_profiles), ("Cluster directory", self._cluster_directory)):
+        for label, action in (("Export profiles", self._export_profiles), ("Cluster directory", self._cluster_directory)):
             ttk.Button(sharing, text=label, command=self.guard(action)).pack(side="left", padx=(0,8))
         self.profile_status = tk.StringVar()
         ttk.Label(profiles, textvariable=self.profile_status, wraplength=610).grid(row=3, column=0, columnspan=2, sticky="w")

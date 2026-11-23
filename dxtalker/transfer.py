@@ -11,15 +11,22 @@ from .profiles import SOURCE_FIELDS
 from .listening import FIELDS
 FILTER_FIELDS = (*FIELDS, 'listening_presets')
 MAX_BYTES = 65536
+LISTENING_VERSION = 4
 
 def validate(data):
-    if not isinstance(data, dict) or data.get('schema') != 'dxtalker-transfer' or type(data.get('version')) is not int or data.get('version') not in (1, 2, 3):
+    if not isinstance(data, dict) or data.get('schema') != 'dxtalker-transfer' or type(data.get('version')) is not int or data.get('version') not in (1, 2, 3, LISTENING_VERSION):
         raise ValueError('Unsupported DX Talker transfer')
-    if set(data) != {'schema', 'version', 'profiles', 'filters'} or not isinstance(data['profiles'], list) or not data['profiles']:
-        raise ValueError('Transfer must contain profiles and filters only')
+    listening = data['version'] == LISTENING_VERSION
+    fields = {'schema', 'version', 'filters'}
+    if set(data) != (fields if listening else fields | {'profiles'}):
+        raise ValueError('Invalid DX Talker transfer fields')
     if not isinstance(data['filters'], dict) or set(data['filters']) - set(FILTER_FIELDS):
         raise ValueError('Unsupported filter fields')
     base = replace(Settings(), **data['filters']).validate()
+    if listening:
+        return data
+    if not isinstance(data['profiles'], list) or not data['profiles']:
+        raise ValueError('Transfer must contain at least one cluster profile')
     for item in data['profiles']:
         if not isinstance(item, dict) or set(item) != {'name', 'connection'}:
             raise ValueError('Credentials and unknown profile fields cannot be transferred')
@@ -39,9 +46,13 @@ def document(profiles, settings):
                          profiles=[dict(name=p['name'], connection=dict(p['connection'])) for p in profiles],
                          filters={k:getattr(settings,k) for k in FILTER_FIELDS}))
 
+def listening_document(settings):
+    return validate(dict(schema='dxtalker-transfer', version=LISTENING_VERSION,
+                         filters={key: getattr(settings, key) for key in FILTER_FIELDS}))
+
 def encode(data, qr=False):
     raw = json.dumps(validate(data), separators=(',', ':'), ensure_ascii=True).encode()
-    if len(raw) > MAX_BYTES: raise ValueError('Transfer exceeds 64 KiB; export fewer profiles')
+    if len(raw) > MAX_BYTES: raise ValueError('Transfer exceeds 64 KiB; reduce the collection size')
     if not qr: return raw
     text = 'DXT1:' + base64.urlsafe_b64encode(zlib.compress(raw)).decode().rstrip('=')
     if len(text.encode()) > 1800: raise ValueError('Too much data for one readable QR. Select one profile or use a file.')

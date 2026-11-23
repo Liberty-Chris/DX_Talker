@@ -1,5 +1,5 @@
-DX Talker 1.0.0b9 adds USB PTT for the DigiRig Lite on modern Windows.
+DX Talker 1.0.0b10 adds listening settings and preset transfer by QR.
 
-In Audio / PTT, click Refresh devices, select CM108 HID and choose the Lite as the USB PTT device. Select its audio devices separately. Test PTT for 2 seconds lets you verify that the radio keys and returns to receive before you enable RF. The same PTT method handles station IDs and spot announcements.
+On desktop, open Filters and choose Send to phone. In Android Filters, choose Scan listening QR. Review and import the active filters and saved presets together. Android keeps its cluster connections and preloads the recommended clusters when no saved list exists.
 
-Android listening behavior is unchanged. The APK uses version code 28.
+Special words ending in a hyphen now match a prefix. Enter US- to catch US-1366 in the brag box. Android uses version code 29.

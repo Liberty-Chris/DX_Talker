@@ -52,6 +52,10 @@ def build_filters(app,parent):
         app._apply_listening(current());picker.configure(values=list(presets))
     picker.bind('<<ComboboxSelected>>',lambda event:app.guard(load)())
     for label,action in (('Save',save),('Remove',remove)):ttk.Button(saved,text=label,command=app.guard(action)).pack(side='left',padx=3)
+    def share():
+        from .sharing_ui import show_listening_qr
+        show_listening_qr(app, current())
+    ttk.Button(saved,text='Send to phone',command=app.guard(share)).pack(side='left',padx=3)
     filters=ttk.LabelFrame(frame,text='Choose your interests',padding=12);filters.pack(fill='x',pady=6)
     def choose_modes():
         dialog=tk.Toplevel(window);dialog.title('Modes');dialog.transient(window)
@@ -114,7 +118,7 @@ def build_filters(app,parent):
     ttk.Label(words,text='Words or phrases separated by commas, for example Cobia,USS Cobia,mobile,county hunter',wraplength=620).pack(anchor='w')
     ttk.Entry(words,textvariable=staged['special_keywords'],width=55).pack(fill='x',pady=6)
     ttk.Checkbutton(words,text='Only these words',variable=staged['special_keywords_only']).pack(anchor='w')
-    ttk.Label(words,text='Matches whole words and phrases without case sensitivity. If both Only switches are selected, a listed call OR a listed phrase qualifies. Other filters still apply.',wraplength=620).pack(anchor='w',pady=4)
+    ttk.Label(words,text='Matches whole words and phrases without case sensitivity. End an entry with a hyphen to match a prefix such as US-1366 with US-. If both Only switches are selected, a listed call or phrase qualifies.',wraplength=620).pack(anchor='w',pady=4)
     sounds=ttk.Frame(words);sounds.pack(fill='x',pady=6)
     ttk.Label(sounds,text='Special match sound').pack(side='left',padx=(0,8))
     ttk.Combobox(sounds,textvariable=staged['special_alert'],values=['Off','Double ding','Chime','Beep'],state='readonly',width=16).pack(side='left')

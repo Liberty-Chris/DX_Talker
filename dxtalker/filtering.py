@@ -145,7 +145,8 @@ def keyword_selection(value):
 
 def keyword_matches(comment, words):
     comment = ' '.join(comment.split()).upper()
-    return any(re.search(r'(?<![A-Z0-9])' + re.escape(word) + r'(?![A-Z0-9])', comment) for word in words)
+    return any(re.search(r'(?<![A-Z0-9])' + re.escape(word) +
+                         ('' if word.endswith('-') else r'(?![A-Z0-9])'), comment) for word in words)
 
 
 def special_match(spot, settings):

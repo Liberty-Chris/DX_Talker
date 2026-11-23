@@ -93,7 +93,10 @@ object SpotFilters {
     }
     fun keywordMatches(comment:String,words:List<String>):Boolean {
         val text=comment.trim().replace(Regex("\\s+")," ").uppercase(java.util.Locale.US)
-        return words.any { Regex("(?<![A-Z0-9])"+Regex.escape(it)+"(?![A-Z0-9])").containsMatchIn(text) }
+        return words.any { word ->
+            val end = if (word.endsWith("-")) "" else "(?![A-Z0-9])"
+            Regex("(?<![A-Z0-9])" + Regex.escape(word) + end).containsMatchIn(text)
+        }
     }
     fun specialMatch(spot:DxSpot,get:(String)->String):Boolean {
         val calls=callsSelection(get("special_calls"));val call=spot.call.uppercase(java.util.Locale.US)

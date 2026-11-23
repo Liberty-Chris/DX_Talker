@@ -111,6 +111,7 @@ class MainActivity : Activity() {
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         theme(); super.onCreate(savedInstanceState)
+        preloadClusters()
         window.statusBarColor = background; window.navigationBarColor = background
         savedInstanceState?.getStringArrayList("qr_pages")?.forEach {
             try { qrCollection.accept(it) } catch (_: Exception) { qrCollection.reset() }
@@ -226,9 +227,16 @@ class MainActivity : Activity() {
             ListeningSettings.validate(values)
             val editor=prefs.edit();for(key in changes)editor.putString(key,values.get(key).toString());editor.apply()
             for(key in changes)drafts.remove("Filters:$key")
-            if(ListenerService.listeningActive)command("apply") else { ListenerService.refilterDisplayed { key -> prefs.getString(key,ListeningSettings.defaults[key] ?: "").orEmpty() };synchronized(ListenerService.hidden){ListenerService.hidden.clear()} }
+            applyListeningFilters()
             refreshFilterPending()
         } catch(error:Exception) { filterApplyStatus?.text="Not saved: "+keys.joinToString(", ") { it.replace('_',' ') }+". Check this field and its allowed range." }
+    }
+    private fun applyListeningFilters() {
+        if (ListenerService.listeningActive) command("apply")
+        else {
+            ListenerService.refilterDisplayed { key -> prefs.getString(key, ListeningSettings.defaults[key] ?: "").orEmpty() }
+            synchronized(ListenerService.hidden) { ListenerService.hidden.clear() }
+        }
     }
     private fun saveFilter(key:String) {
         val keys=if(key in listOf("min_khz","max_khz"))setOf("min_khz","max_khz").filter { drafts.containsKey("Filters:$it") }.toSet() else if((key.startsWith("special_calls") || key.startsWith("special_keywords")))setOf("special_calls","special_calls_only","special_calls_portable","special_keywords","special_keywords_only").filter { drafts.containsKey("Filters:$it") }.toSet() else setOf(key)
@@ -317,16 +325,26 @@ class MainActivity : Activity() {
     private fun showHome() = go("Listen",true)
     private fun showProfiles() = go("Clusters",true)
     private fun profiles(): JSONArray = try { JSONArray(prefs.getString("profiles", "[]")) } catch (_: Exception) { JSONArray() }
+    private fun preloadClusters() {
+        if (prefs.contains("profiles")) return
+        val entries = runCatching {
+            ClusterDirectory.read(assets.open("catalog/clusters.json").bufferedReader().use { it.readText() })
+        }.getOrNull() ?: return
+        val defaults = JSONArray()
+        for (i in 0 until entries.length()) {
+            val entry = entries.getJSONObject(i)
+            if (entry.getString("status") == "active") defaults.put(ClusterDirectory.profile(entry))
+        }
+        prefs.edit().putString("profiles", defaults.toString()).apply()
+    }
     private fun profilesContent() {
-        val tools = section("Bring your clusters along")
-        tools.addView(button("Scan desktop QR collection") { scanQr() })
-        if(qrCollection.scanned > 0) { tools.addView(label("${qrCollection.scanned} of ${qrCollection.total} QR pages collected",14f)); tools.addView(button("Reset scan") { qrCollection.reset(); render() }) }
+        val tools = section("Manage clusters")
         tools.addView(button("Import profile file") { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE),201) })
         tools.addView(button("Browse recommended clusters") { go("Directory") })
         tools.addView(button("Load cluster directory file") { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE),203) })
         tools.addView(button("Add cluster") { editProfile(null) })
         val entries = profiles()
-        if(entries.length() == 0) root.addView(label("Add a cluster or scan your desktop collection to get started.",15f,secondary))
+        if(entries.length() == 0) root.addView(label("Choose a recommended cluster or add your own.",15f,secondary))
         for(i in 0 until entries.length()) {
             val p = entries.getJSONObject(i); val row = section(p.optString("name","Cluster"))
             row.addView(label(if(p.optString("source_type") == "HTTPS JSON") p.optString("feed_url") else p.optString("host")+":"+p.optString("port"),14f,secondary))
@@ -360,7 +378,7 @@ class MainActivity : Activity() {
                     val current=profiles();val name=entry.getString("name")
                     if((0 until current.length()).any { current.getJSONObject(it).optString("name")==name })Toast.makeText(this,"A profile with this name is already saved",Toast.LENGTH_LONG).show()
                     else {
-                        current.put(JSONObject().put("name",name).put("host",c.getString("host")).put("port",c.getInt("port").toString()).put("call",c.getString("login").ifBlank { prefs.getString("call","").orEmpty() }).put("password","").put("source_type",c.getString("source_type")).put("feed_url",c.getString("feed_url")).put("poll_seconds",c.getInt("poll_seconds").toString()))
+                        current.put(ClusterDirectory.profile(entry, prefs.getString("call", "").orEmpty()))
                         prefs.edit().putString("profiles",current.toString()).apply();Toast.makeText(this,"Cluster saved. Choose it in Clusters when ready.",Toast.LENGTH_LONG).show()
                     }
                 }.apply { isEnabled=entry.getString("status")=="active" })
@@ -512,6 +530,12 @@ class MainActivity : Activity() {
         fun staged(key:String)=drafts["Filters:$key"] ?: prefs.getString(key,ListeningSettings.defaults[key] ?: "").orEmpty()
         panel.addView(label(SpotFilters.summary { staged(it) }+" · "+staged("frequency_unit"),14f,secondary))
         panel.addView(label("Changes save automatically and update displayed and announced spots. Your cluster stays connected.",13f,secondary))
+        panel.addView(button("Scan listening QR") { scanQr() })
+        panel.addView(button("Import listening file") { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE),201) })
+        if (qrCollection.scanned > 0) {
+            panel.addView(label("${qrCollection.scanned} of ${qrCollection.total} QR pages collected", 14f))
+            panel.addView(button("Reset scan") { qrCollection.reset(); render() })
+        }
         val saved=section("Listening presets").apply { visibility=if(drafts["Filters:presets_open"]=="true")View.VISIBLE else View.GONE }
         panel.addView(button("Listening presets") { drafts["Filters:presets_open"]=(drafts["Filters:presets_open"]!="true").toString();render() })
         val presets=runCatching { JSONObject(prefs.getString("listening_presets","{}").orEmpty()) }.getOrDefault(JSONObject())
@@ -558,7 +582,7 @@ class MainActivity : Activity() {
         panel.addView(label("Special calls match the spotted DX station, not the spotter.",13f,secondary))
         edit(panel,"Special words or phrases (Cobia,mobile,county hunter)",staged("special_keywords"),key="special_keywords")
         panel.addView(CheckBox(this).apply { text="Only these words";setTextColor(ink);isChecked=staged("special_keywords_only")=="true";setOnCheckedChangeListener { _,checked->drafts["Filters:special_keywords_only"]=checked.toString();saveFilters(setOf("special_keywords","special_keywords_only")) } })
-        panel.addView(label("Whole word or phrase matching ignores case. Either Only switch limits listening to its matches. With both selected, a listed call OR word qualifies. Listed calls bypass band selection; keywords do not. Mode and other filters still apply.",13f,secondary))
+        panel.addView(label("Whole words and phrases ignore case. An entry ending in a hyphen matches a prefix, so US- matches US-1366. With both Only switches on, a listed call or word qualifies. Other filters still apply.",13f,secondary))
         spinner(panel,"Special match sound",SpecialAlert.sounds,staged("special_alert").ifBlank { "Off" },key="special_alert")
         panel.addView(label("The sound plays before matching announcements. Mute, Pause, Stop and repeat suppression also control sounds.",13f,secondary))
         panel.addView(CheckBox(this).apply { text="Use activity wording during mixed listening";setTextColor(ink);isChecked=staged("activity_announcements")=="true";setOnCheckedChangeListener { _,checked -> drafts["Filters:activity_announcements"]=checked.toString();saveFilter("activity_announcements") } })
@@ -588,25 +612,35 @@ class MainActivity : Activity() {
         } catch (_: Exception) { Toast.makeText(this,"Invalid or unsupported DX Talker transfer",Toast.LENGTH_LONG).show() }
     }
     private fun reviewImportData(data: JSONObject) {
-        try {
-            val profiles = data.getJSONArray("profiles")
-            val description = (0 until profiles.length()).joinToString("\n") {
-                val p = profiles.getJSONObject(it); val c = p.getJSONObject("connection")
-                p.getString("name") + ": " + (if (c.getString("source_type") == "TCP/Telnet") c.getString("host") + ":" + c.getInt("port") else c.getString("feed_url"))
-            }
-            importData=data
-            go("Import collection")
-        } catch (_: Exception) { Toast.makeText(this,"Invalid or unsupported DX Talker transfer",Toast.LENGTH_LONG).show() }
+        importData = data
+        go("Import collection")
     }
     private fun importContent() {
         val data=importData ?: return
-        val panel=section("Import collection")
-        val entries=data.getJSONArray("profiles")
-        for(i in 0 until entries.length())panel.addView(label(entries.getJSONObject(i).getString("name")))
-        panel.addView(label("Adds these profiles and imports their filters. Existing profiles are preserved and duplicate names are renamed. Credentials are excluded. No connection starts automatically.",14f,secondary))
-        panel.addView(button("Import ${entries.length()} profiles and filters") {
-            try { TransferCodec.importInto(data,prefs);drafts.keys.filter { it.startsWith("Filters:") }.toList().forEach { drafts.remove(it) };importData=null;showProfiles() }
-            catch(_:Exception) { inform("Import could not be saved. Try again.") }
+        val listening = TransferCodec.isListening(data)
+        val panel = section(if (listening) "Import listening settings" else "Import cluster profiles")
+        if (listening) {
+            val filters = data.getJSONObject("filters")
+            val presets = JSONObject(filters.optString("listening_presets", "{}"))
+            panel.addView(label(SpotFilters.summary { filters.optString(it, ListeningSettings.defaults[it] ?: "") }))
+            for (name in presets.keys().asSequence().sorted()) panel.addView(label(name))
+            panel.addView(label("Applies these filters now and adds saved presets. If a name is already used for different settings, the imported preset gets a new name.",14f,secondary))
+        } else {
+            val entries = data.getJSONArray("profiles")
+            for (i in 0 until entries.length()) panel.addView(label(entries.getJSONObject(i).getString("name")))
+            panel.addView(label("Adds these cluster profiles and applies their filters. Duplicate cluster names are renamed.",14f,secondary))
+        }
+        panel.addView(button(if (listening) "Import listening settings" else "Import clusters and filters") {
+            try {
+                TransferCodec.importInto(data,prefs)
+                filterSaves.values.forEach { uiHandler.removeCallbacks(it) }
+                filterSaves.clear()
+                drafts.keys.removeAll { it.startsWith("Filters:") }
+                applyListeningFilters()
+                importData = null
+                go(if (listening) "Filters" else "Clusters", true)
+            } catch (error: IllegalArgumentException) { inform(error.message ?: "Import could not be saved.") }
+            catch (_: Exception) { inform("Import could not be saved. Try again.") }
         })
     }
     private fun scanQr() {

@@ -16,8 +16,5 @@ object ListeningSettings {
         }
         return result
     }
-    fun validate(filters:JSONObject) {
-        val sample=JSONObject("""{"schema":"dxtalker-transfer","version":3,"profiles":[{"name":"Validation","connection":{"source_type":"TCP/Telnet","host":"cluster.example","port":7373,"login":"","feed_url":"","poll_seconds":30}}],"filters":{}}""")
-        sample.put("filters",filters);TransferCodec.decode(sample.toString())
-    }
+    fun validate(filters: JSONObject) = TransferCodec.validateFilters(filters, allowPresets = false)
 }
