@@ -39,7 +39,7 @@ Settings are saved locally. RF and local listening enable state are never saved.
 For speech, keyboard and local listening tools, see Listening and accessibility. History and updates covers retention, log folders and the application update process.
 
 
-For new pilot targets, use the named x64 or x86 download. x86 is a Windows 10 target and does not imply XP compatibility. Separate XP pilot installers bundle the application and its private runtime for Windows XP SP3 in 32 bit or Windows XP x64 SP2 in 64 bit. The older XP source test kit is only a developer listener. Optional recorded voices need a downloaded/generated pack selected in Speech. Cluster profiles and filters can be transferred through Source's QR/file controls without exporting credentials.
+For new pilot targets, use the named x64 or x86 download. x86 is a Windows 10 target and does not imply XP compatibility. Separate XP pilot installers bundle the application and its private runtime for Windows XP SP3 in 32 bit or Windows XP x64 SP2 in 64 bit. The older XP source test kit is only a developer listener. Optional recorded voices need a downloaded/generated pack selected in Speech. Send active filters and saved listening presets to Android from Filters. Cluster profiles can also be exported separately as a file from Source.
 
 ## Windows XP pilot installation
 

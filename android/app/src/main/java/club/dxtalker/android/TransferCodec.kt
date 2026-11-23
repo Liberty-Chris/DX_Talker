@@ -9,18 +9,28 @@ import java.util.zip.Inflater
 object TransferCodec {
     private const val MAX = 65536
     private val connectionKeys = setOf("source_type","host","port","login","feed_url","poll_seconds")
-    private val filterKeys = setOf("min_khz","max_khz","max_age_seconds","repeat_seconds","spacing_seconds","frequency_unit","filter_bands","filter_modes","filter_activities","special_calls","special_calls_only","special_calls_portable","special_keywords","special_keywords_only","special_alert","activity_announcements","license_class","license_region","license_unknown","filter_dx_countries","filter_dx_continents","filter_spotter_countries","filter_spotter_continents","filter_spotter_regions","geography_unknown","location_overrides","listening_presets")
+    private const val LISTENING_VERSION = 4
+    private const val PRESETS = "listening_presets"
+    private val filterKeys = ListeningSettings.defaults.keys + PRESETS
+    fun isListening(data: JSONObject) = data.getInt("version") == LISTENING_VERSION
     private fun keys(value: JSONObject) = value.keys().asSequence().toSet()
     fun decode(text: String): JSONObject {
-        var raw = text.toByteArray(Charsets.UTF_8)
+        val raw = text.toByteArray(Charsets.UTF_8)
         if (text.startsWith("DXT1:")) {
             require(raw.size <= 1800) { "QR transfer too large" }
             return decodeCompressed(Base64.getUrlDecoder().decode(text.substring(5)))
         }
         require(raw.size <= MAX) { "Transfer exceeds 64 KiB" }
         val data = JSONObject(String(raw, Charsets.UTF_8))
-        require(keys(data) == setOf("schema","version","profiles","filters") && data.getString("schema") == "dxtalker-transfer" && data.opt("version") is Int && data.getInt("version") in 1..3) { "Unsupported DX Talker transfer" }
-        val profiles = data.getJSONArray("profiles")
+        require(data.opt("schema") == "dxtalker-transfer" && data.opt("version") is Int &&
+                data.getInt("version") in 1..LISTENING_VERSION) { "Unsupported DX Talker transfer" }
+        val fields = setOf("schema", "version", "filters")
+        require(keys(data) == if (isListening(data)) fields else fields + "profiles") { "Invalid DX Talker transfer fields" }
+        if (!isListening(data)) validateProfiles(data.getJSONArray("profiles"))
+        validateFilters(data.getJSONObject("filters"))
+        return data
+    }
+    private fun validateProfiles(profiles: JSONArray) {
         require(profiles.length() > 0) { "No profiles in transfer" }
         for (i in 0 until profiles.length()) {
             val p = profiles.getJSONObject(i)
@@ -42,8 +52,9 @@ object TransferCodec {
                 require(uri.scheme == "https" && !uri.host.isNullOrBlank() && uri.userInfo == null && uri.fragment == null && uri.query == null) { "Feed URL must be HTTPS without credentials or query parameters" }
             }
         }
-        val f = data.getJSONObject("filters")
-        require(filterKeys.containsAll(keys(f))) { "Unsupported filter fields" }
+    }
+    fun validateFilters(f: JSONObject, allowPresets: Boolean = true) {
+        require(filterKeys.containsAll(keys(f)) && (allowPresets || !f.has(PRESETS))) { "Unsupported filter fields" }
         for(key in keys(f)){
             val value=f.get(key)
             if(value is String)require(value.length <= (if(key=="listening_presets")32768 else if(key in setOf("location_overrides","special_keywords"))8192 else 2048) && value.none { it.code<32 })
@@ -70,11 +81,8 @@ object TransferCodec {
         val presets=JSONObject(f.optString("listening_presets","{}"));require(presets.length()<=30)
         for(name in keys(presets)) {
             require(name.isNotBlank() && name.length<=60 && name.none { it.code<32 })
-            val values=presets.getJSONObject(name);require(!values.has("listening_presets"))
-            val check=JSONObject(data.toString()).put("filters",values)
-            decode(check.toString())
+            validateFilters(presets.getJSONObject(name), allowPresets = false)
         }
-        return data
     }
     fun decodeCompressed(compressed: ByteArray): JSONObject {
         require(compressed.size <= MAX + 1024) { "Compressed transfer too large" }
@@ -95,10 +103,47 @@ object TransferCodec {
         } finally { inflater.end() }
     }
     fun importInto(data: JSONObject, prefs: SharedPreferences) {
-        // Call only after decode and explicit review. One editor commits all changes atomically.
-        val existing = JSONArray(prefs.getString("profiles","[]"))
+        // Commit the filters and presets together after review and validation.
+        val editor = prefs.edit()
+        val filters = data.getJSONObject("filters")
+        val incomingPresets = filters.optString(PRESETS, "{}")
+        val presets = if (isListening(data)) {
+            mergePresets(prefs.getString(PRESETS, "{}").orEmpty(), incomingPresets)
+        } else {
+            editor.putString("profiles", appendProfiles(data.getJSONArray("profiles"), prefs))
+            incomingPresets
+        }
+        for ((key, default) in ListeningSettings.defaults) {
+            editor.putString(key, filters.opt(key)?.toString() ?: default)
+        }
+        editor.putString(PRESETS, presets)
+        check(editor.commit()) { "Could not save imported listening settings" }
+    }
+    private fun mergePresets(saved: String, incoming: String): String {
+        val existing = JSONObject(saved)
+        val additions = JSONObject(incoming)
+        for (name in keys(additions)) {
+            val values = additions.getJSONObject(name)
+            var candidate = name
+            var suffix = 2
+            while (existing.has(candidate) && !samePreset(existing.getJSONObject(candidate), values)) {
+                val ending = " (import ${suffix++})"
+                candidate = name.take(60 - ending.length) + ending
+            }
+            existing.put(candidate, values)
+        }
+        val merged = existing.toString()
+        require(existing.length() <= 30 && merged.length <= 32768) {
+            "The combined listening presets exceed the limit. Remove some presets before importing."
+        }
+        return merged
+    }
+    private fun samePreset(left: JSONObject, right: JSONObject): Boolean =
+        keys(left) == keys(right) && keys(left).all { left.get(it).toString() == right.get(it).toString() }
+
+    private fun appendProfiles(incoming: JSONArray, prefs: SharedPreferences): String {
+        val existing = JSONArray(prefs.getString("profiles", "[]"))
         val names = (0 until existing.length()).map { existing.getJSONObject(it).optString("name").lowercase() }.toMutableSet()
-        val incoming = data.getJSONArray("profiles")
         for (i in 0 until incoming.length()) {
             val p = incoming.getJSONObject(i); val c = p.getJSONObject("connection")
             var name = p.getString("name"); var suffix = 2
@@ -108,10 +153,6 @@ object TransferCodec {
                 .put("call",c.getString("login")).put("password", "").put("source_type",c.getString("source_type"))
                 .put("feed_url",c.getString("feed_url")).put("poll_seconds",c.getInt("poll_seconds")))
         }
-        val editor = prefs.edit().putString("profiles",existing.toString())
-        val f = data.getJSONObject("filters")
-        for (key in filterKeys) if (f.has(key)) editor.putString(key,f.get(key).toString())
-        for(key in filterKeys) if(!f.has(key))editor.putString(key,when(key) { "license_class"->"Off";"license_region"->"US Region 2";"listening_presets"->"{}";"special_calls_portable"->"true";"special_alert"->"Off";"special_keywords_only","special_calls_only","activity_announcements","license_unknown","geography_unknown"->"false";"min_khz"->"1";"max_khz"->"10000000";"max_age_seconds"->"180";"repeat_seconds"->"300";"spacing_seconds"->"5";"frequency_unit"->"kHz";else->"" })
-        check(editor.commit()) { "Could not save imported profiles" }
+        return existing.toString()
     }
 }

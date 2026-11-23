@@ -3,6 +3,13 @@ import org.json.JSONObject
 import org.json.JSONArray
 
 object ClusterDirectory {
+    fun profile(entry: JSONObject, call: String = ""): JSONObject {
+        val connection = entry.getJSONObject("connection")
+        return JSONObject().put("name", entry.getString("name")).put("host", connection.getString("host"))
+            .put("port", connection.getInt("port").toString()).put("call", connection.getString("login").ifBlank { call })
+            .put("password", "").put("source_type", connection.getString("source_type"))
+            .put("feed_url", connection.getString("feed_url")).put("poll_seconds", connection.getInt("poll_seconds").toString())
+    }
     fun read(text:String):JSONArray {
         require(text.toByteArray().size<=65536)
         val data=JSONObject(text)

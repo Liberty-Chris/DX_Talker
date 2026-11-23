@@ -1958,6 +1958,54 @@
     "match": true
   },
   {
+    "line": "DX de N0CALL: 14225 K1ABC SSB US-1366 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_keywords": "US-",
+      "special_keywords_only": true
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 K1ABC SSB US- 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_keywords": "US-",
+      "special_keywords_only": true
+    },
+    "match": true
+  },
+  {
+    "line": "DX de N0CALL: 14225 K1ABC SSB RUS-1366 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_keywords": "US-",
+      "special_keywords_only": true
+    },
+    "match": false
+  },
+  {
+    "line": "DX de N0CALL: 14225 K1ABC SSB US 1234Z",
+    "mode": "SSB",
+    "activities": [
+      "General"
+    ],
+    "filters": {
+      "special_keywords": "US-",
+      "special_keywords_only": true
+    },
+    "match": false
+  },
+  {
     "line": "DX de N0CALL: 14225 K1ABC SSB USS Cobia 1234Z",
     "mode": "SSB",
     "activities": [

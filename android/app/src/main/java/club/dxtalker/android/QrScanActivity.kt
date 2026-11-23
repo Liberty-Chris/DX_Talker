@@ -39,7 +39,7 @@ class QrScanActivity : Activity() {
             } else view.setPadding(16+insets.systemWindowInsetLeft,16+insets.systemWindowInsetTop,16+insets.systemWindowInsetRight,16+insets.systemWindowInsetBottom)
             insets
         }
-        message=TextView(this).apply { text="Scan a DX Talker collection QR";setTextColor(Color.WHITE);textSize=18f;setPadding(8,16,8,16);accessibilityLiveRegion=View.ACCESSIBILITY_LIVE_REGION_POLITE }
+        message=TextView(this).apply { text="Scan a DX Talker listening QR";setTextColor(Color.WHITE);textSize=18f;setPadding(8,16,8,16);accessibilityLiveRegion=View.ACCESSIBILITY_LIVE_REGION_POLITE }
         panel.addView(message)
         panel.addView(Button(this).apply { text="Close scanner";isAllCaps=false;setOnClickListener { closeScanner() } })
         setContentView(panel)
