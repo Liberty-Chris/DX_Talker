@@ -16,6 +16,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.action.ViewActions.scrollTo
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.*
 import org.junit.Assert.*
@@ -68,11 +69,11 @@ class CameraTests {
         }
         ActivityScenario.launch(MainActivity::class.java).use {
             onView(withText("Filters")).perform(click())
-            onView(withText("Scan listening QR")).perform(click())
+            onView(withText("Scan listening QR")).perform(scrollTo(), click())
             permissionButton("permission_deny_button")
             onView(withText("Camera permission needed")).inRoot(isDialog()).check(matches(isDisplayed()))
             onView(withText("Close")).inRoot(isDialog()).perform(click())
-            onView(withText("Scan listening QR")).perform(click())
+            onView(withText("Scan listening QR")).perform(scrollTo(), click())
             permissionButton("permission_allow_foreground_only_button")
             val scannerWindow=focusedWindow(QrScanActivity::class.java)
             onView(withText("Close scanner")).inRoot(withDecorView(equalTo(scannerWindow))).check(matches(isDisplayed()))
@@ -82,7 +83,7 @@ class CameraTests {
             assertTrue("Virtual camera preview must actually start",log.exists() && log.readText().contains("qr_camera_preview_started"))
             onView(withText("Close scanner")).inRoot(withDecorView(equalTo(scannerWindow))).perform(click())
             val mainWindow=focusedWindow(MainActivity::class.java)
-            onView(withText("Scan listening QR")).inRoot(withDecorView(equalTo(mainWindow))).check(matches(isDisplayed()))
+            onView(withText("Scan listening QR")).inRoot(withDecorView(equalTo(mainWindow))).perform(scrollTo()).check(matches(isDisplayed()))
         }
     }
 }

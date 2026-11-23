@@ -46,7 +46,7 @@ class NavigationTests {
             scenario.recreate()
             onView(withText("Dad portable")).check(matches(isDisplayed())); screenshot("edit-cluster")
             androidx.test.espresso.Espresso.pressBack()
-            onView(withText("Bring your clusters along")).check(matches(isDisplayed()))
+            onView(withText("Manage clusters")).check(matches(isDisplayed()))
             onView(withText("Settings")).perform(click())
             onView(withText("What do you want to hear?")).perform(click())
             onView(withText("Bands: All")).perform(click());onView(withText("None")).perform(click());onView(withText("Bands: None")).perform(click())

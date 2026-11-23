@@ -530,12 +530,6 @@ class MainActivity : Activity() {
         fun staged(key:String)=drafts["Filters:$key"] ?: prefs.getString(key,ListeningSettings.defaults[key] ?: "").orEmpty()
         panel.addView(label(SpotFilters.summary { staged(it) }+" · "+staged("frequency_unit"),14f,secondary))
         panel.addView(label("Changes save automatically and update displayed and announced spots. Your cluster stays connected.",13f,secondary))
-        panel.addView(button("Scan listening QR") { scanQr() })
-        panel.addView(button("Import listening file") { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE),201) })
-        if (qrCollection.scanned > 0) {
-            panel.addView(label("${qrCollection.scanned} of ${qrCollection.total} QR pages collected", 14f))
-            panel.addView(button("Reset scan") { qrCollection.reset(); render() })
-        }
         val saved=section("Listening presets").apply { visibility=if(drafts["Filters:presets_open"]=="true")View.VISIBLE else View.GONE }
         panel.addView(button("Listening presets") { drafts["Filters:presets_open"]=(drafts["Filters:presets_open"]!="true").toString();render() })
         val presets=runCatching { JSONObject(prefs.getString("listening_presets","{}").orEmpty()) }.getOrDefault(JSONObject())
@@ -573,6 +567,12 @@ class MainActivity : Activity() {
         })
         for((key,title,values) in listOf(Triple("filter_bands","Bands",SpotFilters.bands.keys.toList()+"Other"),Triple("filter_modes","Modes",SpotFilters.modes),Triple("filter_activities","Activities",SpotFilters.activities))) {
             panel.addView(button(title+": "+staged(key).replace("General","No activity tag").replace("Unknown","Include unknown").ifBlank { if(key=="filter_modes")"All known modes"else "All" }) { chooseFilter(key,title,values) })
+        }
+        panel.addView(button("Scan listening QR") { scanQr() })
+        panel.addView(button("Import listening file") { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE),201) })
+        if (qrCollection.scanned > 0) {
+            panel.addView(label("${qrCollection.scanned} of ${qrCollection.total} QR pages collected", 14f))
+            panel.addView(button("Reset scan") { qrCollection.reset(); render() })
         }
         panel.addView(label("Choose POTA, 20m and SSB to require all three. Listed special calls match on any band. Other spots follow selected bands. Mode comes from a reported tag or a single mode band segment. Include unknown admits uncertain modes within your other selections.",14f,secondary))
         edit(panel,"Special spotted call watch text (comma separated)",staged("special_calls"),key="special_calls")
